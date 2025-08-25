@@ -345,6 +345,27 @@
       "src": "src/ehr/get-employees/index",
       "zip": ".dist/zips/get-employees.zip"
     },
+    "GET-DEVICES": {
+      "name": "GET-DEVICES",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/get-devices/index",
+      "zip": ".dist/zips/get-devices.zip"
+    },
+    "ASSIGN-DEVICES": {
+      "name": "ASSIGN-DEVICES",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/assign-devices/index",
+      "zip": ".dist/zips/assign-devices.zip"
+    },
+    "UNASSIGN-DEVICES": {
+      "name": "UNASSIGN-DEVICES",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/unassign-devices/index",
+      "zip": ".dist/zips/unassign-devices.zip"
+    },
     "SYNC-USER": {
       "name": "SYNC-USER",
       "type": "http_auth",
@@ -509,6 +530,34 @@
       "runtime": "nodejs20.x",
       "src": "src/patient/get-patients/index",
       "zip": ".dist/zips/get-patients.zip"
+    },
+    "GET-PATIENTS-DEVICES": {
+      "name": "GET-PATIENTS-DEVICES",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/patient/get-patients-devices/index",
+      "zip": ".dist/zips/get-patients-devices.zip"
+    },
+    "ASSIGN-THRESHOLD": {
+      "name": "ASSIGN-THRESHOLD",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/assign-threshold/index",
+      "zip": ".dist/zips/assign-threshold.zip"
+    },
+    "GET-VITALS": {
+      "name": "GET-VITALS",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/get-vitals/index",
+      "zip": ".dist/zips/get-vitals.zip"
+    },
+    "GET-DEVICE-VITALS-PATIENT": {
+      "name": "GET-DEVICE-VITALS-PATIENT",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/patient/get-device-vitals-patient/index",
+      "zip": ".dist/zips/get-device-vitals-patient.zip"
     },
     "GET-PAPERWORK": {
       "name": "GET-PAPERWORK",
@@ -1059,7 +1108,10 @@
         "patient": "patient-id",
         "title": "My Questions"
       },
-      "managedFields": ["name", "title"]
+      "managedFields": [
+        "name",
+        "title"
+      ]
     }
   },
   "apps": {
@@ -1082,7 +1134,9 @@
           "effect": "Allow"
         }
       ],
-      "roles": ["#ref/EHR_SUPER_ADMIN"]
+      "roles": [
+        "#ref/EHR_SUPER_ADMIN"
+      ]
     }
   },
   "roles": {

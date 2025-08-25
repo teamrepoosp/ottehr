@@ -8,6 +8,7 @@ import { useIdleTimer } from 'react-idle-timer';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { RoleType, setupSentry } from 'utils';
 import Banner from './components/Banner';
+import { DeviceVitalsPage } from './components/DeviceVitalsPage';
 import LogoutWarning from './components/dialogs/LogoutWarning';
 import { LoadingScreen } from './components/LoadingScreen';
 import Navbar from './components/navigation/Navbar';
@@ -190,6 +191,7 @@ function App(): ReactElement {
                   <Route path="/patient/:id/docs" element={<PatientDocumentsExplorerPage />} />
                   <Route path="/patient/:id/followup/add" element={<AddPatientFollowup />} />
                   <Route path="/patient/:id/followup/:encounterId" element={<PatientFollowup />} />
+
                   <Route path="/telemed-admin" element={<Navigate to={INSURANCES_URL} />} />
                   <Route path={`${STATES_URL}`} element={<TelemedAdminPage />} />
                   <Route path={`${STATES_URL}/:state`} element={<EditStatePage />} />
@@ -229,6 +231,7 @@ function App(): ReactElement {
                   <Route path="/patient/:id/followup/add" element={<AddPatientFollowup />} />
                   <Route path="/patient/:id/followup/:encounterId" element={<PatientFollowup />} />
                   <Route path="/patients" element={<PatientsPage />} />
+                  <Route path="/patient/:patientId/device/:deviceId" element={<DeviceVitalsPage />} />
 
                   <Route path="/rcm/claims" element={<Claims />} />
                   <Route path="/rcm/claims/:id" element={<Claim />} />
