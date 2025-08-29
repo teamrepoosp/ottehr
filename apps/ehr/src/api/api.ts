@@ -41,6 +41,7 @@ import {
   GetConversationZambdaOutput,
   GetCreateInHouseLabOrderResourcesParameters,
   GetCreateInHouseLabOrderResourcesResponse,
+  GetDevicesResponse,
   GetEmployeesResponse,
   GetInHouseOrdersParameters,
   GetLabelPdfParameters,
@@ -78,6 +79,7 @@ import {
   UpdateUserParams,
   UpdateUserZambdaOutput,
   UploadPatientProfilePhotoInput,
+  VitalsData,
 } from 'utils';
 
 export interface PatchOperation {
@@ -964,6 +966,71 @@ export const generatePaperworkPdf = async (
     return chooseJson(response);
   } catch (error: unknown) {
     console.log(error);
+    throw error;
+  }
+};
+
+export const getDevices = async (params: object, oystehr: Oystehr): Promise<GetDevicesResponse> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'get-devices',
+      ...params,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const assignDevices = async (params: object, oystehr: Oystehr): Promise<GetDevicesResponse> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'assign-devices',
+      ...params,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.error('Error assigning devices:', error);
+    throw error;
+  }
+};
+
+export const unassignDevices = async (params: object, oystehr: Oystehr): Promise<GetDevicesResponse> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'unassign-devices',
+      ...params,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.error('Error unassigning devices:', error);
+    throw error;
+  }
+};
+
+export const assignThreshold = async (params: object, oystehr: Oystehr): Promise<GetDevicesResponse> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'assign-threshold',
+      ...params,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.error('Error assigning threshold to devices:', error);
+    throw error;
+  }
+};
+
+export const getVitals = async (params: object, oystehr: Oystehr): Promise<VitalsData> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'get-vitals',
+      ...params,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.error('Error fetching vitals for device:', error);
     throw error;
   }
 };
