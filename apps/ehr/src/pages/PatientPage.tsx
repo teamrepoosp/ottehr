@@ -9,6 +9,7 @@ import { DeviceVitalsPage } from 'src/components/DeviceVitalsPage';
 import { PatientDevicesTab } from 'src/components/PatientDevicesTab';
 import { PatientInHouseLabsTab } from 'src/components/PatientInHouseLabsTab';
 import { PatientRadiologyTab } from 'src/components/PatientRadiologyTab';
+import { PatientReportsTab } from 'src/components/PatientReportsTab';
 import { ThresholdsTable } from 'src/components/ThresholdGrid';
 import { loadRingCentralWidget, postToEmbeddable, waitForRingCentralReady } from 'src/hooks/useRingCentral';
 import { getFirstName, getLastName, ServiceMode } from 'utils';
@@ -297,6 +298,14 @@ export default function PatientPage(): JSX.Element {
                     }
                   />
                 )}
+                {FEATURE_FLAGS.REPORTS_ENABLED && (
+                  <Tab
+                    value="reports"
+                    label={
+                      <Typography sx={{ textTransform: 'none', fontWeight: 500, fontSize: '14px' }}>Reports</Typography>
+                    }
+                  />
+                )}
               </TabList>
             </Box>
 
@@ -340,6 +349,11 @@ export default function PatientPage(): JSX.Element {
                     }
                   />
                 )}
+              </TabPanel>
+            )}
+            {FEATURE_FLAGS.REPORTS_ENABLED && (
+              <TabPanel value="reports" sx={{ p: 0 }}>
+                <PatientReportsTab />
               </TabPanel>
             )}
           </TabContext>

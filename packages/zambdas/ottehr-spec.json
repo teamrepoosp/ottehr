@@ -33,6 +33,14 @@
       "name": "PROJECT_API",
       "value": "#var/PROJECT_API"
     },
+    "API_TOKEN": {
+      "name": "API_TOKEN",
+      "value": "#var/API_TOKEN"
+    },
+    "API_BASE_URL": {
+      "name": "API_BASE_URL",
+      "value": "#var/API_BASE_URL"
+    },
     "ENVIRONMENT": {
       "name": "ENVIRONMENT",
       "value": "#var/ENVIRONMENT"
@@ -367,6 +375,13 @@
       "runtime": "nodejs20.x",
       "src": "src/ehr/get-devices/index",
       "zip": ".dist/zips/get-devices.zip"
+    },
+    "GET-PROVIDER-STAFF-PATIENT": {
+      "name": "GET-PROVIDER-STAFF-PATIENT",
+      "type": "http_auth",
+      "runtime": "nodejs20.x",
+      "src": "src/ehr/get-provider-staff-patient/index",
+      "zip": ".dist/zips/get-provider-staff-patient.zip"
     },
     "GET-SUMMARY": {
       "name": "GET-SUMMARY",
