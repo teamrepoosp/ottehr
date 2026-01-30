@@ -62,7 +62,7 @@ import { PdfExaminationBlockData, VisitNoteData } from '../types';
 import { createVisitNotePDF } from '../visit-note-pdf';
 import { FullAppointmentResourcePackage } from './types';
 
-type AllChartData = {
+export type AllChartData = {
   chartData: GetChartDataResponse;
   additionalChartData?: GetChartDataResponse;
   medicationOrders?: GetMedicationOrdersResponse['orders'];

@@ -11,3 +11,4 @@ export * from './pharmacyInfo';
 export * from './primaryCarePhysician';
 export * from './responsiblePartyInfo';
 export * from './visitInfo';
+export * from './visit-note';
