@@ -44,13 +44,13 @@ import {
   standardizePhoneNumber,
   uploadPDF,
 } from 'utils';
+import { getPatientLastFirstName } from '../patients';
 import { makeZ3Url } from '../presigned-file-urls';
 import { mapResourcesToExternalLabOrders, mapResourcesToInHouseLabOrders } from './helpers/mappers';
 import { ICON_STYLE, PDF_CLIENT_STYLES, Y_POS_GAP } from './pdf-consts';
 import { createPdfClient, PdfInfo, rgbNormalized } from './pdf-utils';
 import { DischargeSummaryData, LineStyle, TextStyle } from './types';
 import { FullAppointmentResourcePackage } from './visit-details-pdf/types';
-import { getPatientLastFirstName } from './visit-details-pdf/visit-note-pdf-creation';
 
 type AllChartData = {
   chartData: GetChartDataResponse;

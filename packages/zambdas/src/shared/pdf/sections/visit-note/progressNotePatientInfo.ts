@@ -1,10 +1,10 @@
 import { Patient, QuestionnaireResponse } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import { getQuestionnaireResponseByLinkId } from 'utils';
+import { getPatientLastFirstName } from '../../../patients';
 import { drawFieldLine } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { PatientInfoForProgressNote, PdfSection, ProgressNotePatientDataInput } from '../../types';
-import { getPatientLastFirstName } from '../../visit-details-pdf/visit-note-pdf-creation';
 
 export const composePatientInformation: DataComposer<ProgressNotePatientDataInput, PatientInfoForProgressNote> = ({
   patient,

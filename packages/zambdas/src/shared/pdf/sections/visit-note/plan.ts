@@ -9,7 +9,7 @@ import {
 import { drawBlockHeader, drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { PdfSection, PlanData } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composePlanData: DataComposer<{ allChartData: AllChartData }, PlanData> = ({ allChartData }) => {
   const { chartData, additionalChartData } = allChartData;

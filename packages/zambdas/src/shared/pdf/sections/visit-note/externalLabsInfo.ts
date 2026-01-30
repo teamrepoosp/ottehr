@@ -4,7 +4,7 @@ import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { ICON_STYLE } from '../../pdf-consts';
 import { rgbNormalized } from '../../pdf-utils';
 import { ExternalLabs, PdfSection, TextStyle } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeExternalLabs: DataComposer<{ allChartData: AllChartData }, ExternalLabs> = ({ allChartData }) => {
   const { additionalChartData, externalLabsData } = allChartData;

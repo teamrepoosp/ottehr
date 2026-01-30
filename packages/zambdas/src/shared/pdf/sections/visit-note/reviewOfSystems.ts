@@ -1,7 +1,7 @@
 import { drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { EncounterInfo, PdfSection, ReviewOfSystems } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeReviewOfSystems: DataComposer<{ allChartData: AllChartData }, ReviewOfSystems> = ({
   allChartData,

@@ -3,7 +3,7 @@ import { mapMedicalConditions } from '../../helpers/mappers';
 import { drawBlockHeader, drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { MedicalConditionsData, PdfSection } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeMedicalConditions: DataComposer<{ allChartData: AllChartData }, MedicalConditionsData> = ({
   allChartData,

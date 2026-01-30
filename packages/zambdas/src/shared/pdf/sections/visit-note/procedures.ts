@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { drawBlockHeader, drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { PdfSection, Procedures } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeProcedures: DataComposer<{ allChartData: AllChartData }, Procedures> = ({ allChartData }) => {
   const { chartData } = allChartData;

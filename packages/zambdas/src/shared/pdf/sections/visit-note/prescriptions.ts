@@ -2,7 +2,7 @@ import { mapResourceByNameField } from '../../helpers/mappers';
 import { drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { PdfSection, Prescriptions } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composePrescriptions: DataComposer<{ allChartData: AllChartData }, Prescriptions> = ({ allChartData }) => {
   const { additionalChartData } = allChartData;

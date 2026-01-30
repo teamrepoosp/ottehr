@@ -1,7 +1,7 @@
 import { drawBlockHeader, drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { Assessment, EncounterInfo, PdfSection } from '../../types';
-import { AllChartData } from '../../visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeAssessment: DataComposer<{ allChartData: AllChartData }, Assessment> = ({ allChartData }) => {
   const { chartData } = allChartData;

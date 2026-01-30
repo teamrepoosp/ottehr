@@ -30,8 +30,7 @@ import {
 } from 'utils';
 import { testDataForOrderForm } from '../../ehr/submit-lab-order/helpers';
 import { Column, PdfInfo } from './pdf-utils';
-import { FullAppointmentResourcePackage } from './visit-details-pdf/types';
-import { AllChartData } from './visit-details-pdf/visit-note-pdf-creation';
+import { AllChartData, FullAppointmentResourcePackage } from './visit-details-pdf/types';
 
 export interface PageElementStyle {
   side?: 'left' | 'right' | 'center';

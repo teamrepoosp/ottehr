@@ -12,10 +12,10 @@ import {
   isInPersonAppointment,
   Timezone,
 } from 'utils';
+import { getPatientLastFirstName } from '../../../patients';
 import { drawFieldLine, drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { PdfSection, ProgressNoteVisitDataInput, VisitDetailsForProgressNote } from '../../types';
-import { getPatientLastFirstName } from '../../visit-details-pdf/visit-note-pdf-creation';
 
 function getStatusRelatedDates(
   encounter: Encounter,
