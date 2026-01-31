@@ -170,7 +170,7 @@ export const makePrepopulatedItemsForPatient = (input: PrePopulationInput): Ques
       ) {
         normalizedReasonForVisit = reasonOption;
       } else if (
-        appointmentServiceCategory === 'workers-compensation' &&
+        appointmentServiceCategory === 'workers-comp' &&
         VALUE_SETS.reasonForVisitOptionsWorkersComp.map((opt) => opt.value).includes(reasonOption)
       ) {
         normalizedReasonForVisit = reasonOption;
