@@ -33,6 +33,7 @@ export interface PdfHeaderConfig<TData extends PdfData> {
 
 export interface PdfRenderConfig<TData extends PdfData> {
   header: PdfHeaderConfig<TData>;
+  headerBodySeparator?: boolean;
   assetPaths: AssetPaths;
   styleFactory: StyleFactory;
   sections: PdfSection<TData, any>[];
@@ -230,8 +231,6 @@ const renderPdfHeader = <TData extends PdfData>(
 
   const maxHeight = Math.max(leftHeight, rightHeight);
   pdfClient.setY(headerStartY - maxHeight);
-
-  pdfClient.drawSeparatedLine(styles.lineStyles.separator);
   console.log('Header rendering complete');
 };
 
@@ -315,6 +314,10 @@ const renderPdf = async <TData extends PdfData>(
   } catch (error) {
     console.error('ERROR rendering header:', error);
     throw error;
+  }
+
+  if (config.headerBodySeparator) {
+    pdfClient.drawSeparatedLine(styles.lineStyles.separator);
   }
 
   console.log('\n=== Rendering Body Sections ===');

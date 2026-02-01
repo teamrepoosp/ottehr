@@ -288,6 +288,7 @@ const progressNoteRenderConfig: PdfRenderConfig<ProgressNoteData> = {
       height: 28,
     },
   },
+  headerBodySeparator: false,
   assetPaths: progressNoteAssetPaths,
   styleFactory: createProgressNoteStyles,
   sections: [
