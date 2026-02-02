@@ -1,4 +1,4 @@
-import { GetPatientBalancesInput, Secrets } from 'utils';
+import { GetPatientBalancesInput, isValidUUID, Secrets } from 'utils';
 import { validateJsonBody, ZambdaInput } from '../../shared';
 
 export interface ValidatedInput {
@@ -29,6 +29,10 @@ const validateBody = (input: ZambdaInput): GetPatientBalancesInput => {
 
   if (typeof patientId !== 'string') {
     throw new Error('patientId must be a string');
+  }
+
+  if (isValidUUID(patientId) === false) {
+    throw new Error('patientId must be a valid UUID');
   }
 
   return {

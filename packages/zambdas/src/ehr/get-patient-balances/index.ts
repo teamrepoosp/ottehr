@@ -53,8 +53,19 @@ async function performEffect(
 ): Promise<GetPatientBalancesOutput> {
   const { patientId } = validatedInput.body;
 
+  const noData = {
+    encounters: [],
+    totalBalanceCents: 0,
+  };
+
   // get all encounters
+  console.group('getFhirEncountersForPatient');
   const encounters = await getFhirEncountersForPatient(_oystehr, patientId);
+  console.groupEnd();
+  console.debug('getFhirEncountersForPatient success');
+  if (encounters.length === 0) {
+    return noData;
+  }
 
   // to keep track of all the separate ids
   const idMap: IdMap = new Map();
@@ -63,7 +74,13 @@ async function performEffect(
   });
 
   // get candid ids from encounters
-  saveCandidEncounterIdsInMap(encounters, idMap);
+  console.group('saveCandidEncounterIdsInMap');
+  const candidEncountersLength = saveCandidEncounterIdsInMap(encounters, idMap);
+  console.groupEnd();
+  console.debug('saveCandidEncounterIdsInMap success');
+  if (candidEncountersLength === 0) {
+    return noData;
+  }
 
   // get all candid encounters
   console.group('creating candid api client');
@@ -72,18 +89,39 @@ async function performEffect(
   console.debug('creating candid api client success');
 
   // todo should i use getCandidInventoryPagesRecursive instead and then filter after the fact?
+  console.group('getAllCandidEncounters');
   const candidEncounters = await getAllCandidEncounters(candidApiClient, idMap);
+  console.groupEnd();
+  console.debug('getAllCandidEncounters success');
+  if (candidEncounters.length === 0) {
+    return noData;
+  }
 
   // Unpack the array of claims (should only be one) and grab the first claim id
-  saveFirstClaimIdInMap(candidEncounters, idMap);
+  console.group('saveFirstClaimIdInMap');
+  const claimsLength = saveFirstClaimIdInMap(candidEncounters, idMap);
+  console.groupEnd();
+  console.debug('saveFirstClaimIdInMap success');
+  if (claimsLength === 0) {
+    return noData;
+  }
 
   console.log('idMap', JSON.stringify(idMap));
 
   // For each Candid claim id, call the Candid invoice itemization API endpoint
+  console.group('getAllCandidClaims');
   const claims = await getAllCandidClaims(candidApiClient, idMap);
+  console.groupEnd();
+  console.debug('getAllCandidClaims success');
+  if (claims.length === 0) {
+    return noData;
+  }
 
   // Save the balances in the map
+  console.group('saveBalancesInMap');
   saveBalancesInMap(claims, idMap);
+  console.groupEnd();
+  console.debug('saveBalancesInMap success');
 
   console.log('idMap with balances', JSON.stringify(idMap));
 
@@ -98,7 +136,6 @@ async function performEffect(
 }
 
 async function getFhirEncountersForPatient(oystehr: Oystehr, patientId: string): Promise<Encounter[]> {
-  console.group('fetching all encounters');
   const encountersResponse = await oystehr.fhir.search<Encounter>({
     resourceType: 'Encounter',
     params: [
@@ -109,33 +146,30 @@ async function getFhirEncountersForPatient(oystehr: Oystehr, patientId: string):
     ],
   });
   const encounters = encountersResponse.unbundle();
-  console.groupEnd();
-  console.debug('fetching all encounters');
   console.log(`Found ${encounters.length} encounters for patient ${patientId}`);
   return encounters;
 }
 
-function saveCandidEncounterIdsInMap(encounters: Encounter[], idMap: IdMap): void {
-  console.group('extracting candid ids');
+function saveCandidEncounterIdsInMap(encounters: Encounter[], idMap: IdMap): number {
   encounters.forEach((encounter) => {
     const candidId = encounter.identifier?.find(
       (identifier) => identifier.system === CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM && identifier.value != null
     )?.value;
     if (!encounter.id || !candidId) {
-      throw new Error('Encounter ID or Candid ID is missing');
+      // no candid id for this encounter
+      return;
     }
     idMap.set(encounter.id, { candidId, claimId: undefined });
   });
-  console.groupEnd();
-  console.debug('extracting candid ids success');
-  console.log(`Found ${Array.from(idMap.values()).filter(({ candidId }) => candidId !== undefined).length} Candid ids`);
+  const length = Array.from(idMap.values()).filter(({ candidId }) => candidId !== undefined).length;
+  console.log(`Found ${length} Candid ids`);
+  return length;
 }
 
 async function getAllCandidEncounters(
   candidApiClient: CandidApiClient,
   idMap: IdMap
 ): Promise<APIResponse<CandidApi.encounters.v4.Encounter, CandidApi.encounters.v4.get.Error._Unknown>[]> {
-  console.group('fetching candid encounters');
   const candidEncounters = await Promise.all(
     Array.from(idMap.values())
       .filter(({ candidId }) => candidId !== undefined)
@@ -143,8 +177,6 @@ async function getAllCandidEncounters(
         return candidApiClient.encounters.v4.get(CandidApi.EncounterId(candidId!));
       })
   );
-  console.groupEnd();
-  console.debug('fetching candid encounters success');
   console.log(`Fetched ${candidEncounters.length} Candid encounters`);
   return candidEncounters;
 }
@@ -152,8 +184,7 @@ async function getAllCandidEncounters(
 function saveFirstClaimIdInMap(
   candidEncounters: APIResponse<CandidApi.encounters.v4.Encounter, CandidApi.encounters.v4.get.Error._Unknown>[],
   idMap: IdMap
-): void {
-  console.group('getting claim ids from candid encounters');
+): number {
   candidEncounters.forEach((candidEncounter) => {
     if (!candidEncounter.ok) {
       throw new Error(`Failed to fetch Candid encounter: ${candidEncounter.error}`);
@@ -172,16 +203,15 @@ function saveFirstClaimIdInMap(
     mapValue.claimId = claims[0].claimId;
     idMap.set(encounterId, mapValue);
   });
-  console.groupEnd();
-  console.debug('getting claim ids from candid encounters success');
-  console.log(`found ${Array.from(idMap.values()).filter(({ claimId }) => claimId !== undefined).length} claim ids`);
+  const length = Array.from(idMap.values()).filter(({ claimId }) => claimId !== undefined).length;
+  console.log(`found ${length} claim ids`);
+  return length;
 }
 
 async function getAllCandidClaims(
   candidApiClient: CandidApiClient,
   idMap: IdMap
 ): Promise<APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[]> {
-  console.group('fetching claims');
   const claimItemizations = await Promise.all(
     Array.from(idMap.values())
       .filter(({ claimId }) => claimId !== undefined)
@@ -189,8 +219,6 @@ async function getAllCandidClaims(
         return candidApiClient.patientAr.v1.itemize(CandidApi.ClaimId(claimId!));
       })
   );
-  console.groupEnd();
-  console.debug('fetching claims success');
   console.log(`Fetched ${claimItemizations.length} claims`);
   return claimItemizations;
 }
@@ -199,7 +227,6 @@ function saveBalancesInMap(
   candidClaims: APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[],
   idMap: IdMap
 ): void {
-  console.group('getting balances from candid claims');
   candidClaims.forEach((candidClaim) => {
     if (!candidClaim.ok) {
       throw new Error(`Failed to fetch Candid claim: ${candidClaim.error}`);
@@ -213,6 +240,4 @@ function saveBalancesInMap(
     mapValue.patientBalanceCents = candidClaim.body.patientBalanceCents;
     idMap.set(encounterId, mapValue);
   });
-  console.groupEnd();
-  console.debug('getting balances from candid claims success');
 }
