@@ -1,8 +1,8 @@
-import { GetPatientBalancesInput, isValidUUID, Secrets } from 'utils';
+import { GetPatientBalancesZambdaInput, isValidUUID, Secrets } from 'utils';
 import { validateJsonBody, ZambdaInput } from '../../shared';
 
 export interface ValidatedInput {
-  body: GetPatientBalancesInput;
+  body: GetPatientBalancesZambdaInput;
   callerAccessToken: string;
 }
 
@@ -20,7 +20,7 @@ export const validateInput = async (input: ZambdaInput): Promise<ValidatedInput>
   };
 };
 
-const validateBody = (input: ZambdaInput): GetPatientBalancesInput => {
+const validateBody = (input: ZambdaInput): GetPatientBalancesZambdaInput => {
   const { patientId } = validateJsonBody(input);
 
   if (!patientId) {

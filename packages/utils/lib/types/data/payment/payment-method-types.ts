@@ -30,11 +30,11 @@ export interface PaymentMethodSetupZambdaOutput {
   stripeAccount: string | undefined;
 }
 
-export interface GetPatientBalancesInput {
+export interface GetPatientBalancesZambdaInput {
   patientId: string;
 }
 
-export interface GetPatientBalancesOutput {
+export interface GetPatientBalancesZambdaOutput {
   totalBalanceCents: number;
   encounters: {
     encounterId: string;

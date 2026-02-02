@@ -3,7 +3,7 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { CandidApi, CandidApiClient } from 'candidhealth';
 import { APIResponse } from 'candidhealth/core';
 import { Encounter } from 'fhir/r4b';
-import { createCandidApiClient, GetPatientBalancesOutput, Secrets } from 'utils';
+import { createCandidApiClient, GetPatientBalancesZambdaOutput, Secrets } from 'utils';
 import {
   CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM,
   checkOrCreateM2MClientToken,
@@ -50,7 +50,7 @@ async function performEffect(
   validatedInput: ValidatedInput,
   _secrets: Secrets,
   _oystehr: Oystehr
-): Promise<GetPatientBalancesOutput> {
+): Promise<GetPatientBalancesZambdaOutput> {
   const { patientId } = validatedInput.body;
 
   const noData = {
