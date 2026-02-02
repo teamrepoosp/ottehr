@@ -38,6 +38,8 @@ export interface GetPatientBalancesZambdaOutput {
   totalBalanceCents: number;
   encounters: {
     encounterId: string;
+    encounterDate: string;
+    appointmentId: string;
     patientBalanceCents: number;
   }[];
 }

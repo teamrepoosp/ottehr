@@ -2,7 +2,7 @@ import Oystehr from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { CandidApi, CandidApiClient } from 'candidhealth';
 import { APIResponse } from 'candidhealth/core';
-import { Encounter } from 'fhir/r4b';
+import { Appointment, Encounter } from 'fhir/r4b';
 import { createCandidApiClient, GetPatientBalancesZambdaOutput, Secrets } from 'utils';
 import {
   CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM,
@@ -17,6 +17,8 @@ import { ValidatedInput, validateInput, validateSecrets } from './validateReques
 type IdMap = Map<
   string,
   {
+    encounterDate: string;
+    appointmentId: string;
     candidId: string | undefined;
     claimId: string | undefined;
     patientBalanceCents?: number;
@@ -59,10 +61,10 @@ async function performEffect(
   };
 
   // get all encounters
-  console.group('getFhirEncountersForPatient');
-  const encounters = await getFhirEncountersForPatient(_oystehr, patientId);
+  console.group('getFhirEncountersAndAppointmentsForPatient');
+  const { encounters, appointments } = await getFhirEncountersAndAppointmentsForPatient(_oystehr, patientId);
   console.groupEnd();
-  console.debug('getFhirEncountersForPatient success');
+  console.debug('getFhirEncountersAndAppointmentsForPatient success');
   if (encounters.length === 0) {
     return noData;
   }
@@ -70,7 +72,18 @@ async function performEffect(
   // to keep track of all the separate ids
   const idMap: IdMap = new Map();
   encounters.forEach((encounter) => {
-    idMap.set(encounter.id!, { candidId: undefined, claimId: undefined });
+    const appointmentId = encounter.appointment?.[0].reference?.split('/')[1];
+    const appointment = appointments.find((app) => app.id === appointmentId);
+    const encounterDate = appointment?.start;
+    if (!appointmentId || !encounterDate) {
+      throw new Error(`Encounter is missing appointmentId or encounterDate: ${encounter.id}`);
+    }
+    idMap.set(encounter.id!, {
+      encounterDate,
+      appointmentId,
+      candidId: undefined,
+      claimId: undefined,
+    });
   });
 
   // get candid ids from encounters
@@ -125,29 +138,43 @@ async function performEffect(
 
   console.log('idMap with balances', JSON.stringify(idMap));
 
-  const encounterBalancesOnly = Array.from(idMap.entries()).map(([encounterId, mapValue]) => ({
+  const returnData = Array.from(idMap.entries()).map(([encounterId, mapValue]) => ({
     encounterId,
+    encounterDate: mapValue.encounterDate,
+    appointmentId: mapValue.appointmentId,
     patientBalanceCents: mapValue.patientBalanceCents || 0,
   }));
   return {
-    encounters: encounterBalancesOnly,
-    totalBalanceCents: encounterBalancesOnly.reduce((acc, { patientBalanceCents }) => acc + patientBalanceCents, 0),
+    encounters: returnData,
+    totalBalanceCents: returnData.reduce((acc, { patientBalanceCents }) => acc + patientBalanceCents, 0),
   };
 }
 
-async function getFhirEncountersForPatient(oystehr: Oystehr, patientId: string): Promise<Encounter[]> {
-  const encountersResponse = await oystehr.fhir.search<Encounter>({
+async function getFhirEncountersAndAppointmentsForPatient(
+  oystehr: Oystehr,
+  patientId: string
+): Promise<{ encounters: Encounter[]; appointments: Appointment[] }> {
+  const resourcesResponse = await oystehr.fhir.search<Encounter | Appointment>({
     resourceType: 'Encounter',
     params: [
       {
         name: 'subject',
         value: `Patient/${patientId}`,
       },
+      {
+        name: '_include',
+        value: 'Encounter:appointment',
+      },
     ],
   });
-  const encounters = encountersResponse.unbundle();
+  const resources = resourcesResponse.unbundle();
+  const encounters = resources.filter((resource) => resource.resourceType === 'Encounter') as Encounter[];
+  const appointments = resources.filter((resource) => resource.resourceType === 'Appointment') as Appointment[];
   console.log(`Found ${encounters.length} encounters for patient ${patientId}`);
-  return encounters;
+  return {
+    encounters,
+    appointments,
+  };
 }
 
 function saveCandidEncounterIdsInMap(encounters: Encounter[], idMap: IdMap): number {
@@ -159,7 +186,10 @@ function saveCandidEncounterIdsInMap(encounters: Encounter[], idMap: IdMap): num
       // no candid id for this encounter
       return;
     }
-    idMap.set(encounter.id, { candidId, claimId: undefined });
+    const mapValue = idMap.get(encounter.id);
+    if (!mapValue) return;
+    mapValue.candidId = candidId;
+    idMap.set(encounter.id, mapValue);
   });
   const length = Array.from(idMap.values()).filter(({ candidId }) => candidId !== undefined).length;
   console.log(`Found ${length} Candid ids`);
