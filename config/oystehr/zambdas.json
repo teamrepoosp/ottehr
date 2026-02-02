@@ -1134,13 +1134,6 @@
       "src": "src/ehr/visit-details/update-visit-details/index",
       "zip": ".dist/zips/ehr-update-visit-details.zip"
     },
-    "INVOICEABLE_PATIENTS_REPORT": {
-      "name": "invoiceable-patients-report",
-      "type": "http_auth",
-      "runtime": "nodejs22.x",
-      "src": "src/ehr/invoiceable-patients-report/index",
-      "zip": ".dist/zips/invoiceable-patients-report.zip"
-    },
     "CREATE-MANUAL-TASK": {
       "name": "create-manual-task",
       "type": "http_auth",

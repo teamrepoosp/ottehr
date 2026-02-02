@@ -1,4 +1,5 @@
 import z from 'zod';
+import { Secrets } from '../../secrets';
 
 export const PrefilledInvoiceInfoSchema = z.object({
   dueDate: z.string(),
@@ -26,3 +27,14 @@ export type InvoiceMessagesPlaceholders = {
   'due-date'?: string;
   'invoice-link'?: string;
 };
+
+export const GetInvoicesTasksZambdaInputSchema = z.object({
+  count: z.number(),
+  page: z.number(),
+  status: z.string().optional(),
+});
+export const GetInvoicesTasksZambdaValidatedInputSchema = GetInvoicesTasksZambdaInputSchema.extend({
+  secrets: z.custom<Secrets>().nullable(),
+});
+
+export type GetInvoicesTasksValidatedInput = z.infer<typeof GetInvoicesTasksZambdaValidatedInputSchema>;
