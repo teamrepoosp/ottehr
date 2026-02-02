@@ -23,6 +23,7 @@ export const composeVitalsForDischargeSummary: DataComposer<
       weight: vitals?.['vital-weight']?.at(-1) ?? '',
       height: vitals?.['vital-height']?.at(-1) ?? '',
       vision: vitals?.['vital-vision']?.at(-1) ?? '',
+      lastMenstrualPeriod: vitals?.['vital-last-menstrual-period']?.at(-1) ?? '',
     },
   };
 };
@@ -40,6 +41,7 @@ export const createVitalsSectionForDischargeSummary = <
         ['HR', data.vitals.hr, 'Weight', data.vitals.weight],
         ['RR', data.vitals.rr, 'Height', data.vitals.height],
         ['BP', data.vitals.bp, 'Vision', data.vitals.vision],
+        ['Last Menstrual Period', data.vitals.lastMenstrualPeriod],
       ];
 
       const leftX = client.getLeftBound();
@@ -77,6 +79,10 @@ export const createVitalsSectionForDischargeSummary = <
             rightBound: leftX + label1Width + colWidth,
           }
         );
+
+        if (!label2) {
+          return;
+        }
 
         client.setY(y);
         client.drawTextSequential(

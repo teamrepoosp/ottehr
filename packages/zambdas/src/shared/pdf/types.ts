@@ -28,7 +28,7 @@ import {
   SupportedObsImgAttachmentTypes,
   VitalsVisitNoteData,
 } from 'utils';
-import { testDataForOrderForm } from '../../ehr/submit-lab-order/helpers';
+import { testDataForOrderForm } from '../../ehr/lab/external/submit-lab-order/helpers';
 import { Column, PdfInfo } from './pdf-utils';
 import { AllChartData, FullAppointmentResourcePackage } from './visit-details-pdf/types';
 
@@ -944,6 +944,7 @@ export interface VitalsDataInDischargeSummary extends PdfData {
     weight?: string;
     height?: string;
     vision?: string;
+    lastMenstrualPeriod?: string;
   };
 }
 

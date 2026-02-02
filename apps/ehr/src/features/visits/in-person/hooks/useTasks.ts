@@ -13,6 +13,7 @@ import {
   LAB_ORDER_TASK,
   LabType,
   MANUAL_TASK,
+  PROVIDER_NOTIFICATION_TAG_SYSTEM,
   RADIOLOGY_TASK,
   Task,
   TASK_ASSIGNED_DATE_TIME_EXTENSION_URL,
@@ -202,6 +203,11 @@ export const useUnassignTask = (): UseMutationResult<void, Error, UnassignTaskRe
   return useMutation({
     mutationFn: async (input: UnassignTaskRequest) => {
       if (!oystehr) throw new Error('oystehr not defined');
+      const taskResource = await oystehr.fhir.get<FhirTask>({
+        resourceType: 'Task',
+        id: input.taskId,
+      });
+      const updatedMetaTags = taskResource.meta?.tag?.filter((tag) => tag.system !== PROVIDER_NOTIFICATION_TAG_SYSTEM);
       await oystehr.fhir.patch<FhirTask>({
         resourceType: 'Task',
         id: input.taskId,
@@ -214,6 +220,11 @@ export const useUnassignTask = (): UseMutationResult<void, Error, UnassignTaskRe
             op: 'replace',
             path: '/status',
             value: 'ready',
+          },
+          {
+            op: 'replace',
+            path: `/meta/tag`,
+            value: updatedMetaTags,
           },
         ],
       });
@@ -454,9 +465,9 @@ function fhirTaskToTask(task: FhirTask, encountersMap?: Map<string, Encounter>):
     }
   }
   if (category === RADIOLOGY_TASK.category) {
-    // const patientName = getInputString(IN_HOUSE_LAB_TASK.input.patientName, task);
+    const patientName = getInputString(RADIOLOGY_TASK.input.patientName, task);
     const code = getCoding(task.code, RADIOLOGY_TASK.system)?.code ?? '';
-    const appointmentId = getInputString(IN_HOUSE_LAB_TASK.input.appointmentId, task) ?? '';
+    const appointmentId = getInputString(RADIOLOGY_TASK.input.appointmentId, task) ?? '';
     const orderId =
       task.basedOn
         ?.find((ref) => ref.reference?.startsWith('ServiceRequest/'))
@@ -465,13 +476,19 @@ function fhirTaskToTask(task: FhirTask, encountersMap?: Map<string, Encounter>):
     action = { name: GO_TO_ORDER, link: addEncounterIdToLink(link) };
 
     const orderDate = getInputString(RADIOLOGY_TASK.input.orderDate, task);
-    const providerName = getInputString(LAB_ORDER_TASK.input.providerName, task);
-    subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}`;
+    const providerName = getInputString(RADIOLOGY_TASK.input.providerName, task);
+    const locationDisplay = task.location?.display ? ` | ${task.location?.display}` : '';
+    subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}${locationDisplay}`;
+
+    const studyTypeCode = getInputString(RADIOLOGY_TASK.input.studyTypeCode, task);
+    const studyTypeDisplay = getInputString(RADIOLOGY_TASK.input.studyTypeDisplay, task);
+    const studyTypeForTitle = studyTypeCode || studyTypeDisplay ? `for ${studyTypeCode} - ${studyTypeDisplay}` : '';
 
     if (code === RADIOLOGY_TASK.code.reviewFinalResultTask) {
-      title = `Review Radiology Final Results`;
+      title = `Review Radiology Final Results ${studyTypeForTitle} for ${patientName}`;
     }
   }
+
   return {
     id: task.id ?? '',
     category: category,

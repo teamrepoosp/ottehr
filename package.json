@@ -1,13 +1,13 @@
 {
   "name": "ottehr",
-  "version": "1.26.2",
+  "version": "1.27.0",
   "private": true,
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build": "turbo build lint",
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' turbo build lint",
     "version": "npm version $npm_package_version --workspaces && git add package.json '**/package.json'",
     "lint": "npm run lint:eslint",
     "lint:eslint": "turbo lint",
@@ -133,6 +133,11 @@
     "@sentry/aws-serverless": "^8.26.0",
     "@sentry/react": "^7.80.1",
     "@tanstack/react-query": "^5.83.0",
+    "@tiptap/extension-placeholder": "^3.14.0",
+    "@tiptap/extension-task-item": "^3.14.0",
+    "@tiptap/extension-task-list": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
     "@twilio/conversations": "^2.4.1",
     "@types/inquirer": "^9.0.7",
     "browser-image-compression": "^2.0.2",
