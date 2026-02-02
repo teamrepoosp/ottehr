@@ -464,7 +464,7 @@ export interface VisitInfo extends PdfData {
   time: string;
   date: string;
   location?: string;
-  reasonForVisit: string;
+  reasonForVisit?: string;
 }
 
 export interface PatientInfo extends PdfData {
@@ -885,21 +885,56 @@ export type PdfResult = {
   attached?: string[];
 };
 
-export interface DischargeSummaryData extends PdfData {
-  patient: {
-    fullName: string;
-    dob: string;
-    sex: Gender;
-    id: string;
-    phone?: string;
-  };
-  visit: {
-    type: string;
-    time: string;
-    date: string;
-    location?: string;
-    reasonForVisit: string;
-  };
+export interface PatientInfoForDischargeSummary extends PdfData {
+  fullName: string;
+  dob: string;
+  sex: Gender;
+  id: string;
+  phone?: string;
+}
+
+export interface RadiologyData extends PdfData {
+  radiology?: {
+    name: string;
+    result?: string;
+  }[];
+}
+
+export interface ErxMedicationsData extends PdfData {
+  medications: PrescribedMedication[];
+}
+
+export interface PatientInstructionsData extends PdfData {
+  instructions: string[];
+}
+
+export interface EducationDocumentsData extends PdfData {
+  documents: { title: string }[];
+}
+
+export interface DispositionData extends PdfData {
+  label: string;
+  instruction: string;
+  reason?: string;
+  followUpIn?: string;
+}
+
+export interface PhysicianData extends PdfData {
+  name: string;
+  dischargeDateTime?: string;
+}
+
+export interface WorkSchoolExcuseData extends PdfData {
+  workSchoolExcuse?: { note: string }[];
+  attachmentDocRefs?: string[];
+}
+
+export interface DiagnosesData extends PdfData {
+  primary: string[];
+  secondary: string[];
+}
+
+export interface VitalsDataInDischargeSummary extends PdfData {
   vitals: {
     temp?: string;
     hr?: string;
@@ -910,37 +945,30 @@ export interface DischargeSummaryData extends PdfData {
     height?: string;
     vision?: string;
   };
-  currentMedications?: string[];
-  currentMedicationsNotes?: string[];
-  allergies?: string[];
-  allergiesNotes?: string[];
-  inHouseLabs?: { orders: LabOrder[]; results: InHouseLabResultPdfData[] };
-  externalLabs?: { orders: LabOrder[]; results: ExternalLabOrderResult[] };
-  radiology?: {
-    name: string;
-    result?: string;
-  }[];
-  inhouseMedications?: Medication[];
-  erxMedications?: PrescribedMedication[];
-  diagnoses?: {
-    primary: string[];
-    secondary: string[];
-  };
-  patientInstructions?: string[];
-  educationDocuments?: { title: string }[];
-  disposition: {
-    label: string;
-    instruction: string;
-    reason?: string;
-    followUpIn?: string;
-  };
-  physician: {
-    name: string;
-  };
-  dischargeDateTime?: string;
-  workSchoolExcuse?: { note: string }[];
+}
+
+export interface InHouseMedicationsDataForDischargeSummary extends PdfData {
+  inHouseMedications: Medication[];
+}
+
+export interface DischargeSummaryData extends PdfData {
+  patient: PatientInfoForDischargeSummary;
+  visit: VisitInfo;
+  vitals: VitalsDataInDischargeSummary;
+  medications: MedicationsData;
+  allergies: AllergiesData;
+  inHouseLabs?: InHouseLabs;
+  externalLabs?: ExternalLabs;
+  radiology: RadiologyData;
+  inHouseMedications: InHouseMedicationsDataForDischargeSummary;
+  erxMedications?: ErxMedicationsData;
+  diagnoses?: DiagnosesData;
+  patientInstructions?: PatientInstructionsData;
+  educationDocuments?: EducationDocumentsData;
+  disposition: DispositionData;
+  physician: PhysicianData;
+  workSchoolExcuse?: WorkSchoolExcuseData;
   documentsAttached?: boolean;
-  attachmentDocRefs?: string[];
 }
 
 export interface VisitDetailsData extends PdfData {
@@ -993,13 +1021,13 @@ export interface ProgressNoteData extends PdfData {
   hospitalization: HospitalizationData;
   inHouseMedications: InHouseMedicationsData;
   immunizationOrders: ImmunizationOrders;
-  inHouseLabs: InHouseLabs;
-  externalLabs: ExternalLabs;
+  inHouseLabs?: InHouseLabs;
+  externalLabs?: ExternalLabs;
   screening: AdditionalQuestions;
   intakeNotes: IntakeNotes;
   vitals: Vitals;
   examination: Examination;
-  assessment: Assessment;
+  assessment?: Assessment;
   medicalDecision: MedicalDecision;
   emCode: EmCode;
   cptCodes: CptCodes;
@@ -1007,4 +1035,9 @@ export interface ProgressNoteData extends PdfData {
   prescriptions: Prescriptions;
   plan: PlanData;
   followupCompleted: FollowupCompleted;
+}
+
+export interface DischargeSummaryInput {
+  allChartData: AllChartData;
+  appointmentPackage: FullAppointmentResourcePackage;
 }

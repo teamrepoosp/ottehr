@@ -1,5 +1,6 @@
 export * from './consentFormsInfo';
 export * from './contactInfo';
+export * from './discharge-summary';
 export * from './documents';
 export * from './emergencyContactInfo';
 export * from './employerInfo';

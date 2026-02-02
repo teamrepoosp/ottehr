@@ -293,20 +293,6 @@ const renderPdf = async <TData extends PdfData>(
     lineStyles: Object.keys(styles.lineStyles),
   });
 
-  console.log('Validating required text styles...');
-  const requiredTextStyles = ['header', 'subHeader', 'regular', 'patientName'];
-  for (const styleName of requiredTextStyles) {
-    if (!styles.textStyles[styleName]) {
-      console.error(`ERROR: Missing required text style: ${styleName}`);
-    } else {
-      const style = styles.textStyles[styleName];
-      console.log(`Style ${styleName}:`, {
-        font: style.font ? 'defined' : 'MISSING',
-        fontSize: style.fontSize,
-        spacing: style.spacing,
-      });
-    }
-  }
   console.log('\n=== Rendering PDF Header ===');
   try {
     renderPdfHeader(pdfClient, data, config.header, styles, assets);

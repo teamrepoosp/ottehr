@@ -25,6 +25,7 @@ import {
   ExternalLabDocuments,
   GetChartDataResponse,
   GetMedicationOrdersResponse,
+  GetRadiologyOrderListZambdaOutput,
   ImmunizationOrder,
   LabDocumentRelatedToDiagnosticReport,
   Pagination,
@@ -88,4 +89,5 @@ export type AllChartData = {
     currentPractitioner?: Practitioner;
     appointmentScheduleMap: Record<string, Schedule>;
   };
+  radiologyData?: GetRadiologyOrderListZambdaOutput;
 };
