@@ -10,6 +10,7 @@ import {
   CreateAppointmentResponse,
   CreateSlotParams,
   createSlotParamsFromSlotAndOptions,
+  getCancellationReasonDisplay,
   getOriginalBookingUrlFromSlot,
   getScheduleExtension,
   GetScheduleResponse,
@@ -602,7 +603,7 @@ describe('prebook integration - from getting list of slots to booking with selec
 
     // Verify cancellation reason is stored correctly
     if (cancellationReasonAdditional) {
-      expect(canceledAppointment.cancelationReason?.coding?.[0]?.display).toBe(
+      expect(getCancellationReasonDisplay(canceledAppointment)).toBe(
         `Patient improved - ${cancellationReasonAdditional}`
       );
     } else {
