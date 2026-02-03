@@ -55,7 +55,6 @@ export * from './user.types';
 export * from './patient-visit-history.types';
 export * from './bulk-update-insurance-status.types';
 export * from './visit-details';
-export * from './get-patient-and-responsible-party-info.types';
 export * from './get-booking-questionnaire.types';
 export * from './erx.types';
 export * from './invoicing.types';

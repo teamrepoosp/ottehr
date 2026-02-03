@@ -11,7 +11,7 @@ import {
   getCandidInventoryPagesRecursive,
   getResourcesFromBatchInlineRequests,
   getSecret,
-  PrefilledInvoiceInfo,
+  InvoiceTaskInput,
   RCM_TASK_SYSTEM,
   RcmTaskCode,
   RcmTaskCodings,
@@ -88,7 +88,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   }
 });
 
-async function getPrefilledInvoiceInfo(patientBalanceInCents: number): Promise<PrefilledInvoiceInfo> {
+async function getPrefilledInvoiceInfo(patientBalanceInCents: number): Promise<InvoiceTaskInput> {
   try {
     const smsMessageFromSecret = textingConfig.invoicing.smsMessage;
     const memoFromSecret = textingConfig.invoicing.stripeMemoMessage;
