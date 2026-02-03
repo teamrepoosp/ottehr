@@ -220,6 +220,7 @@ const formValueSets = {
     { label: 'Changing to telemedicine', value: 'Changing to telemedicine' },
     { label: 'Financial responsibility concern', value: 'Financial responsibility concern' },
     { label: 'Insurance issue', value: 'Insurance issue' },
+    { label: 'Other', value: 'Other' },
   ],
   cancelReasonOptionsInPersonProvider: [
     { label: 'Patient improved', value: 'Patient improved', code: 'patient-improved' },
@@ -240,6 +241,7 @@ const formValueSets = {
       value: 'Provider deems acuity too high for clinic',
       code: 'provider-deems-acuity-too-high-for-clinic',
     },
+    { label: 'Other', value: 'Other' },
   ],
   cancelReasonOptionsVirtualPatient: [
     { label: 'Wait time too long', value: 'Wait time too long' },
