@@ -44,6 +44,7 @@ import {
   isInPersonAppointment,
   isMultiSelectComponent,
   LabDocumentRelatedToDiagnosticReport,
+  makeCptCodeDisplay,
   mapDispositionTypeToLabel,
   mapVitalsToDisplay,
   NOTE_TYPE,
@@ -293,7 +294,7 @@ function composeDataForPdf(
   const emCode = chartData?.emCode?.display;
 
   // --- CPT ---
-  const cptCodes = chartData?.cptCodes?.map((cpt) => `${cpt.code} ${cpt.display}`);
+  const cptCodes = chartData?.cptCodes?.map((cpt) => makeCptCodeDisplay(cpt));
 
   // --- Prescriptions ---
   const prescriptions = additionalChartData?.prescribedMedications
