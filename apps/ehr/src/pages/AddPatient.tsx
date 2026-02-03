@@ -16,7 +16,7 @@ import Oystehr from '@oystehr/sdk';
 import { Location, Schedule, Slot } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import { enqueueSnackbar } from 'notistack';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AddVisitPatientInformationCard } from 'src/features/visits/shared/components/staff-add-visit/AddVisitPatientInformationCard';
 import {
@@ -100,8 +100,27 @@ export default function AddPatient(): JSX.Element {
   const [validReasonForVisit, setValidReasonForVisit] = useState<boolean>(true);
   const [showFields, setShowFields] = useState<AddVisitFormState>('initialPatientSearch');
 
-  // console.log('slot', slot);
+  useEffect(() => {
+    setReasonForVisit('');
+    setReasonForVisitAdditional('');
+  }, [serviceCategory]);
 
+  const reasonForVisitOptions = (() => {
+    if (serviceCategory === 'occupational-medicine') {
+      return VALUE_SETS.reasonForVisitOptionsOccMed;
+    }
+    if (serviceCategory === 'workers-comp') {
+      return VALUE_SETS.reasonForVisitOptionsWorkersComp;
+    }
+    if (serviceCategory === 'urgent-care') {
+      return VALUE_SETS.reasonForVisitOptions;
+    }
+    return [];
+  })();
+
+  const shouldShowReasonForVisitFields = useMemo(() => {
+    return showFields !== 'initialPatientSearch' && reasonForVisitOptions.length > 0;
+  }, [showFields, reasonForVisitOptions]);
   // general variables
   const navigate = useNavigate();
   const { oystehrZambda } = useApiClients();
@@ -342,7 +361,7 @@ export default function AddPatient(): JSX.Element {
                 />
 
                 {/* Visit Information */}
-                {showFields !== 'initialPatientSearch' && (
+                {shouldShowReasonForVisitFields && (
                   <Box marginTop={4}>
                     <Typography variant="h4" color="primary.dark">
                       Visit information
@@ -359,7 +378,7 @@ export default function AddPatient(): JSX.Element {
                           required
                           onChange={(event) => setReasonForVisit(event.target.value)}
                         >
-                          {VALUE_SETS.reasonForVisitOptions.map((reason) => (
+                          {reasonForVisitOptions.map((reason) => (
                             <MenuItem key={reason.value} value={reason.value}>
                               {reason.label}
                             </MenuItem>
