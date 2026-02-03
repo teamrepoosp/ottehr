@@ -360,12 +360,12 @@ const formValueSets = {
     { label: 'Auto accident', value: 'Auto accident' },
     { label: 'Other', value: 'Other' },
   ],
-  reasonForVisitVirtualOptionsOccMed: [
+  reasonForVisitOptionsOccMed: [
     { label: 'Injury', value: 'Injury' },
     { label: 'Testing', value: 'Testing' },
     { label: 'Physical', value: 'Physical' },
   ],
-  reasonForVisitVirtualOptionsWorkersComp: [
+  reasonForVisitOptionsWorkersComp: [
     { label: 'New injury', value: 'New injury' },
     { label: 'Follow-up', value: 'Follow-up' },
   ],
@@ -654,6 +654,7 @@ const formValueSets = {
     { label: 'Email', value: 'Email' },
     { label: 'Phone', value: 'Phone' },
   ],
+  externalLabAdditionalCptCodesToAdd: [], // will be automatically added to the encounter if external labs are ordered
 };
 
 export const VALUE_SETS = mergeAndFreezeConfigObjects(formValueSets, OVERRIDES);

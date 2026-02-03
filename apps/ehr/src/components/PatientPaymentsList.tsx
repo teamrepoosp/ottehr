@@ -121,15 +121,21 @@ export default function PatientPaymentList({
     code: string;
     coverageCode: string;
     levelCode: string;
-    periodCode: string;
-  }): number | undefined {
-    return coverage?.find(
+    periodCode: string | undefined;
+  }): PatientPaymentBenefit | undefined {
+    if (!periodCode) {
+      return coverage.find(
+        (item) => item.code === code && item.coverageCode === coverageCode && item.levelCode === levelCode
+      );
+    }
+
+    return coverage.find(
       (item) =>
         item.code === code &&
         item.coverageCode === coverageCode &&
         item.levelCode === levelCode &&
         item.periodCode === periodCode
-    )?.amountInUSD;
+    );
   }
 
   const payments = paymentData?.payments ?? []; // Replace with actual payments when available
@@ -293,7 +299,7 @@ export default function PatientPaymentList({
     code: 'UC',
     coverageCode: 'B',
     levelCode: 'IND',
-    periodCode: '27',
+    periodCode: undefined,
   });
 
   const remainingDeductibleAmount = getPaymentAmountFromPatientBenefit({
@@ -332,7 +338,7 @@ export default function PatientPaymentList({
         }}
         sx={{ mt: 2 }}
       >
-        {isUrgentCare || isWorkmansComp ? (
+        {isUrgentCare ? (
           <FormControlLabel
             disabled={updateEncounter.isPending || isEncounterRefetching}
             value={PaymentVariant.insurance}
@@ -340,14 +346,12 @@ export default function PatientPaymentList({
             label="Insurance"
           />
         ) : null}
-        {isUrgentCare || isOccupationalMedicine ? (
-          <FormControlLabel
-            disabled={updateEncounter.isPending || isEncounterRefetching}
-            value={PaymentVariant.selfPay}
-            control={<Radio />}
-            label="Self"
-          />
-        ) : null}
+        <FormControlLabel
+          disabled={updateEncounter.isPending || isEncounterRefetching}
+          value={PaymentVariant.selfPay}
+          control={<Radio />}
+          label="Self"
+        />
         {isOccupationalMedicine || isWorkmansComp ? (
           <FormControlLabel
             disabled={updateEncounter.isPending || isEncounterRefetching}
@@ -381,13 +385,13 @@ export default function PatientPaymentList({
                 <TableRow>
                   <TableCell style={{ fontSize: '16px' }}>Copay</TableCell>
                   <TableCell style={{ fontSize: '16px', fontWeight: 'bold', textAlign: 'right' }}>
-                    {copayAmount ? `$${copayAmount}` : 'Unknown'}
+                    {copayAmount ? `$${copayAmount?.amountInUSD} / ${copayAmount?.periodDescription}` : 'Unknown'}
                   </TableCell>
                 </TableRow>
                 <TableRow sx={{ '&:last-child td': { borderBottom: 'none' } }}>
                   <TableCell style={{ fontSize: '16px' }}>Remaining Deductible</TableCell>
                   <TableCell style={{ fontSize: '16px', fontWeight: 'bold', textAlign: 'right' }}>
-                    {remainingDeductibleAmount ? `$${remainingDeductibleAmount}` : 'Unknown'}
+                    {remainingDeductibleAmount ? `$${remainingDeductibleAmount?.amountInUSD}` : 'Unknown'}
                   </TableCell>
                 </TableRow>
               </TableBody>

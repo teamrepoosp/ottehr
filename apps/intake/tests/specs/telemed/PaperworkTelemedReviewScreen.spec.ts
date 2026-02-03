@@ -2,9 +2,12 @@
 import { BrowserContext, expect, Page, test } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { QuestionnaireHelper } from 'tests/utils/QuestionnaireHelper';
 import { UploadDocs } from 'tests/utils/UploadDocs';
-import { getPrivacyPolicyLinkDefForLocation, getTermsAndConditionsLinkDefForLocation } from 'utils';
+import {
+  getPrivacyPolicyLinkDefForLocation,
+  getTermsAndConditionsLinkDefForLocation,
+  QuestionnaireHelper,
+} from 'utils';
 import { CommonLocatorsHelper } from '../../utils/CommonLocatorsHelper';
 import { Locators } from '../../utils/locators';
 import { Paperwork } from '../../utils/Paperwork';
@@ -79,7 +82,7 @@ test.describe.parallel('Telemed - Prefilled Paperwork, Review and Submit', () =>
       await expect(locator.additionalQuestionsChipStatus).toHaveAttribute('data-testid', 'completed');
       await expect(locator.insuranceDetailsChipStatus).toHaveAttribute('data-testid', 'completed');
       await expect(locator.responsiblePartyChipStatus).toHaveAttribute('data-testid', 'completed');
-      await expect(locator.photoIdChipStatus).toHaveAttribute('data-testid', 'uncompleted');
+      await paperwork.expectChipStatusBasedOnConfig(locator.photoIdChipStatus, 'photo-id-page', true);
       // todo need to change to 'uncompleted' when https://github.com/masslight/ottehr/issues/1594 is fixed
       await expect(locator.patientConditionChipStatus).toHaveAttribute('data-testid', 'completed');
       await expect(locator.schoolWorkNotesChipStatus).toHaveAttribute('data-testid', 'completed');

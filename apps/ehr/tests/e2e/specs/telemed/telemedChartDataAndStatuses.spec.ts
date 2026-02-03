@@ -29,6 +29,7 @@ import {
   getTelemedLocations,
   isLocationVirtual,
   isoToDateObject,
+  QuestionnaireHelper,
   TelemedAppointmentStatusEnum,
   TelemedAppointmentVisitTabs,
 } from 'utils';
@@ -387,6 +388,9 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
       // });
 
       await test.step('Should check the list of Additional Questions is the same for patient and provider', async () => {
+        if (!QuestionnaireHelper.hasVirtualAdditionalPage()) {
+          test.skip();
+        }
         for (const question of ADDITIONAL_QUESTIONS) {
           await expect(page.getByTestId(dataTestIds.telemedEhrFlow.hpiAdditionalQuestions(question.field))).toHaveText(
             new RegExp(question.label)
@@ -398,6 +402,9 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
       });
 
       await test.step('Should check provider has the same answers for Additional Questions as Patient provided.', async () => {
+        if (!QuestionnaireHelper.hasVirtualAdditionalPage()) {
+          test.skip();
+        }
         const answers = getAdditionalQuestionsAnswers().item;
         for (const question of ADDITIONAL_QUESTIONS) {
           const rawAnswer = answers?.find((item) => item.linkId === question.field)?.answer?.[0]?.valueString ?? '';
@@ -788,11 +795,23 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
     });
 
     test.describe('Modifications reflected on progress note page', async () => {
+      // Helper to ensure we're on the Sign tab before checking visit note
+      async function ensureOnSignTab(): Promise<void> {
+        const signTab = page.getByTestId(
+          dataTestIds.telemedEhrFlow.appointmentVisitTabs(TelemedAppointmentVisitTabs.sign)
+        );
+
+        // Check if tab is already selected
+        const isSelected = await signTab.getAttribute('aria-selected');
+        if (isSelected !== 'true') {
+          await signTab.click();
+          // Wait for tab content to be visible
+          await expect(page.getByTestId(dataTestIds.progressNotePage.visitNoteCard)).toBeVisible({ timeout: 30000 });
+        }
+      }
+
       test('HPI provider notes and ROS removed from "Review&Sign" tab', async () => {
-        await page
-          .getByTestId(dataTestIds.telemedEhrFlow.appointmentVisitTabs(TelemedAppointmentVisitTabs.sign))
-          .click();
-        await expect(page.getByTestId(dataTestIds.progressNotePage.visitNoteCard)).toBeVisible();
+        await ensureOnSignTab();
 
         await expect(page.getByTestId(dataTestIds.progressNotePage.hpiContainer)).not.toHaveText(
           new RegExp(providerNote)
@@ -803,10 +822,7 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
 
       test('Surgical History record removed from Review&Sign tab', async () => {
         await test.step('Surgical History record removed', async () => {
-          await page
-            .getByTestId(dataTestIds.telemedEhrFlow.appointmentVisitTabs(TelemedAppointmentVisitTabs.sign))
-            .click();
-          await expect(page.getByTestId(dataTestIds.progressNotePage.visitNoteCard)).toBeVisible();
+          await ensureOnSignTab();
 
           await expect(page.getByTestId(dataTestIds.progressNotePage.surgicalHistoryContainer)).toBeVisible({
             timeout: 30000,
@@ -822,7 +838,7 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
       });
 
       test('Known Allergies removed from Review&Sign tab', async () => {
-        await expect(page.getByTestId(dataTestIds.progressNotePage.visitNoteCard)).toBeVisible();
+        await ensureOnSignTab();
 
         await expect(page.getByTestId(dataTestIds.progressNotePage.knownAllergiesContainer)).toBeVisible({
           timeout: 30000,
@@ -831,6 +847,8 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
       });
 
       test('Current Medications are removed from Review&Sign tab', async () => {
+        await ensureOnSignTab();
+
         await expect(page.getByTestId(dataTestIds.telemedEhrFlow.reviewTabMedicationsContainer)).toBeVisible();
         await expect(page.getByText(RegExp(scheduledMedicationName, 'i'))).not.toBeVisible();
 
@@ -839,13 +857,15 @@ test.describe('Telemed tracking board checks, buttons, chart data filling', () =
       });
 
       test('Medical Conditions removed from Review&Sign tab', async () => {
-        await expect(page.getByTestId(dataTestIds.progressNotePage.visitNoteCard)).toBeVisible();
+        await ensureOnSignTab();
 
         await expect(page.getByTestId(dataTestIds.progressNotePage.medicalConditionsContainer)).toBeVisible();
         await expect(page.getByText(new RegExp(conditionName, 'i'))).not.toBeVisible();
       });
 
       test('Additional Questions answers updated on Review&Sign tab', async () => {
+        await ensureOnSignTab();
+
         for (const question of ADDITIONAL_QUESTIONS) {
           await expect(
             page.getByTestId(dataTestIds.telemedEhrFlow.reviewTabAdditionalQuestion(question.field))

@@ -264,21 +264,11 @@ export interface VitalsRespirationRateObservationDTO extends VitalsNumericValueO
   field: Extract<VitalFieldNames, 'vital-respiration-rate'>;
 }
 
-type VitalsLastMenstrualPeriodWithDateDTO = VitalsBaseObservationDTO & {
+export type VitalsLastMenstrualPeriodObservationDTO = VitalsBaseObservationDTO & {
   field: Extract<VitalFieldNames, 'vital-last-menstrual-period'>;
   value: string;
-  isUnsure?: never;
+  isUnsure?: boolean;
 };
-
-export type VitalsLastMenstrualPeriodUnsureDTO = VitalsBaseObservationDTO & {
-  field: Extract<VitalFieldNames, 'vital-last-menstrual-period'>;
-  isUnsure: true;
-  value?: never;
-};
-
-export type VitalsLastMenstrualPeriodObservationDTO =
-  | VitalsLastMenstrualPeriodWithDateDTO
-  | VitalsLastMenstrualPeriodUnsureDTO;
 
 export type VitalsObservationDTO =
   | VitalsTemperatureObservationDTO
@@ -309,6 +299,7 @@ export type AiObservationDTO = {
 export interface CPTCodeDTO extends SaveableDTO {
   code: string;
   display: string;
+  modifier?: string[];
 }
 
 export const clinicalImpressionDTOSchema = z.object({
