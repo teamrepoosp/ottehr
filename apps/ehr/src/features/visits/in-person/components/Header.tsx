@@ -558,7 +558,7 @@ export const Header = (): JSX.Element => {
                     <ListItemIcon sx={{ color: theme.palette.primary.main }}>
                       <CalendarMonthOutlinedIcon fontSize="small" />
                     </ListItemIcon>
-                    Create follow-up visit
+                    Create Follow-Up Visit
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -570,7 +570,7 @@ export const Header = (): JSX.Element => {
                     <ListItemIcon sx={{ color: theme.palette.primary.main }}>
                       <AddOutlinedIcon fontSize="small" />
                     </ListItemIcon>
-                    Create task
+                    Create Task
                   </MenuItem>
                 </Menu>
                 <CreateTaskDialog open={showCreateTaskDialog} handleClose={() => setShowCreateTaskDialog(false)} />
