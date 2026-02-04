@@ -37,6 +37,8 @@ import {
   ZambdaInput,
 } from '../../shared';
 
+const MAX_TASK_DESCRIPTION_LENGTH = 50;
+
 export function validateRequestParameters(input: ZambdaInput): { secrets: Secrets | null } {
   return {
     secrets: input.secrets,
@@ -342,8 +344,8 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
           if (notificationSettings?.enabled) {
             const status = getCommunicationStatus(notificationSettings, busyPractitionerIds, practitioner);
             let taskDescription = task.description;
-            if (taskDescription !== undefined && taskDescription.length > 140) {
-              taskDescription = taskDescription.substring(0, 140) + '...';
+            if (taskDescription !== undefined && taskDescription.length > MAX_TASK_DESCRIPTION_LENGTH) {
+              taskDescription = taskDescription.substring(0, MAX_TASK_DESCRIPTION_LENGTH) + '...';
             }
 
             const request: BatchInputPostRequest<Communication> = {
