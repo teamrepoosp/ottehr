@@ -1,7 +1,10 @@
 import { Questionnaire } from 'fhir/r4b';
+import { camelCase } from 'lodash-es';
 import z from 'zod';
 import { INTAKE_PAPERWORK_CONFIG as OVERRIDES } from '../../../ottehr-config-overrides/intake-paperwork-virtual';
 import { INSURANCE_CARD_CODE } from '../../types/data/paperwork/paperwork.constants';
+import { BRANDING_CONFIG } from '../branding';
+import { getConsentFormsForLocation } from '../consent-forms';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 import { patientScreeningQuestionsConfig } from '../screening-questions';
 import {
@@ -10,6 +13,7 @@ import {
   FormSectionSimpleSchema,
   HAS_ATTORNEY_OPTION,
   INSURANCE_PAY_OPTION,
+  OCC_MED_EMPLOYER_PAY_OPTION,
   OCC_MED_SELF_PAY_OPTION,
   QuestionnaireBase,
   QuestionnaireConfigSchema,
@@ -18,45 +22,7 @@ import {
 } from '../shared-questionnaire';
 import { VALUE_SETS as formValueSets } from '../value-sets';
 
-/*
-
-SOURCE QUESTIONNAIRE CONTEXT
- {
-                "linkId": "other-preferred-language",
-                "text": "Other preferred language",
-                "type": "string",
-                "required": false,
-                "enableWhen": [
-                  {
-                    "question": "preferred-language",
-                    "operator": "=",
-                    "answerString": "Other"
-                  }
-                ]
-              },
-              {
-                "linkId": "relay-phone",
-                "text": "Do you require a Hearing Impaired Relay Service? (711)",
-                "type": "choice",
-                "answerOption": [
-                  {
-                    "valueString": "No"
-                  },
-                  {
-                    "valueString": "Yes"
-                  }
-                ],
-                "required": true,
-                "extension": [
-                  {
-                    "url": "https://fhir.zapehr.com/r4/StructureDefinitions/preferred-element",
-                    "valueString": "Radio List"
-                  }
-                ]
-              }
-
-
-*/
+const resolvedConsentForms = getConsentFormsForLocation();
 
 const FormFields = {
   contactInformation: {
@@ -173,8 +139,7 @@ const FormFields = {
       },
       mobileOptIn: {
         key: 'mobile-opt-in',
-        label:
-          'Yes! I would like to receive helpful text messages from Ottehr regarding patient education, events, and general information about our offices. Message frequency varies, and data rates may apply.',
+        label: `Yes! I would like to receive helpful text messages from ${BRANDING_CONFIG.projectName} regarding patient education, events, and general information about our offices. Message frequency varies, and data rates may apply.`,
         type: 'boolean',
       },
     },
@@ -322,15 +287,111 @@ const FormFields = {
     linkId: 'pharmacy-page',
     title: 'Preferred pharmacy',
     items: {
+      pharmacyCollection: {
+        key: 'pharmacy-collection',
+        text: 'Pharmacy',
+        type: 'group',
+        groupType: 'pharmacy-collection',
+        items: {
+          pharmacyPlacesId: {
+            key: 'pharmacy-places-id',
+            label: 'places id',
+            type: 'string',
+          },
+          pharmacyPlacesName: {
+            key: 'pharmacy-places-name',
+            label: 'places name',
+            type: 'string',
+          },
+          pharmacyPlacesAddress: {
+            key: 'pharmacy-places-address',
+            label: 'places address',
+            type: 'string',
+          },
+          pharmacyPlacesSaved: {
+            key: 'pharmacy-places-saved',
+            label: 'places saved',
+            type: 'boolean',
+          },
+          erxPharmacyId: {
+            key: 'erx-pharmacy-id',
+            label: 'erx pharmacy id',
+            type: 'string',
+          },
+        },
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['filter'],
+            operator: '=',
+            answerBoolean: true,
+          },
+        ],
+      },
+      manualEntry: {
+        key: 'pharmacy-page-manual-entry',
+        label: "Can't find? Add manually",
+        type: 'boolean',
+        element: 'Link',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-collection.pharmacy-places-saved',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['sub-text'],
+            operator: '=',
+            answerBoolean: true,
+            substituteText: 'Use search',
+          },
+        ],
+      },
       name: {
         key: 'pharmacy-name',
         label: 'Pharmacy name',
         type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['filter'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+        ],
       },
       address: {
         key: 'pharmacy-address',
         label: 'Pharmacy address',
         type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['filter'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+        ],
       },
     },
     hiddenFields: [],
@@ -625,22 +686,43 @@ const FormFields = {
         key: 'self-pay-alert-text',
         text: 'By choosing to proceed with self-pay without insurance, you agree to pay $100 at the time of service.',
         type: 'display',
+        dataType: 'Call Out',
         triggers: [
+          {
+            targetQuestionLinkId: 'contact-information-page.appointment-service-category',
+            effect: ['enable'],
+            operator: '!=',
+            answerString: 'workers-comp',
+          },
           {
             targetQuestionLinkId: 'payment-option',
             effect: ['enable'],
             operator: '=',
             answerString: SELF_PAY_OPTION,
           },
+        ],
+        enableBehavior: 'all',
+      },
+      workersCompAlert: {
+        key: 'workers-comp-alert-text',
+        text: 'By clicking "Continue," I acknowledge that if my employer or their Workers Compensation insurer does not pay for this visit, I am responsible for the charges and may self-pay or have the charges submitted to my personal insurance.',
+        type: 'display',
+        dataType: 'Call Out',
+        triggers: [
           {
-            targetQuestionLinkId: 'appointment-service-category',
-            effect: ['sub-text'],
+            targetQuestionLinkId: 'contact-information-page.appointment-service-category',
+            effect: ['enable'],
             operator: '=',
             answerString: 'workers-comp',
-            substituteText:
-              'By clicking "Continue," I acknowledge that if my employer or their Workers Compensation insurer does not pay for this visit, I am responsible for the charges and may self-pay or have the charges submitted to my personal insurance.',
+          },
+          {
+            targetQuestionLinkId: 'payment-option', // shown when either payment option is selected
+            effect: ['enable'],
+            operator: 'exists',
+            answerBoolean: true,
           },
         ],
+        enableBehavior: 'all',
       },
       insuranceDetailsText: {
         key: 'insurance-details-text',
@@ -1298,6 +1380,7 @@ const FormFields = {
         key: 'self-pay-alert-text-occupational',
         text: 'By choosing to proceed with self-pay without insurance, you agree to pay $100 at the time of service.',
         type: 'display',
+        dataType: 'Call Out',
         triggers: [
           {
             targetQuestionLinkId: 'payment-option-occupational',
@@ -1353,33 +1436,25 @@ const FormFields = {
         key: 'card-payment-details-text',
         text: 'If you choose not to enter your credit card information in advance, payment (cash or credit) will be required upon arrival.',
         type: 'display',
-        triggers: [
-          {
-            targetQuestionLinkId: 'card-payment-details-text',
-            effect: ['enable'],
-            operator: '=',
-            answerString: '-',
-          },
-        ],
       },
     },
-    hiddenFields: [],
-    requiredFields: [],
+    hiddenFields: ['card-payment-details-text'],
+    requiredFields: ['valid-card-on-file'],
     triggers: [
       {
         targetQuestionLinkId: 'contact-information-page.appointment-service-category',
         effect: ['enable'],
         operator: '!=',
-        answerString: 'occupational-medicine',
+        answerString: 'workers-comp',
       },
       {
         targetQuestionLinkId: 'payment-option-occ-med-page.payment-option-occupational',
         effect: ['enable'],
-        operator: '=',
-        answerString: OCC_MED_SELF_PAY_OPTION,
+        operator: '!=',
+        answerString: OCC_MED_EMPLOYER_PAY_OPTION,
       },
     ],
-    enableBehavior: 'any',
+    enableBehavior: 'all',
   },
   responsibleParty: {
     linkId: 'responsible-party-page',
@@ -2141,21 +2216,19 @@ const FormFields = {
         key: 'consent-forms-checkbox-group',
         type: 'group',
         items: {
-          hipaaAcknowledgement: {
-            key: 'hipaa-acknowledgement',
-            label: 'I have reviewed and accept [HIPAA Acknowledgement](/hipaa_notice_template.pdf)',
-            type: 'boolean',
-            permissibleValue: true,
-          },
-          consentToTreat: {
-            key: 'consent-to-treat',
-            label:
-              'I have reviewed and accept [Consent to Treat, Guarantee of Payment & Card on File Agreement](/consent_to_treat_template.pdf)',
-            type: 'boolean',
-            permissibleValue: true,
-          },
+          ...Object.fromEntries(
+            resolvedConsentForms.map((form) => [
+              camelCase(form.id),
+              {
+                key: form.id,
+                label: `I have reviewed and accept [${form.formTitle}](${form.publicUrl})`,
+                type: 'boolean',
+                permissibleValue: true,
+              },
+            ])
+          ),
         },
-        requiredFields: ['hipaa-acknowledgement', 'consent-to-treat'],
+        requiredFields: [...resolvedConsentForms.map((f) => f.id)],
       },
       signature: {
         key: 'signature',

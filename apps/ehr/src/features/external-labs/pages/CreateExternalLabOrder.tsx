@@ -29,7 +29,11 @@ import {
   useGetCreateExternalLabResources,
   useICD10SearchNew,
 } from 'src/features/visits/shared/stores/appointment/appointment.queries';
-import { useAppointmentData, useChartData } from 'src/features/visits/shared/stores/appointment/appointment.store';
+import {
+  useAppointmentData,
+  useChartData,
+  useSaveChartData,
+} from 'src/features/visits/shared/stores/appointment/appointment.store';
 import { useDebounce } from 'src/shared/hooks/useDebounce';
 import {
   CreateLabPaymentMethod,
@@ -71,6 +75,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
     followUpOriginEncounter: mainEncounter,
   } = useAppointmentData();
   const { chartData, setPartialChartData } = useChartData();
+  const { mutate: saveCPTChartData } = useSaveChartData();
   const { visitType } = useGetAppointmentAccessibility();
   const isFollowup = visitType === 'follow-up';
   const { data: mainEncounterChartData } = useMainEncounterChartData(isFollowup);
@@ -111,12 +116,15 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
     error: resourceFetchError,
   } = useGetCreateExternalLabResources({
     patientId,
+    encounterId: mainEncounter?.id,
   });
 
   const coverageInfo = createExternalLabResources?.coverages;
   const hasInsurance = !!(coverageInfo?.length && coverageInfo.length > 0);
   const orderingLocations = createExternalLabResources?.orderingLocations ?? [];
   const orderingLocationIdsStable = (createExternalLabResources?.orderingLocationIds ?? []).join(',');
+  const additionalCptCodesToAdd = createExternalLabResources?.additionalCptCodes;
+  const isWorkersComp = !!createExternalLabResources?.isWorkersCompEncounter;
 
   const orderingLocationIdToLocationAndLabGUIDsMap = useMemo(
     () =>
@@ -164,7 +172,9 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
   }, [apptLocation, selectedOfficeId, orderingLocationIdToLocationAndLabGUIDsMap]);
 
   useEffect(() => {
-    if (coverageInfo) {
+    if (isWorkersComp) {
+      setSelectedPaymentMethod(LabPaymentMethod.WorkersComp);
+    } else if (coverageInfo) {
       if (coverageInfo.length > 0) {
         setSelectedPaymentMethod(LabPaymentMethod.Insurance);
       } else {
@@ -174,7 +184,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
     } else {
       console.log('coverageInfo is', coverageInfo);
     }
-  }, [coverageInfo]);
+  }, [coverageInfo, isWorkersComp]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -187,6 +197,9 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
       selectedPaymentMethod !== '';
     if (oystehrZambda && paramsSatisfied) {
       try {
+        if (additionalCptCodesToAdd && additionalCptCodesToAdd.length > 0) {
+          await addAdditionalCptCodesToEncounter();
+        }
         await addAdditionalDxToEncounter();
         await createExternalLabOrder(oystehrZambda, {
           dx: orderDx,
@@ -251,6 +264,31 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
           diagnosis: [...allDx],
         });
       }
+    }
+  };
+
+  const addAdditionalCptCodesToEncounter = async (): Promise<void> => {
+    const chartCptCodes = chartData?.cptCodes || [];
+    const existingCodes = chartCptCodes.map((cptCode) => cptCode.code);
+    // per product each of these codes will only be added once per encounter
+    const filteredCodesToAdd = additionalCptCodesToAdd?.filter((codeToAdd) => !existingCodes.includes(codeToAdd.code));
+
+    if (filteredCodesToAdd && filteredCodesToAdd.length > 0) {
+      saveCPTChartData(
+        {
+          cptCodes: filteredCodesToAdd,
+        },
+        {
+          onSuccess: (data) => {
+            const cptCode = data.chartData?.cptCodes?.[0];
+            if (cptCode) {
+              setPartialChartData({
+                cptCodes: [...chartCptCodes, cptCode],
+              });
+            }
+          },
+        }
+      );
     }
   };
 
@@ -473,6 +511,11 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
                         {hasInsurance && (
                           <MenuItem id={'payment-method-item-insurance'} value={LabPaymentMethod.Insurance}>
                             Insurance
+                          </MenuItem>
+                        )}
+                        {isWorkersComp && (
+                          <MenuItem id={'payment-method-item-workers-comp'} value={LabPaymentMethod.WorkersComp}>
+                            Workers Comp
                           </MenuItem>
                         )}
                         <MenuItem id={'payment-method-item-self-pay'} value={LabPaymentMethod.SelfPay}>

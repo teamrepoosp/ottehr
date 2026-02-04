@@ -4,11 +4,10 @@ import { QuestionnaireResponseItem } from 'fhir/r4b';
 import * as fs from 'fs';
 import { DateTime } from 'luxon';
 import * as path from 'path';
-import { BOOKING_CONFIG } from 'utils';
+import { BOOKING_CONFIG, getConsentFormsForLocation, QuestionnaireHelper } from 'utils';
 import { CommonLocatorsHelper } from '../../utils/CommonLocatorsHelper';
 import { Locators } from '../../utils/locators';
 import { Paperwork } from '../../utils/Paperwork';
-import { QuestionnaireHelper } from '../../utils/QuestionnaireHelper';
 import { UploadDocs } from '../../utils/UploadDocs';
 import { InPersonNoPwPatient } from '../0_paperworkSetup/types';
 
@@ -318,6 +317,16 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
     });
 
     await test.step('PSI-8. Upload and clear insurance cards', async () => {
+      // Check if cards are already uploaded from previous test, if so - clear them first
+      const reuploadLinksCount = await page.getByText('Click to re-upload').count();
+      if (reuploadLinksCount > 0) {
+        // Cards already uploaded, clear them
+        const clearButtons = await locator.clearImage.count();
+        for (let i = 0; i < clearButtons; i++) {
+          await locator.clearImage.first().click();
+        }
+      }
+
       const uploadedFrontPhoto = await uploadPhoto.fillSecondaryInsuranceFront();
       await locator.clearImage.click();
       await expect(uploadedFrontPhoto).toBeHidden();
@@ -460,7 +469,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
         ];
 
         // Check if employer page would be visible for this service category
-        return !QuestionnaireHelper.employerInformationPageIsVisible(responseItems);
+        return !QuestionnaireHelper.inPersonEmployerInformationPageIsVisible(responseItems);
       })(),
       'Employer information page not visible for this appointment type'
     );
@@ -521,7 +530,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
           },
         ];
         // Check if attorney page would be visible for this reason for visit
-        return !QuestionnaireHelper.attorneyPageIsVisible(responseItems);
+        return !QuestionnaireHelper.inPersonAttorneyPageIsVisible(responseItems);
       })(),
       'Attorney page not visible for this appointment type'
     );
@@ -603,6 +612,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
   });
 
   test('PCF. Consent forms', async () => {
+    const consentForms = getConsentFormsForLocation();
     await test.step('PCF-1. Open consent forms page directly', async () => {
       await page.goto(`paperwork/${patient.appointmentId}/consent-forms`);
       await paperwork.checkCorrectPageOpens('Complete consent forms');
@@ -612,31 +622,28 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
       await paperwork.checkPatientNameIsDisplayed(patient.firstName, patient.lastName);
     });
 
-    // todo these should come from config!
-    // await test.step('PCF-3. Check required fields', async () => {
-    //   await paperwork.checkRequiredFields(
-    //     '"I have reviewed and accept HIPAA Acknowledgement","I have reviewed and accept Consent to Treat, Guarantee of Payment & Card on File Agreement","Signature","Full name","Relationship to the patient"',
-    //     'Complete consent forms',
-    //     true
-    //   );
-    // });
+    await test.step('PCF-3. Check required fields', async () => {
+      const requiredConsentTitles = consentForms.map((form) => `"I have reviewed and accept ${form.formTitle}"`);
+      const requiredFieldsString = [
+        ...requiredConsentTitles,
+        '"Signature"',
+        '"Full name"',
+        '"Relationship to the patient"',
+      ].join(',');
+      await paperwork.checkRequiredFields(requiredFieldsString, 'Complete consent forms', true);
+    });
 
-    // await test.step('PCF-4. Check links are correct', async () => {
-    //   expect(await page.getAttribute('a:has-text("HIPAA Acknowledgement")', 'href')).toBe('/hipaa_notice_template.pdf');
-    //   expect(
-    //     await page.getAttribute('a:has-text("Consent to Treat, Guarantee of Payment & Card on File Agreement")', 'href')
-    //   ).toBe('/consent_to_treat_template.pdf');
-    // });
+    await test.step('PCF-4. Check links are correct', async () => {
+      for (const form of consentForms) {
+        expect(await page.getAttribute(`a:has-text("${form.formTitle}")`, 'href')).toBe(form.publicUrl);
+      }
+    });
 
-    // await test.step('PCF-5. Check links opens in new tab', async () => {
-    //   expect(await page.getAttribute('a:has-text("HIPAA Acknowledgement")', 'target')).toBe('_blank');
-    //   expect(
-    //     await page.getAttribute(
-    //       'a:has-text("Consent to Treat, Guarantee of Payment & Card on File Agreement")',
-    //       'target'
-    //     )
-    //   ).toBe('_blank');
-    // });
+    await test.step('PCF-5. Check links opens in new tab', async () => {
+      for (const form of consentForms) {
+        expect(await page.getAttribute(`a:has-text("${form.formTitle}")`, 'target')).toBe('_blank');
+      }
+    });
 
     const consentFormsData = await test.step('PCF-6. Fill all fields and click on [Continue]', async () => {
       const consentFormsData = await paperwork.fillConsentForms();
@@ -647,8 +654,10 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
 
     await test.step('PCF-7. Click on [Back] - all values are saved', async () => {
       await locator.clickBackButton();
-      await expect(locator.hipaaAcknowledgement).toBeChecked();
-      await expect(locator.consentToTreat).toBeChecked();
+      // Validate all configured consent form checkboxes are checked
+      for (const { locator: checkboxLocator } of locator.getAllConsentFormCheckboxes()) {
+        await expect(checkboxLocator).toBeChecked();
+      }
       await expect(locator.signature).toHaveValue(consentFormsData.signature);
       await expect(locator.consentFullName).toHaveValue(consentFormsData.consentFullName);
       await expect(locator.consentSignerRelationship).toHaveValue(consentFormsData.relationshipConsentForms);
