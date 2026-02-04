@@ -50,7 +50,7 @@ export interface GetVisitDetailsResponse {
   medications: PrescribedMedication[];
   appointmentTime: string;
   followUps: FollowUpDetails[];
-  reviewedLabResults: FileURLInfo[];
+  reviewedLabResults: FileURLInfo[]; // external labs are "reviewed" after a practitioner clicks "Mark as Reviewed" and inhouse labs are "reviewed" at result entry
 }
 
 export interface PaymentDataResponse {
