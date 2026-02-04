@@ -9,7 +9,11 @@ export function validateRequestParameters(input: ZambdaInput): AISuggestionNotes
   // no complication
   const { type, details } = JSON.parse(input.body);
 
-  if (!type.includes('procedure')) {
+  if (!type) {
+    throw MISSING_REQUIRED_PARAMETERS(['type']);
+  }
+
+  if (!['procedure'].includes(type)) {
     throw new Error('Invalid type');
   }
 
