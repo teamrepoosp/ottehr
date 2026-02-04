@@ -27,7 +27,7 @@ export const useGetEncounter = (input: useGetEncounterInput): UseQueryResult<Enc
   });
 };
 
-export const useEncounterReceipt = (input: useGetEncounterInput): UseQueryResult<DocumentReference, Error> => {
+export const useEncounterReceipt = (input: useGetEncounterInput): UseQueryResult<DocumentReference | null, Error> => {
   const { oystehr } = useApiClients();
   const { encounterId } = input;
 
@@ -43,10 +43,8 @@ export const useEncounterReceipt = (input: useGetEncounterInput): UseQueryResult
           ],
         });
 
-        const receipt = response.unbundle()[0];
-        if (!receipt) {
-          throw new Error('receipt not yet available');
-        }
+        const receipt = response.unbundle()[0] ?? null;
+
         return receipt;
       }
 
