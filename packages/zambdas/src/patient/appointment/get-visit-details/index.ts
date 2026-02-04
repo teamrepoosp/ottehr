@@ -107,7 +107,6 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
             let followupDocuments = {};
             try {
               if (followupEncounter.id) {
-                // todo sarah do we need to add handling of lab result urls here too?
                 const { presignedUrls } = await getPresignedURLs(oystehr, oystehrToken, followupEncounter.id);
                 followupDocuments = presignedUrls;
               }

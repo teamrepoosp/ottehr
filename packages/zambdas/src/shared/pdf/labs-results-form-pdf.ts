@@ -464,7 +464,7 @@ export async function createExternalLabResultPDFBasedOnDr(
     patientID: patient.id,
     encounterID: undefined,
     related: makeRelatedForLabsPDFDocRef({ diagnosticReportId: diagnosticReportID }),
-    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: undefined }, // todo sarah where to get fillerLab for unsolicited ??
+    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: undefined }, // where to get fillerLab for unsolicited ??
     diagnosticReportID,
     reviewed,
   });
@@ -1468,9 +1468,9 @@ export async function makeLabPdfDocumentReference({
   patientID: string;
   encounterID: string | undefined; // will be undefined for unsolicited results;
   related: Reference[];
-  labDetails: { type: LabType; testName: string; fillerLab: string | undefined };
   diagnosticReportID?: string;
   reviewed?: boolean;
+  labDetails?: { type: LabType; testName: string; fillerLab: string | undefined }; // will only be passed in for results (not orders)
 }): Promise<DocumentReference> {
   const typeIsLabDrTypeTagCode = isLabDrTypeTagCode(type);
   if (!typeIsLabDrTypeTagCode && !encounterID) {
@@ -1503,8 +1503,6 @@ export async function makeLabPdfDocumentReference({
 
   const labListResource = await getLabListResource(oystehr, patientID, secrets, pdfInfo.title);
 
-  const metaForDocRef = makeLabDocRefMeta(labDetails);
-
   const { docRefs } = await createFilesDocumentReferences({
     files: [
       {
@@ -1523,7 +1521,7 @@ export async function makeLabPdfDocumentReference({
     dateCreated: DateTime.now().setZone('UTC').toISO() ?? '',
     oystehr,
     generateUUID: randomUUID,
-    meta: metaForDocRef,
+    meta: labDetails ? makeLabDocRefMeta(labDetails) : undefined,
     searchParams,
     listResources: labListResource ? [labListResource] : [], // when passed as empty, the doc will not be added to the patient labs folder
   });
