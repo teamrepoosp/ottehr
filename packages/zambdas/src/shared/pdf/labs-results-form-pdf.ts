@@ -86,7 +86,7 @@ import {
   LAB_PDF_STYLES,
   LABS_PDF_LEFT_INDENTATION_XPOS,
   LabsPDFTextStyleConfig,
-  makeLabDocRefMeta,
+  makeLabResultDocRefMeta,
 } from './lab-pdf-utils';
 import { ICON_STYLE, STANDARD_FONT_SIZE, STANDARD_NEW_LINE } from './pdf-consts';
 import { calculateAge, PdfInfo, SEPARATED_LINE_STYLE } from './pdf-utils';
@@ -1521,7 +1521,7 @@ export async function makeLabPdfDocumentReference({
     dateCreated: DateTime.now().setZone('UTC').toISO() ?? '',
     oystehr,
     generateUUID: randomUUID,
-    meta: labDetails ? makeLabDocRefMeta(labDetails) : undefined,
+    meta: labDetails ? makeLabResultDocRefMeta(labDetails) : undefined,
     searchParams,
     listResources: labListResource ? [labListResource] : [], // when passed as empty, the doc will not be added to the patient labs folder
   });

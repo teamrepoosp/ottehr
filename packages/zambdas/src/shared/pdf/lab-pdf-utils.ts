@@ -376,12 +376,12 @@ export const addDocsToLabList = async (
 };
 
 /**
- * Returns meta attribute for meant to be applied to lab pdf document references,
+ * Returns meta attribute for meant to be applied to lab result pdf document references,
  * will includes tags for the type (inhouse or external), testName and fillerLab (if applicable)
- * @param testName
- * @param fillerLab
+ * @param labDetails
+ * @returns
  */
-export const makeLabDocRefMeta = (labDetails: {
+export const makeLabResultDocRefMeta = (labDetails: {
   type: LabType;
   testName: string;
   fillerLab: string | undefined;

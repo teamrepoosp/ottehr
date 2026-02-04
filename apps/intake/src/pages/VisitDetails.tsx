@@ -138,7 +138,6 @@ const VisitDetailsContent = ({
           </Typography>
           {data.reviewedLabResults.map((labResult, idx) => (
             <Box key={`${idx}-lab-result`}>
-              {/* <Typography sx={{ fontSize: 18 }}>{labResult.description}</Typography> */}
               <Link sx={{ cursor: 'pointer' }} onClick={() => openExternalLink(labResult.presignedUrl || '')}>
                 {labResult.description}
               </Link>
