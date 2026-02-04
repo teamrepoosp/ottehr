@@ -2,9 +2,9 @@ import { useAuth0 } from '@auth0/auth0-react';
 import CloseIcon from '@mui/icons-material/Close';
 import LiveHelpOutlinedIcon from '@mui/icons-material/LiveHelpOutlined';
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined';
+import MedicalInformationOutlinedIcon from '@mui/icons-material/MedicalInformationOutlined';
 import VideoCameraFrontOutlinedIcon from '@mui/icons-material/VideoCameraFrontOutlined';
 import { Box, Button, Skeleton, Typography } from '@mui/material';
-import { pastVisits } from '@theme/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { generatePath, useNavigate } from 'react-router-dom';
 import { BOOKING_CONFIG, BRANDING_CONFIG, ServiceMode, shouldShowServiceCategorySelectionPage } from 'utils';
@@ -237,7 +237,7 @@ const Homepage = (): JSX.Element => {
             ) : null}
             <HomepageOption
               title="Past Visits"
-              icon={pastVisits}
+              icon={<MedicalInformationOutlinedIcon />}
               handleClick={handlePastVisits}
               subtitle="School/Work Notes and Prescriptions"
               dataTestId={dataTestIds.navigatePastVisitsButton}
