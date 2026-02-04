@@ -24,6 +24,7 @@ import {
   CreateAppointmentInputParams,
   CreateSlotParams,
   getAppointmentDurationFromSlot,
+  getReasonForVisitOptionsForServiceCategory,
   GetScheduleRequestParams,
   GetScheduleResponse,
   getTimezone,
@@ -31,7 +32,6 @@ import {
   ScheduleType,
   ServiceMode,
   SLUG_SYSTEM,
-  VALUE_SETS,
 } from 'utils';
 import { createAppointment, createSlot, getLocations } from '../api/api';
 import CustomBreadcrumbs from '../components/CustomBreadcrumbs';
@@ -105,22 +105,10 @@ export default function AddPatient(): JSX.Element {
     setReasonForVisitAdditional('');
   }, [serviceCategory]);
 
-  const reasonForVisitOptions = (() => {
-    if (serviceCategory === 'occupational-medicine') {
-      return VALUE_SETS.reasonForVisitOptionsOccMed;
-    }
-    if (serviceCategory === 'workers-comp') {
-      return VALUE_SETS.reasonForVisitOptionsWorkersComp;
-    }
-    if (serviceCategory === 'urgent-care') {
-      return VALUE_SETS.reasonForVisitOptions;
-    }
-    return [];
-  })();
-
+  const reasonForVisitOptions = getReasonForVisitOptionsForServiceCategory(serviceCategory ?? '');
   const shouldShowReasonForVisitFields = useMemo(() => {
     return showFields !== 'initialPatientSearch' && reasonForVisitOptions.length > 0;
-  }, [showFields, reasonForVisitOptions]);
+  }, [showFields, reasonForVisitOptions.length]);
   // general variables
   const navigate = useNavigate();
   const { oystehrZambda } = useApiClients();

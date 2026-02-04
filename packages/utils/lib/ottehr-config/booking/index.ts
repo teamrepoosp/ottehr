@@ -539,3 +539,18 @@ export const prepopulateBookingForm = (input: BookingFormPrePopulationInput): Qu
 
   return item;
 };
+
+export const getReasonForVisitOptionsForServiceCategory = (
+  serviceCategory: string
+): { value: string; label: string }[] => {
+  if (serviceCategory === 'occupational-medicine') {
+    return VALUE_SETS.reasonForVisitOptionsOccMed;
+  }
+  if (serviceCategory === 'workers-comp') {
+    return VALUE_SETS.reasonForVisitOptionsWorkersComp;
+  }
+  if (serviceCategory === 'urgent-care') {
+    return VALUE_SETS.reasonForVisitOptions;
+  }
+  return [];
+};

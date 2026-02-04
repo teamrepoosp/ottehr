@@ -63,6 +63,7 @@ import {
   getMiddleName,
   getPatchOperationForNewMetaTag,
   getReasonForVisitAndAdditionalDetailsFromAppointment,
+  getReasonForVisitOptionsForServiceCategory,
   getTelemedVisitStatus,
   getUnconfirmedDOBForAppointment,
   isApiError,
@@ -75,7 +76,6 @@ import {
   TelemedAppointmentStatus,
   UpdateVisitDetailsInput,
   UpdateVisitFilesInput,
-  VALUE_SETS,
   VisitDocuments,
   VisitStatusLabel,
 } from 'utils';
@@ -291,8 +291,6 @@ export default function VisitDetailsPage(): ReactElement {
     fullCardPdfs: [],
     consentPdfUrls: [],
   };
-
-  console.log('fullCardPdfs, consentPdfUrls', fullCardPdfs, consentPdfUrls);
 
   const { idCards, primaryInsuranceCards, secondaryInsuranceCards, imageCarouselObjs } = (() => {
     const { photoIdCards, insuranceCards, insuranceCardsSecondary } = imageFileData || {
@@ -796,7 +794,16 @@ export default function VisitDetailsPage(): ReactElement {
     signedConsentForm[consentToTreatPatientDetailsKey] = imagesLoading ? 'Loading...' : 'Not signed';
   }
 
-  const { reasonForVisit, additionalDetails } = getReasonForVisitAndAdditionalDetailsFromAppointment(appointment);
+  const { reasonForVisit: maybeReasonForVisit, additionalDetails } =
+    getReasonForVisitAndAdditionalDetailsFromAppointment(appointment);
+  const reasonForVisit = useMemo(() => {
+    if (!maybeReasonForVisit) {
+      return maybeReasonForVisit;
+    }
+    const options = getReasonForVisitOptionsForServiceCategory(serviceCategory ?? '');
+    const match = options.some((option) => option.value === maybeReasonForVisit);
+    return match ? maybeReasonForVisit : undefined;
+  }, [maybeReasonForVisit, serviceCategory]);
 
   const authorizedGuardians =
     patient?.extension?.find((e) => e.url === FHIR_EXTENSION.Patient.authorizedNonLegalGuardians.url)?.valueString ??
@@ -1285,7 +1292,7 @@ export default function VisitDetailsPage(): ReactElement {
                 loadingComponent={<Skeleton width={200} height={40} />}
                 renderBackButton={false}
                 appointmentContext={{
-                  appointmentServiceCategory: getCoding(appointment?.serviceCategory, SERVICE_CATEGORY_SYSTEM)?.code,
+                  appointmentServiceCategory: serviceCategory,
                   appointmentServiceMode: isTelemedAppointment(appointment)
                     ? ServiceMode.virtual
                     : ServiceMode['in-person'],
@@ -1412,7 +1419,7 @@ export default function VisitDetailsPage(): ReactElement {
                           )
                         }
                       >
-                        {VALUE_SETS.reasonForVisitOptions.map((reason) => (
+                        {getReasonForVisitOptionsForServiceCategory(serviceCategory ?? '').map((reason) => (
                           <MenuItem key={reason.value} value={reason.value}>
                             {reason.label}
                           </MenuItem>
