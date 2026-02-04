@@ -78,6 +78,9 @@ export interface LocationWithWalkinSchedule extends Location {
   walkinSchedule: Schedule | undefined;
 }
 
+const defaultServiceCategory =
+  BOOKING_CONFIG.serviceCategories.length === 1 ? BOOKING_CONFIG.serviceCategories[0]?.code : '';
+
 export default function AddPatient(): JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<LocationWithWalkinSchedule>();
   const [birthDate, setBirthDate] = useState<DateTime | null>(null); // i would love to not have to handle this state but i think the date search component would have to change and i dont want to touch that right now
@@ -85,7 +88,7 @@ export default function AddPatient(): JSX.Element {
   const [reasonForVisit, setReasonForVisit] = useState<string>('');
   const [reasonForVisitAdditional, setReasonForVisitAdditional] = useState<string>('');
   const [visitType, setVisitType] = useState<VisitType>();
-  const [serviceCategory, setServiceCategory] = useState<string>();
+  const [serviceCategory, setServiceCategory] = useState<string>(defaultServiceCategory);
   const [slot, setSlot] = useState<Slot | undefined>();
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<AddVisitErrorState>({
@@ -316,6 +319,7 @@ export default function AddPatient(): JSX.Element {
                     value={serviceCategory || ''}
                     label="Service category *"
                     required
+                    disabled={defaultServiceCategory !== ''}
                     onChange={(event) => {
                       setServiceCategory(event.target.value);
                     }}

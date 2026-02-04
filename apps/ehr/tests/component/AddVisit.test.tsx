@@ -38,6 +38,10 @@ describe('AddVisit', () => {
     screen: typeof import('@testing-library/react').screen,
     category?: string
   ): Promise<void> => {
+    if (BOOKING_CONFIG.serviceCategories.length === 1) {
+      // should be selected by default
+      return;
+    }
     const serviceCategoryDropdown = screen.getByTestId(dataTestIds.addPatientPage.serviceCategoryDropdown);
     const serviceCategoryButton = serviceCategoryDropdown.querySelector('[role="combobox"]');
     await user.click(serviceCategoryButton!);
