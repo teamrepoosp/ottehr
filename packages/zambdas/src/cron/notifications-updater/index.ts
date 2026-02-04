@@ -341,6 +341,10 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
 
           if (notificationSettings?.enabled) {
             const status = getCommunicationStatus(notificationSettings, busyPractitionerIds, practitioner);
+            let taskDescription = task.description;
+            if (taskDescription !== undefined && taskDescription.length > 140) {
+              taskDescription = taskDescription.substring(0, 140) + '...';
+            }
 
             const request: BatchInputPostRequest<Communication> = {
               method: 'POST',
@@ -361,7 +365,7 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
                 status: status,
                 basedOn: [{ reference: `Task/${task.id}` }],
                 recipient: [{ reference: `Practitioner/${practitioner.id}` }],
-                payload: [{ contentString: `A new task has been assigned to you: ${task.description}` }],
+                payload: [{ contentString: `A new task has been assigned to you: ${taskDescription}` }],
               },
             };
 
