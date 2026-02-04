@@ -772,13 +772,13 @@ const FormFields = {
     title: "Worker's Compensation Information",
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: '=',
         answerString: 'workers-comp',
       },
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
@@ -854,13 +854,13 @@ const FormFields = {
     },
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: '=',
         answerString: 'occupational-medicine',
       },
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
@@ -883,13 +883,13 @@ const FormFields = {
     },
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.reason-for-visit',
+        targetQuestionLinkId: 'reason-for-visit',
         effect: ['enable'],
         operator: '=',
         answerString: 'Auto accident',
       },
       {
-        targetQuestionLinkId: 'patient-summary.reason-for-visit',
+        targetQuestionLinkId: 'reason-for-visit',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
