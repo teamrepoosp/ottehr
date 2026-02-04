@@ -54,6 +54,7 @@ import {
   FHIR_EXTENSION,
   FhirAppointmentType,
   formatDateForDisplay,
+  getCancellationReasonDisplay,
   getCoding,
   getFirstName,
   getFullName,
@@ -947,7 +948,7 @@ export default function VisitDetailsPage(): ReactElement {
                   </span>
                   {appointment && appointment.status === 'cancelled' && (
                     <Typography sx={{ alignSelf: 'center', marginLeft: 2 }}>
-                      {appointment?.cancelationReason?.coding?.[0]?.display}
+                      {getCancellationReasonDisplay(appointment)}
                     </Typography>
                   )}
                 </>
@@ -1289,6 +1290,7 @@ export default function VisitDetailsPage(): ReactElement {
                     ? ServiceMode.virtual
                     : ServiceMode['in-person'],
                   reasonForVisit,
+                  encounterId: encounter?.id,
                 }}
               />
             </Grid>
