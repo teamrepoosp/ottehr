@@ -42,7 +42,7 @@ const VitalsWeightsCard: React.FC<VitalsWeightsCardProps> = ({
   const latestWeightKg = currentObs[0]?.value;
   const isPatientRefused = currentObs[0]?.extraWeightOptions?.includes('patient_refused');
 
-  const [isPatientRefusedOptionSelected, setOptionRefusedOptionSelected] = useState<boolean>(false);
+  const [isPatientRefusedOptionSelected, setOptionRefusedOptionSelected] = useState<boolean>(Boolean(isPatientRefused));
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveWeightObservation = async (): Promise<void> => {
