@@ -26,8 +26,8 @@ export function validateRequestParameters(input: ZambdaInput): CancelTelemedAppo
 
   if (
     !(
-      VALUE_SETS.cancelReasonOptionsVirtualPatient.some((option) => option.value === cancellationReason) ||
-      VALUE_SETS.cancelReasonOptionsVirtualProvider.some((option) => option.value === cancellationReason)
+      VALUE_SETS.cancelReasonOptionsVirtualPatient.some((option) => option.value === cancellationReason.value) ||
+      VALUE_SETS.cancelReasonOptionsVirtualProvider.some((option) => option.value === cancellationReason.value)
     )
   ) {
     throw new Error(
