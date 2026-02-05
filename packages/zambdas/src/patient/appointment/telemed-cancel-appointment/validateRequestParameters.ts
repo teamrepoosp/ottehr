@@ -26,15 +26,15 @@ export function validateRequestParameters(input: ZambdaInput): CancelTelemedAppo
 
   if (
     !(
-      VALUE_SETS.cancelReasonOptionsVirtualPatient.some((option) => option.value === cancellationReason.value) ||
-      VALUE_SETS.cancelReasonOptionsVirtualProvider.some((option) => option.value === cancellationReason.value)
+      VALUE_SETS.cancelReasonOptionsVirtualPatient.some((option) => option.value === cancellationReason) ||
+      VALUE_SETS.cancelReasonOptionsVirtualProvider.some((option) => option.value === cancellationReason)
     )
   ) {
     throw new Error(
       `"cancellationReason" must be one of the following values: ${JSON.stringify(
         VALUE_SETS.cancelReasonOptionsVirtualPatient.map((option) => option.value),
         VALUE_SETS.cancelReasonOptionsVirtualProvider.map((option) => option.value)
-      )}`
+      )} and received ${cancellationReason}`
     );
   }
 
