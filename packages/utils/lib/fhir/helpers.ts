@@ -57,6 +57,7 @@ import {
 } from 'utils';
 import {
   BookableResource,
+  CPTCodeDTO,
   EncounterVirtualServiceExtension,
   HealthcareServiceWithLocationContext,
   PractitionerLicense,
@@ -1418,4 +1419,10 @@ export function getResponsiblePartyFromAccount(
   const responsiblePartyRef = getActiveAccountGuarantorReference(account);
   if (!responsiblePartyRef) return undefined;
   return takeContainedOrFind<RelatedPerson | Patient>(responsiblePartyRef, resources, account);
+}
+
+export function makeCptCodeDisplay(cptCode: CPTCodeDTO): string {
+  const modifiersString =
+    cptCode.modifier && cptCode.modifier.length > 0 ? `${cptCode.modifier.map((mod) => `-${mod}`).join('')}` : '';
+  return `${cptCode.code}${modifiersString} ${cptCode.display}`;
 }
