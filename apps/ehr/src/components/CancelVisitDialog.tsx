@@ -64,7 +64,7 @@ const CancelVisitDialog = ({ onClose }: CancelVisitDialogProps): ReactElement =>
     try {
       const response = await cancelTelemedAppointment(oystehrZambda, {
         appointmentID: appointmentID || '',
-        cancellationReason: typedReason,
+        cancellationReason: typedReason.value,
         cancellationReasonAdditional: otherReason,
       });
       console.log('Appointment cancelled successfully', response);
