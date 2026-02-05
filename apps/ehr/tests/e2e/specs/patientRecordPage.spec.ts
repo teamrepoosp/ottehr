@@ -56,6 +56,7 @@ import {
 } from '../page/PatientInformationPage';
 import { expectPatientRecordPage } from '../page/PatientRecordPage';
 import { expectPatientsPage } from '../page/PatientsPage';
+import { isSectionHidden } from '../utils/patientRecordHelpers';
 
 const NEW_PATIENT_LAST_NAME = 'Test_last_name';
 const NEW_PATIENT_FIRST_NAME = 'Test_first_name';
@@ -148,12 +149,33 @@ const preferredPharmacy = PATIENT_RECORD_CONFIG.FormFields.preferredPharmacy.ite
 const employerInformation = PATIENT_RECORD_CONFIG.FormFields.employerInformation.items;
 const attorneyInformation = PATIENT_RECORD_CONFIG.FormFields.attorneyInformation.items;
 
-const HIDDEN_SECTIONS = PATIENT_RECORD_CONFIG.hiddenFormSections || [];
 const SECTIONS = PATIENT_RECORD_CONFIG.FormFields;
 
-const PCPHidden = HIDDEN_SECTIONS.includes(SECTIONS.primaryCarePhysician.linkId);
+// Helper to build form values from appointment context
+// This is used to evaluate dynamic section visibility based on appointment data
+const buildFormValuesFromAppointment = (
+  appointment?: CreateAppointmentResponse['resources']['appointment']
+): Record<string, any> => {
+  const formValues: Record<string, any> = {};
 
-const PatientSummaryHidden = HIDDEN_SECTIONS.includes(SECTIONS.patientSummary.linkId);
+  // Extract service category from appointment
+  if (appointment?.serviceCategory) {
+    const serviceCategory = appointment.serviceCategory[0]?.coding?.[0]?.code;
+    if (serviceCategory) {
+      formValues['appointment-service-category'] = serviceCategory;
+    }
+  }
+
+  // Extract reason for visit from appointment
+  if (appointment?.appointmentType) {
+    const reasonForVisit = appointment.appointmentType.coding?.[0]?.code;
+    if (reasonForVisit) {
+      formValues['reason-for-visit'] = reasonForVisit;
+    }
+  }
+
+  return formValues;
+};
 
 // Helper to get conditionally rendered fields from config
 const getConditionalFields = (
@@ -185,25 +207,22 @@ const getConditionalFields = (
     });
 };
 
-const ContactInformationHidden = HIDDEN_SECTIONS.includes(SECTIONS.patientContactInformation.linkId);
-
-const PatientDetailsHidden = HIDDEN_SECTIONS.includes(SECTIONS.patientDetails.linkId);
-
-const ResponsiblePartyHidden = HIDDEN_SECTIONS.includes(SECTIONS.responsibleParty.linkId);
-
-const EmployerHidden = HIDDEN_SECTIONS.includes(SECTIONS.employerInformation.linkId);
-const AttorneyHidden = HIDDEN_SECTIONS.includes(SECTIONS.attorneyInformation.linkId);
-
-const EmergencyContactHidden = HIDDEN_SECTIONS.includes(SECTIONS.emergencyContact.linkId);
-
-const PharmacyHidden = HIDDEN_SECTIONS.includes(SECTIONS.preferredPharmacy.linkId);
-
 //const RELEASE_OF_INFO = 'Yes, Release Allowed';
 //const RX_HISTORY_CONSENT = 'Rx history consent signed by the patient';
 
-const populateAllRequiredFields = async (patientInformationPage: PatientInformationPage): Promise<void> => {
+interface SectionVisibility {
+  PatientSummaryHidden: boolean;
+  ContactInformationHidden: boolean;
+  PatientDetailsHidden: boolean;
+  ResponsiblePartyHidden: boolean;
+}
+
+const populateAllRequiredFields = async (
+  patientInformationPage: PatientInformationPage,
+  visibility: SectionVisibility
+): Promise<void> => {
   // Patient Summary fields
-  if (!PatientSummaryHidden) {
+  if (!visibility.PatientSummaryHidden) {
     await patientInformationPage.enterTextFieldValue(patientSummary.lastName.key, NEW_PATIENT_LAST_NAME);
     await patientInformationPage.enterTextFieldValue(patientSummary.firstName.key, NEW_PATIENT_FIRST_NAME);
     await patientInformationPage.enterDateFieldValue(patientSummary.birthDate.key, NEW_PATIENT_DATE_OF_BIRTH);
@@ -211,7 +230,7 @@ const populateAllRequiredFields = async (patientInformationPage: PatientInformat
   }
 
   // Contact Information fields
-  if (!ContactInformationHidden) {
+  if (!visibility.ContactInformationHidden) {
     await patientInformationPage.enterTextFieldValue(contactInformation.streetAddress.key, NEW_STREET_ADDRESS);
     await patientInformationPage.enterTextFieldValue(contactInformation.city.key, NEW_CITY);
     await patientInformationPage.selectFieldOption(contactInformation.state.key, NEW_STATE);
@@ -221,13 +240,13 @@ const populateAllRequiredFields = async (patientInformationPage: PatientInformat
   }
 
   // Patient Details fields
-  if (!PatientDetailsHidden) {
+  if (!visibility.PatientDetailsHidden) {
     await patientInformationPage.selectFieldOption(patientDetails.ethnicity.key, NEW_PATIENT_ETHNICITY);
     await patientInformationPage.selectFieldOption(patientDetails.race.key, NEW_PATIENT_RACE);
   }
 
   // Responsible Party fields
-  if (!ResponsiblePartyHidden) {
+  if (!visibility.ResponsiblePartyHidden) {
     await patientInformationPage.selectFieldOption(
       responsibleParty.relationship.key,
       NEW_RELATIONSHIP_FROM_RESPONSIBLE_CONTAINER
@@ -275,6 +294,21 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
     await page.close();
     await context.close();
   });
+
+  // Build form values from the appointment to evaluate dynamic section visibility
+  const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+
+  // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
+  const PCPHidden = isSectionHidden(SECTIONS.primaryCarePhysician, formValues);
+  const PatientSummaryHidden = isSectionHidden(SECTIONS.patientSummary, formValues);
+  const ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
+  const PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
+  const ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
+  const EmergencyContactHidden = isSectionHidden(SECTIONS.emergencyContact, formValues);
+  const PharmacyHidden = isSectionHidden(SECTIONS.preferredPharmacy, formValues);
+  const EmployerHidden = isSectionHidden(SECTIONS.employerInformation, formValues);
+  const AttorneyHidden = isSectionHidden(SECTIONS.attorneyInformation, formValues);
+
   let patientInformationPage: PatientInformationPage;
 
   /* Non-mutating part start */
@@ -523,7 +557,12 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
   test.describe('Filling and saving required fields, checking validation errors, checking updated fields are displayed correctly', async () => {
     test('Fill and save required values on Patient Info Page, values are saved and updated successfully. Check all section fields validation errors.', async () => {
       patientInformationPage = await openPatientInformationPage(page, resourceHandler.patient.id!);
-      await populateAllRequiredFields(patientInformationPage);
+      await populateAllRequiredFields(patientInformationPage, {
+        PatientSummaryHidden,
+        ContactInformationHidden,
+        PatientDetailsHidden,
+        ResponsiblePartyHidden,
+      });
       // await patientInformationPage.selectReleaseOfInfo(RELEASE_OF_INFO);
       // await patientInformationPage.selectRxHistoryConsent(RX_HISTORY_CONSENT);
 
@@ -1136,7 +1175,12 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
     });
 
     test('Updating values for all fields and saving. Checking that they are displayed correctly after save', async () => {
-      await populateAllRequiredFields(patientInformationPage);
+      await populateAllRequiredFields(patientInformationPage, {
+        PatientSummaryHidden,
+        ContactInformationHidden,
+        PatientDetailsHidden,
+        ResponsiblePartyHidden,
+      });
 
       await test.step('Updating values from Patient Information page sections', async () => {
         test.skip(PatientSummaryHidden, 'patient summary section is hidden');
@@ -1774,6 +1818,14 @@ test.describe('Patient Record Page tests with zero patient data filled in', { ta
     await page.close();
     await context.close();
   });
+
+  // Build form values from the appointment to evaluate dynamic section visibility
+  const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+
+  // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
+  const ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
+  const PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
+  const ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
 
   test('Check state, ethnicity, race, relationship to patient are required', async () => {
     await page.goto('/patient/' + resourceHandler.patient.id);
