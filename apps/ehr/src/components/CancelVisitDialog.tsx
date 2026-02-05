@@ -105,7 +105,7 @@ const CancelVisitDialog = ({ onClose }: CancelVisitDialogProps): ReactElement =>
     >
       <form onSubmit={(e) => handleCancelAppointment(e)}>
         <DialogTitle variant="h4" color="primary.dark" sx={{ width: '100%' }}>
-          Cancellation reason fff
+          Cancellation reason
         </DialogTitle>
         <DialogContent>
           <FormControl fullWidth required sx={{ mt: 2 }}>
