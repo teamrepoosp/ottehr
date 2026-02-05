@@ -56,7 +56,7 @@ import {
 } from '../page/PatientInformationPage';
 import { expectPatientRecordPage } from '../page/PatientRecordPage';
 import { expectPatientsPage } from '../page/PatientsPage';
-import { isSectionHidden } from '../utils/patientRecordHelpers';
+import { isFieldHidden, isSectionHidden } from '../utils/patientRecordHelpers';
 
 const NEW_PATIENT_LAST_NAME = 'Test_last_name';
 const NEW_PATIENT_FIRST_NAME = 'Test_first_name';
@@ -294,13 +294,14 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
   let PharmacyHidden: boolean;
   let EmployerHidden: boolean;
   let AttorneyHidden: boolean;
+  let formValues: Record<string, any>;
 
   test.beforeAll(async ({ browser }) => {
     await resourceHandler.setResources();
     await resourceHandler.waitTillHarvestingDone(resourceHandler.appointment.id!);
 
     // Build form values from the appointment to evaluate dynamic section visibility
-    const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+    formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
 
     // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
     PCPHidden = isSectionHidden(SECTIONS.primaryCarePhysician, formValues);
@@ -383,26 +384,28 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
 
   test('Verify entered by patient data from Patient details block is displayed correctly', async () => {
     test.skip(PatientDetailsHidden, 'patient details section is hidden');
-    if (!PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.ethnicity.key)) {
+    if (!isFieldHidden(patientDetails.ethnicity.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)) {
       await patientInformationPage.verifySelectFieldValue(patientDetails.ethnicity.key, DEMO_VISIT_PATIENT_ETHNICITY);
     }
-    if (!PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.race.key)) {
+    if (!isFieldHidden(patientDetails.race.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)) {
       await patientInformationPage.verifySelectFieldValue(patientDetails.race.key, DEMO_VISIT_PATIENT_RACE);
     }
-    if (!PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.pointOfDiscovery.key)) {
+    if (
+      !isFieldHidden(patientDetails.pointOfDiscovery.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)
+    ) {
       await patientInformationPage.verifySelectFieldValue(
         patientDetails.pointOfDiscovery.key,
         DEMO_VISIT_POINT_OF_DISCOVERY
       );
     }
-    if (!PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.sendMarketing.key)) {
+    if (!isFieldHidden(patientDetails.sendMarketing.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)) {
       await patientInformationPage.verifyBooleanFieldHasExpectedValue(
         patientDetails.sendMarketing.key,
         DEMO_VISIT_MARKETING_MESSAGING
       );
     }
     // no test for CommonWell consent?
-    if (!PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.language.key)) {
+    if (!isFieldHidden(patientDetails.language.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)) {
       await patientInformationPage.verifySelectFieldValue(patientDetails.language.key, DEMO_VISIT_PREFERRED_LANGUAGE);
     }
   });
@@ -986,8 +989,7 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
       await test.step('If "Other" gender is selected from Patient details  block, additional field appears and it is required', async () => {
         test.skip(PatientDetailsHidden, 'patient details section is hidden');
         test.skip(
-          PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.genderIdentity.key) ??
-            false,
+          isFieldHidden(patientDetails.genderIdentity.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues),
           'gender identity field is hidden'
         );
         await patientInformationPage.selectFieldOption(patientDetails.genderIdentity.key, 'Other');
@@ -1201,7 +1203,7 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
         await patientInformationPage.enterTextFieldValue(patientSummary.suffix.key, NEW_PATIENT_SUFFIX);
         await patientInformationPage.enterTextFieldValue(patientSummary.preferredName.key, NEW_PATIENT_PREFERRED_NAME);
         await patientInformationPage.enterDateFieldValue(patientSummary.birthDate.key, NEW_PATIENT_DATE_OF_BIRTH);
-        if (!PATIENT_RECORD_CONFIG.FormFields.patientSummary.hiddenFields?.includes(patientSummary.pronouns.key)) {
+        if (!isFieldHidden(patientSummary.pronouns.key, PATIENT_RECORD_CONFIG.FormFields.patientSummary, formValues)) {
           await patientInformationPage.selectFieldOption(patientSummary.pronouns.key, NEW_PATIENT_PREFERRED_PRONOUNS);
         }
         await patientInformationPage.selectFieldOption(patientSummary.birthSex.key, NEW_PATIENT_BIRTH_SEX);
@@ -1247,7 +1249,11 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
         await patientInformationPage.selectFieldOption(patientDetails.ethnicity.key, NEW_PATIENT_ETHNICITY);
         await patientInformationPage.selectFieldOption(patientDetails.race.key, NEW_PATIENT_RACE);
         if (
-          !PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.sexualOrientation.key)
+          !isFieldHidden(
+            patientDetails.sexualOrientation.key,
+            PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+            formValues
+          )
         ) {
           await patientInformationPage.selectFieldOption(
             patientDetails.sexualOrientation.key,
@@ -1255,17 +1261,25 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
           );
         }
         if (
-          !PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.genderIdentity.key)
+          !isFieldHidden(patientDetails.genderIdentity.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)
         ) {
           await patientInformationPage.selectFieldOption(
             patientDetails.genderIdentity.key,
             NEW_PATIENT_GENDER_IDENTITY
           );
         }
-        await patientInformationPage.selectFieldOption(
-          patientDetails.pointOfDiscovery.key,
-          NEW_PATIENT_HOW_DID_YOU_HEAR
-        );
+        if (
+          !isFieldHidden(
+            patientDetails.pointOfDiscovery.key,
+            PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+            formValues
+          )
+        ) {
+          await patientInformationPage.selectFieldOption(
+            patientDetails.pointOfDiscovery.key,
+            NEW_PATIENT_HOW_DID_YOU_HEAR
+          );
+        }
         // new SEND_MARKETING_MESSAGES = 'No'
         await patientInformationPage.selectBooleanField(patientDetails.sendMarketing.key, false);
         await patientInformationPage.selectFieldOption(patientDetails.language.key, NEW_PREFERRED_LANGUAGE);
@@ -1382,7 +1396,7 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
         await patientInformationPage.verifyTextFieldValue(patientSummary.suffix.key, NEW_PATIENT_SUFFIX);
         await patientInformationPage.verifyTextFieldValue(patientSummary.preferredName.key, NEW_PATIENT_PREFERRED_NAME);
         await patientInformationPage.verifyDateFieldValue(patientSummary.birthDate.key, NEW_PATIENT_DATE_OF_BIRTH);
-        if (!PATIENT_RECORD_CONFIG.FormFields.patientSummary.hiddenFields?.includes(patientSummary.pronouns.key)) {
+        if (!isFieldHidden(patientSummary.pronouns.key, PATIENT_RECORD_CONFIG.FormFields.patientSummary, formValues)) {
           await patientInformationPage.verifySelectFieldValue(
             patientSummary.pronouns.key,
             NEW_PATIENT_PREFERRED_PRONOUNS
@@ -1442,7 +1456,11 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
         await patientInformationPage.verifySelectFieldValue(patientDetails.ethnicity.key, NEW_PATIENT_ETHNICITY);
         await patientInformationPage.verifySelectFieldValue(patientDetails.race.key, NEW_PATIENT_RACE);
         if (
-          !PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.sexualOrientation.key)
+          !isFieldHidden(
+            patientDetails.sexualOrientation.key,
+            PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+            formValues
+          )
         ) {
           await patientInformationPage.verifySelectFieldValue(
             patientDetails.sexualOrientation.key,
@@ -1450,17 +1468,25 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
           );
         }
         if (
-          !PATIENT_RECORD_CONFIG.FormFields.patientDetails.hiddenFields?.includes(patientDetails.genderIdentity.key)
+          !isFieldHidden(patientDetails.genderIdentity.key, PATIENT_RECORD_CONFIG.FormFields.patientDetails, formValues)
         ) {
           await patientInformationPage.verifySelectFieldValue(
             patientDetails.genderIdentity.key,
             NEW_PATIENT_GENDER_IDENTITY
           );
         }
-        await patientInformationPage.verifySelectFieldValue(
-          patientDetails.pointOfDiscovery.key,
-          NEW_PATIENT_HOW_DID_YOU_HEAR
-        );
+        if (
+          !isFieldHidden(
+            patientDetails.pointOfDiscovery.key,
+            PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+            formValues
+          )
+        ) {
+          await patientInformationPage.verifySelectFieldValue(
+            patientDetails.pointOfDiscovery.key,
+            NEW_PATIENT_HOW_DID_YOU_HEAR
+          );
+        }
         await patientInformationPage.verifyBooleanFieldHasExpectedValue(
           patientDetails.sendMarketing.key,
           NEW_SEND_MARKETING_MESSAGES
@@ -1824,12 +1850,13 @@ test.describe('Patient Record Page tests with zero patient data filled in', { ta
   let ContactInformationHidden: boolean;
   let PatientDetailsHidden: boolean;
   let ResponsiblePartyHidden: boolean;
+  let formValues: Record<string, any>;
 
   test.beforeAll(async ({ browser }) => {
     await resourceHandler.setResources();
 
     // Build form values from the appointment to evaluate dynamic section visibility
-    const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+    formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
 
     // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
     ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);

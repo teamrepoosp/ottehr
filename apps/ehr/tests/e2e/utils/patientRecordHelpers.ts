@@ -1,5 +1,88 @@
-import { FormFieldsDisplayItem, FormFieldSection, PATIENT_RECORD_CONFIG } from 'utils';
+import { FormFieldsDisplayItem, FormFieldSection, FormFieldsInputItem, PATIENT_RECORD_CONFIG } from 'utils';
 import { evaluateFieldTriggers } from '../../../src/features/visits/shared/components/patient/patientRecordValidation';
+
+/**
+ * Checks if a patient record field is hidden, either statically (in hiddenFields)
+ * or dynamically based on the current form state and field-level triggers.
+ *
+ * This function evaluates both:
+ * 1. Static hiding: Field key is in the section's hiddenFields array
+ * 2. Dynamic hiding: Field has triggers that disable it and disabledDisplay is 'hidden'
+ *
+ * @param fieldKey - The field key (e.g., 'patient-ethnicity')
+ * @param formSection - The section configuration containing the field
+ * @param formValues - Current form values to evaluate dynamic triggers against. If not provided,
+ *                     only static hiding will be checked.
+ * @param index - Optional index for array sections (like insurance)
+ * @returns true if the field is hidden, false otherwise
+ *
+ * @example
+ * ```ts
+ * // Check if gender identity details field is hidden when gender identity is not "Other"
+ * const detailsHidden = isFieldHidden(
+ *   'patient-gender-identity-details',
+ *   PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+ *   { 'patient-gender-identity': 'Male' }
+ * ); // true
+ *
+ * // Check if field is shown when trigger condition is met
+ * const detailsVisible = !isFieldHidden(
+ *   'patient-gender-identity-details',
+ *   PATIENT_RECORD_CONFIG.FormFields.patientDetails,
+ *   { 'patient-gender-identity': 'Other' }
+ * ); // true
+ * ```
+ */
+export function isFieldHidden(
+  fieldKey: string,
+  formSection: FormFieldSection,
+  formValues: Record<string, any> = {},
+  index?: number
+): boolean {
+  // Check static hiding first
+  const hiddenFields = formSection.hiddenFields || [];
+  if (hiddenFields.includes(fieldKey)) {
+    return true;
+  }
+
+  // Find the field in the section's items
+  let items = formSection.items;
+  if (Array.isArray(items) && index !== undefined) {
+    items = items[index];
+  }
+
+  if (!items || typeof items !== 'object') {
+    return false;
+  }
+
+  // Find the field configuration
+  const field = Object.values(items).find((item: any) => item.key === fieldKey) as
+    | FormFieldsInputItem
+    | FormFieldsDisplayItem
+    | undefined;
+
+  // If field doesn't exist in the configuration, consider it hidden
+  if (!field) {
+    return true;
+  }
+
+  // Check if field has disabledDisplay: 'hidden'
+  // For display fields, they're always hidden when disabled (no disabledDisplay property)
+  // For input fields, only consider dynamic hiding if disabledDisplay is 'hidden'
+  const isDisplayField = field.type === 'display';
+  const isInputWithHiddenDisplay = !isDisplayField && 'disabledDisplay' in field && field.disabledDisplay === 'hidden';
+  const shouldCheckDynamicHiding = isDisplayField || isInputWithHiddenDisplay;
+
+  if (shouldCheckDynamicHiding) {
+    // Only evaluate triggers if formValues are provided
+    if (field.triggers && field.triggers.length > 0 && Object.keys(formValues).length > 0) {
+      const triggeredEffects = evaluateFieldTriggers(field, formValues, field.enableBehavior);
+      return triggeredEffects.enabled === false;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Checks if a patient record section is hidden, either statically (in hiddenFormSections)
