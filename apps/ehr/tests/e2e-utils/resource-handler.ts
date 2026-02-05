@@ -621,6 +621,10 @@ export class ResourceHandler {
   }
 
   private findResourceByType<T>(resourceType: string): T {
+    if (!this.#resources) {
+      throw new Error(`Resources not initialized. Call setResources() before accessing ${resourceType}.`);
+    }
+
     const resource = Object.values(this.#resources).find((resource) => resource.resourceType === resourceType) as T;
 
     if (!resource) {
