@@ -33,6 +33,7 @@ import {
   createZ3Object,
   generatePaperworkPdf,
   getOrCreateVisitDetailsPdf,
+  getPatientBalances,
   getPatientVisitDetails,
   getPatientVisitFiles,
   updatePatientVisitDetails,
@@ -40,6 +41,7 @@ import {
 } from 'src/api/api';
 import ImageCarousel, { ImageCarouselObject } from 'src/components/ImageCarousel';
 import ImageUploader from 'src/components/ImageUploader';
+import PatientBalances from 'src/components/PatientBalances';
 import { RoundedButton } from 'src/components/RoundedButton';
 import { ScannerModal } from 'src/components/ScannerModal';
 import { TelemedAppointmentStatusChip } from 'src/components/TelemedAppointmentStatusChip';
@@ -61,6 +63,7 @@ import {
   getLastName,
   getMiddleName,
   getPatchOperationForNewMetaTag,
+  GetPatientBalancesZambdaOutput,
   getReasonForVisitAndAdditionalDetailsFromAppointment,
   getTelemedVisitStatus,
   getUnconfirmedDOBForAppointment,
@@ -456,6 +459,19 @@ export default function VisitDetailsPage(): ReactElement {
   const patient = visitDetailsData?.patient;
   const patientId = patient?.id;
   const serverConsentAttested = visitDetailsData?.consentIsAttested ?? false;
+
+  const { data: patientBalancesData, isLoading: patientBalancesLoading } = useQuery({
+    queryKey: ['get-patient-balances', patientId],
+
+    queryFn: async (): Promise<GetPatientBalancesZambdaOutput> => {
+      if (oystehrZambda && patientId) {
+        return getPatientBalances(oystehrZambda, { patientId });
+      }
+      throw new Error('fhir client not defined or patientIds not provided');
+    },
+
+    enabled: Boolean(oystehrZambda) && patientId !== undefined,
+  });
 
   useEffect(() => {
     if (consentAttested === null) {
@@ -1248,6 +1264,13 @@ export default function VisitDetailsPage(): ReactElement {
                     </Grid>
                   </Grid>
                   <Grid container item xs={12} sm={6} direction="column">
+                    {!patientBalancesLoading &&
+                      patientBalancesData?.totalBalanceCents &&
+                      patientBalancesData?.totalBalanceCents > 0 && (
+                        <Grid item>
+                          <PatientBalances patientId={patientId} patientBalances={patientBalancesData} />
+                        </Grid>
+                      )}
                     <Grid item>
                       <PatientPaymentList
                         patient={patient}
