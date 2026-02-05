@@ -677,7 +677,7 @@ test.describe.parallel('Telemed - No Paperwork Filled Yet', () => {
     });
   });
 
-  test('PEI. Employer information', async () => {
+  test('PEI. Workers compensation employer information', async () => {
     test.skip(
       (() => {
         // Get the appointment service category that would be selected during test flow
@@ -702,11 +702,11 @@ test.describe.parallel('Telemed - No Paperwork Filled Yet', () => {
         // Check if employer page would be visible for this service category
         return !QuestionnaireHelper.inPersonEmployerInformationPageIsVisible(responseItems);
       })(),
-      'Employer information page not visible for this appointment type'
+      'Workers compensation employer information page not visible for this appointment type'
     );
-    await test.step('PEI-1. Open employer information page directly', async () => {
+    await test.step('PEI-1. Open Workers compensation employer information page directly', async () => {
       await page.goto(`paperwork/${patient.appointmentId}/employer-information`);
-      await paperwork.checkCorrectPageOpens('Employer information');
+      await paperwork.checkCorrectPageOpens('Workers compensation employer information');
     });
 
     await test.step('PEI-2. Check patient name is displayed', async () => {
@@ -716,7 +716,7 @@ test.describe.parallel('Telemed - No Paperwork Filled Yet', () => {
     await test.step('PEI-3. Check required fields', async () => {
       await paperwork.checkRequiredFields(
         '"Employer Name","Employer Address","City","State","ZIP","First name","Last name","Mobile"',
-        'Employer information',
+        'Workers compensation employer information',
         true
       );
     });
@@ -730,7 +730,7 @@ test.describe.parallel('Telemed - No Paperwork Filled Yet', () => {
 
     await test.step('PEI-5. Click on [Back] - all values are saved', async () => {
       await locator.clickBackButton();
-      await paperwork.checkCorrectPageOpens('Employer information');
+      await paperwork.checkCorrectPageOpens('Workers compensation employer information');
       await expect(locator.employerName).toHaveValue(employerInformationData.employerName);
       await expect(locator.employerAddress1).toHaveValue(employerInformationData.address1);
       await expect(locator.employerAddress2).toHaveValue(employerInformationData.address2);
