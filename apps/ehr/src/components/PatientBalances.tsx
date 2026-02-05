@@ -1,18 +1,72 @@
 import { otherColors } from '@ehrTheme/colors';
-import { Box, CircularProgress, Paper, Typography } from '@mui/material';
+import { Alert, Box, CircularProgress, Paper, Snackbar, Typography } from '@mui/material';
+import { QueryObserverResult, RefetchOptions, useMutation } from '@tanstack/react-query';
+import { Patient } from 'fhir/r4b';
 import { DateTime } from 'luxon';
-import { Fragment, ReactElement } from 'react';
+import { Fragment, ReactElement, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { RoundedButton } from 'src/components/RoundedButton';
-import { GetPatientBalancesZambdaOutput } from 'utils';
+import { useApiClients } from 'src/hooks/useAppClients';
+import {
+  APIError,
+  CashOrCardPayment,
+  GetPatientBalancesZambdaOutput,
+  isApiError,
+  PostPatientPaymentInput,
+} from 'utils';
+import PaymentDialog from './dialogs/PaymentDialog';
 
 export interface PaymentBalancesProps {
-  patientId: string | undefined;
+  patient: Patient | undefined;
   patientBalances: GetPatientBalancesZambdaOutput | undefined;
+  refetchPatientBalances: (
+    options?: RefetchOptions | undefined
+  ) => Promise<QueryObserverResult<GetPatientBalancesZambdaOutput, Error>>;
 }
 
-export default function PatientBalances({ patientId, patientBalances }: PaymentBalancesProps): ReactElement {
+export default function PatientBalances({
+  patient,
+  patientBalances,
+  refetchPatientBalances,
+}: PaymentBalancesProps): ReactElement {
   const { encounters } = patientBalances || { encounters: [] };
+
+  // for payment dialog
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const { oystehrZambda } = useApiClients();
+  const createNewPayment = useMutation({
+    mutationFn: async (input: PostPatientPaymentInput) => {
+      if (oystehrZambda && input) {
+        return oystehrZambda.zambda
+          .execute({
+            id: 'patient-payments-post',
+            ...input,
+          })
+          .then(async () => {
+            await refetchPatientBalances();
+            setPaymentDialogOpen(false);
+          });
+      }
+    },
+    retry: 0,
+  });
+  const [selectedEncounter, setSelectedEncounter] = useState<{ appointmentId: string; encounterId: string }>({
+    appointmentId: '',
+    encounterId: '',
+  });
+
+  // for snackbar
+  const errorMessage = (() => {
+    const networkError = createNewPayment.error;
+    if (networkError) {
+      if (isApiError(networkError)) {
+        return (networkError as APIError).message;
+      }
+      return 'Something went wrong. Payment was not completed.';
+    }
+    return null;
+  })();
+
   return (
     <Paper
       sx={{
@@ -64,8 +118,13 @@ export default function PatientBalances({ patientId, patientBalances }: PaymentB
                 >{`$${(encounter.patientBalanceCents / 100).toFixed(2)}`}</Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <RoundedButton
-                    // todo pop up "add payment" modal ui, but tag payment to visit
-                    to={'/patient/' + patientId}
+                    onClick={() => {
+                      setPaymentDialogOpen(true);
+                      setSelectedEncounter({
+                        appointmentId: encounter.appointmentId,
+                        encounterId: encounter.encounterId,
+                      });
+                    }}
                   >
                     Pay for visit
                   </RoundedButton>
@@ -85,32 +144,28 @@ export default function PatientBalances({ patientId, patientBalances }: PaymentB
       ) : (
         <CircularProgress />
       )}
-      {/* {patient && (
+      {patient && (
         <PaymentDialog
           open={paymentDialogOpen}
           patient={patient}
-          appointmentId={appointment?.id}
+          appointmentId={selectedEncounter.appointmentId}
           handleClose={() => setPaymentDialogOpen(false)}
           isSubmitting={createNewPayment.isPending}
           submitPayment={async (data: CashOrCardPayment) => {
             const postInput: PostPatientPaymentInput = {
               patientId: patient.id ?? '',
-              encounterId,
+              encounterId: selectedEncounter.encounterId,
               paymentDetails: data,
             };
             await createNewPayment.mutateAsync(postInput);
           }}
         />
-      )} */}
-      {/* <Snackbar
-        open={errorMessage !== null}
-        autoHideDuration={6000}
-        onClose={() => createNewPayment.reset()}
-      >
+      )}
+      <Snackbar open={errorMessage !== null} autoHideDuration={6000} onClose={() => createNewPayment.reset()}>
         <Alert severity="error" onClose={() => createNewPayment.reset()} sx={{ width: '100%' }}>
           {errorMessage}
         </Alert>
-      </Snackbar> */}
+      </Snackbar>
     </Paper>
   );
 }

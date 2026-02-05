@@ -460,7 +460,11 @@ export default function VisitDetailsPage(): ReactElement {
   const patientId = patient?.id;
   const serverConsentAttested = visitDetailsData?.consentIsAttested ?? false;
 
-  const { data: patientBalancesData, isLoading: patientBalancesLoading } = useQuery({
+  const {
+    data: patientBalancesData,
+    isLoading: patientBalancesLoading,
+    refetch: refetchPatientBalances,
+  } = useQuery({
     queryKey: ['get-patient-balances', patientId],
 
     queryFn: async (): Promise<GetPatientBalancesZambdaOutput> => {
@@ -1268,7 +1272,11 @@ export default function VisitDetailsPage(): ReactElement {
                       patientBalancesData?.totalBalanceCents &&
                       patientBalancesData?.totalBalanceCents > 0 && (
                         <Grid item>
-                          <PatientBalances patientId={patientId} patientBalances={patientBalancesData} />
+                          <PatientBalances
+                            patient={patient}
+                            patientBalances={patientBalancesData}
+                            refetchPatientBalances={refetchPatientBalances}
+                          />
                         </Grid>
                       )}
                     <Grid item>
