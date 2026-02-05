@@ -283,9 +283,36 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
   test.describe.configure({ mode: 'serial' });
   let context: BrowserContext;
   let page: Page;
+
+  // Section visibility flags - initialized after resources are set
+  let PCPHidden: boolean;
+  let PatientSummaryHidden: boolean;
+  let ContactInformationHidden: boolean;
+  let PatientDetailsHidden: boolean;
+  let ResponsiblePartyHidden: boolean;
+  let EmergencyContactHidden: boolean;
+  let PharmacyHidden: boolean;
+  let EmployerHidden: boolean;
+  let AttorneyHidden: boolean;
+
   test.beforeAll(async ({ browser }) => {
     await resourceHandler.setResources();
     await resourceHandler.waitTillHarvestingDone(resourceHandler.appointment.id!);
+
+    // Build form values from the appointment to evaluate dynamic section visibility
+    const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+
+    // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
+    PCPHidden = isSectionHidden(SECTIONS.primaryCarePhysician, formValues);
+    PatientSummaryHidden = isSectionHidden(SECTIONS.patientSummary, formValues);
+    ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
+    PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
+    ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
+    EmergencyContactHidden = isSectionHidden(SECTIONS.emergencyContact, formValues);
+    PharmacyHidden = isSectionHidden(SECTIONS.preferredPharmacy, formValues);
+    EmployerHidden = isSectionHidden(SECTIONS.employerInformation, formValues);
+    AttorneyHidden = isSectionHidden(SECTIONS.attorneyInformation, formValues);
+
     context = await browser.newContext();
     page = await context.newPage();
   });
@@ -294,20 +321,6 @@ test.describe('Patient Record Page tests', { tag: '@smoke' }, () => {
     await page.close();
     await context.close();
   });
-
-  // Build form values from the appointment to evaluate dynamic section visibility
-  const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
-
-  // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
-  const PCPHidden = isSectionHidden(SECTIONS.primaryCarePhysician, formValues);
-  const PatientSummaryHidden = isSectionHidden(SECTIONS.patientSummary, formValues);
-  const ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
-  const PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
-  const ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
-  const EmergencyContactHidden = isSectionHidden(SECTIONS.emergencyContact, formValues);
-  const PharmacyHidden = isSectionHidden(SECTIONS.preferredPharmacy, formValues);
-  const EmployerHidden = isSectionHidden(SECTIONS.employerInformation, formValues);
-  const AttorneyHidden = isSectionHidden(SECTIONS.attorneyInformation, formValues);
 
   let patientInformationPage: PatientInformationPage;
 
@@ -1807,8 +1820,22 @@ test.describe('Patient Record Page tests with zero patient data filled in', { ta
   let context: BrowserContext;
   let page: Page;
 
+  // Section visibility flags - initialized after resources are set
+  let ContactInformationHidden: boolean;
+  let PatientDetailsHidden: boolean;
+  let ResponsiblePartyHidden: boolean;
+
   test.beforeAll(async ({ browser }) => {
     await resourceHandler.setResources();
+
+    // Build form values from the appointment to evaluate dynamic section visibility
+    const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
+
+    // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
+    ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
+    PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
+    ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
+
     context = await browser.newContext();
     page = await context.newPage();
   });
@@ -1818,14 +1845,6 @@ test.describe('Patient Record Page tests with zero patient data filled in', { ta
     await page.close();
     await context.close();
   });
-
-  // Build form values from the appointment to evaluate dynamic section visibility
-  const formValues = buildFormValuesFromAppointment(resourceHandler.appointment);
-
-  // Section visibility checks - these check both static hiding and dynamic hiding based on triggers
-  const ContactInformationHidden = isSectionHidden(SECTIONS.patientContactInformation, formValues);
-  const PatientDetailsHidden = isSectionHidden(SECTIONS.patientDetails, formValues);
-  const ResponsiblePartyHidden = isSectionHidden(SECTIONS.responsibleParty, formValues);
 
   test('Check state, ethnicity, race, relationship to patient are required', async () => {
     await page.goto('/patient/' + resourceHandler.patient.id);
