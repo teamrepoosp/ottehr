@@ -8,7 +8,6 @@ export function validateRequestParameters(input: ZambdaInput): CancelAppointment
   }
 
   const { language, appointmentID, cancellationReason, silent, cancellationReasonAdditional } = JSON.parse(input.body);
-  console.log('cancellationReason', JSON.stringify(cancellationReason));
 
   const missingFields = [];
   if (appointmentID === undefined) {

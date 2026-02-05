@@ -1,3 +1,4 @@
+import { CancelTelemedAppointmentZambdaInput } from 'utils';
 import { describe, expect, test } from 'vitest';
 import { validateRequestParameters as validatePrebookCancelParams } from '../../src/patient/appointment/prebook-cancel-appointment/validateRequestParameters';
 import { validateRequestParameters as validateTelemedCancelParams } from '../../src/patient/appointment/telemed-cancel-appointment/validateRequestParameters';
@@ -151,31 +152,31 @@ describe('Prebook Cancel Appointment - validateRequestParameters', () => {
 
 describe('Telemed Cancel Appointment - validateRequestParameters', () => {
   test('should validate input with all required fields', () => {
-    const input = createMockZambdaInput({
+    const params: CancelTelemedAppointmentZambdaInput = {
       appointmentID: 'test-appointment-id',
-      cancellationReason: { label: 'Patient improved', value: 'Patient improved' },
-    });
+      cancellationReason: 'Patient improved',
+    };
+    const input = createMockZambdaInput(params);
 
     const result = validateTelemedCancelParams(input);
 
     expect(result.appointmentID).toBe('test-appointment-id');
-    expect(result.cancellationReason.label).toBe('Patient improved');
-    expect(result.cancellationReason.value).toBe('Patient improved');
+    expect(result.cancellationReason).toBe('Patient improved');
     expect(result.cancellationReasonAdditional).toBeUndefined();
   });
 
   test('should validate input with cancellationReasonAdditional', () => {
-    const input = createMockZambdaInput({
+    const params: CancelTelemedAppointmentZambdaInput = {
       appointmentID: 'test-appointment-id',
-      cancellationReason: { label: 'Technical issue', value: 'Technical issue' },
+      cancellationReason: 'Technical issue',
       cancellationReasonAdditional: 'Moving to a different state',
-    });
+    };
+    const input = createMockZambdaInput(params);
 
     const result = validateTelemedCancelParams(input);
 
     expect(result.appointmentID).toBe('test-appointment-id');
-    expect(result.cancellationReason.label).toBe('Technical issue');
-    expect(result.cancellationReason.value).toBe('Technical issue');
+    expect(result.cancellationReason).toBe('Technical issue');
     expect(result.cancellationReasonAdditional).toBe('Moving to a different state');
   });
 
@@ -208,22 +209,21 @@ describe('Telemed Cancel Appointment - validateRequestParameters', () => {
   });
 
   test('should validate with valid patient cancellation reason', () => {
-    const input = createMockZambdaInput({
+    const params: CancelTelemedAppointmentZambdaInput = {
       appointmentID: 'test-appointment-id',
-      cancellationReason: { label: 'Wait time too long', value: 'Wait time too long' },
-    });
+      cancellationReason: 'Wait time too long',
+    };
+    const input = createMockZambdaInput(params);
 
     expect(() => validateTelemedCancelParams(input)).not.toThrow();
   });
 
   test('should validate with valid provider cancellation reason', () => {
-    const input = createMockZambdaInput({
+    const params: CancelTelemedAppointmentZambdaInput = {
       appointmentID: 'test-appointment-id',
-      cancellationReason: {
-        label: 'Patient did not answer after multiple attempts',
-        value: 'Patient did not answer after multiple attempts',
-      },
-    });
+      cancellationReason: 'Patient did not answer after multiple attempts',
+    };
+    const input = createMockZambdaInput(params);
 
     expect(() => validateTelemedCancelParams(input)).not.toThrow();
   });
