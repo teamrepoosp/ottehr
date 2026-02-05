@@ -340,11 +340,11 @@ export class Paperwork {
     }
     await this.locator.clickContinueButton();
 
-    // Check if employer information page is shown (conditional based on service category)
+    // Check if Workers compensation employer information page is shown (conditional based on service category)
     await expect(this.locator.flowHeading).not.toHaveText('Loading...', { timeout: 60000 });
     const currentPageTitle = await this.locator.flowHeading.textContent();
     const employerInformation =
-      currentPageTitle === 'Employer information'
+      currentPageTitle === 'Workers compensation employer information'
         ? await (async () => {
             const data = await this.fillEmployerInformation();
             await this.locator.clickContinueButton();
@@ -364,15 +364,17 @@ export class Paperwork {
     // Now check which page we're on
     const currentPage = await this.locator.flowHeading.textContent();
 
-    if (currentPage === 'Employer information') {
-      // Employer information page is shown, fill it
+    if (currentPage === 'Workers compensation employer information') {
+      // Workers compensation employer information page is shown, fill it
       await this.locator.clickContinueButton();
     } else if (currentPage === 'Emergency Contact') {
-      // Employer information page was skipped, already on emergency contact
+      // Workers compensation employer information page was skipped, already on emergency contact
       // Continue with emergency contact form below
     } else {
       // Unexpected page
-      throw new Error(`Expected 'Employer information' or 'Emergency Contact', but got '${currentPage}'`);
+      throw new Error(
+        `Expected 'Workers compensation employer information' or 'Emergency Contact', but got '${currentPage}'`
+      );
     }
 
     // Now we should be on Emergency Contact page

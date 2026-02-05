@@ -125,7 +125,8 @@ export function usePaperworkFormHelpers(input: UsePaperworkFormHelpersInput): Pa
         return renderOnChange(updatedPharmCollection);
       } else if (isStringValueTypeItem(item)) {
         if (item.acceptsMultipleAnswers) {
-          const answer = e.target.value?.map((val: string) => {
+          const values = Array.isArray(e.target.value) ? e.target.value : [e.target.value];
+          const answer = values?.map((val: string) => {
             const valueString = val?.trimStart();
             return { valueString };
           });

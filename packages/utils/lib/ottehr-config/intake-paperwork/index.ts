@@ -1452,7 +1452,7 @@ const FormFields = {
   },
   employerInformation: {
     linkId: 'employer-information-page',
-    title: 'Employer information',
+    title: 'Workers compensation employer information',
     items: {
       name: {
         key: 'employer-name',

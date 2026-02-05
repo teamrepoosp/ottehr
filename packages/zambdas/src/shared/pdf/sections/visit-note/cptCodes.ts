@@ -1,3 +1,4 @@
+import { makeCptCodeDisplay } from 'utils';
 import { drawRegularText } from '../../helpers/render';
 import { createConfiguredSection, DataComposer } from '../../pdf-common';
 import { CptCodes, EncounterInfo, PdfSection } from '../../types';
@@ -5,7 +6,7 @@ import { AllChartData } from '../../visit-details-pdf/types';
 
 export const composeCptCodes: DataComposer<{ allChartData: AllChartData }, CptCodes> = ({ allChartData }) => {
   const { chartData } = allChartData;
-  const cptCodes = chartData?.cptCodes?.map((cpt) => `${cpt.code} ${cpt.display}`);
+  const cptCodes = chartData?.cptCodes?.map((cpt) => makeCptCodeDisplay(cpt));
   return {
     cptCodes,
   };
