@@ -128,6 +128,10 @@ export const EligibilityDetailsDialog: FC<EligibilityDetailsDialogProps> = ({
     eligibilityCheck.status === InsuranceEligibilityCheckStatus.eligibilityNotConfirmed;
 
   function formatName(firstName?: string, middleName?: string, lastName?: string): string {
+    if (!firstName && !lastName) {
+      return 'UNKNOWN';
+    }
+
     if (middleName) {
       return `${firstName} ${middleName} ${lastName}`;
     }
