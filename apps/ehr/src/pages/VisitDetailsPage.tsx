@@ -1269,16 +1269,16 @@ export default function VisitDetailsPage(): ReactElement {
                   </Grid>
                   <Grid container item xs={12} sm={6} direction="column">
                     {!patientBalancesLoading &&
-                      patientBalancesData?.totalBalanceCents &&
-                      patientBalancesData?.totalBalanceCents > 0 && (
-                        <Grid item>
-                          <PatientBalances
-                            patient={patient}
-                            patientBalances={patientBalancesData}
-                            refetchPatientBalances={refetchPatientBalances}
-                          />
-                        </Grid>
-                      )}
+                    patientBalancesData?.totalBalanceCents &&
+                    patientBalancesData?.totalBalanceCents > 0 ? (
+                      <Grid item>
+                        <PatientBalances
+                          patient={patient}
+                          patientBalances={patientBalancesData}
+                          refetchPatientBalances={refetchPatientBalances}
+                        />
+                      </Grid>
+                    ) : undefined}
                     <Grid item>
                       <PatientPaymentList
                         patient={patient}
