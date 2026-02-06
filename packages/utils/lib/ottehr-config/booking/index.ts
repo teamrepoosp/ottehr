@@ -103,7 +103,7 @@ const FormFields = {
         key: 'patient-birth-sex',
         label: 'Birth sex',
         type: 'choice',
-        options: [...VALUE_SETS.birthSexOptions],
+        options: VALUE_SETS.birthSexOptions,
       },
       weight: {
         key: 'patient-weight',
@@ -151,14 +151,14 @@ const FormFields = {
         label: `Have you been to ${BRANDING_CONFIG.projectName} in the past 3 years?`,
         type: 'choice',
         disabledDisplay: 'hidden',
-        options: [...VALUE_SETS.yesNoOptions],
+        options: VALUE_SETS.yesNoOptions,
         triggers: [PatientDoesntExistTriggerEnableAndRequire],
       },
       reasonForVisit: {
         key: 'reason-for-visit',
         label: 'Reason for visit',
         type: 'choice',
-        options: [...VALUE_SETS.reasonForVisitOptions],
+        options: VALUE_SETS.reasonForVisitOptions,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -180,7 +180,7 @@ const FormFields = {
         key: 'reason-for-visit-om',
         label: 'Reason for visit',
         type: 'choice',
-        options: [...VALUE_SETS.reasonForVisitOptionsOccMed],
+        options: VALUE_SETS.reasonForVisitOptionsOccMed,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -195,7 +195,7 @@ const FormFields = {
         key: 'reason-for-visit-wc',
         label: 'Reason for visit',
         type: 'choice',
-        options: [...VALUE_SETS.reasonForVisitOptionsWorkersComp],
+        options: VALUE_SETS.reasonForVisitOptionsWorkersComp,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
