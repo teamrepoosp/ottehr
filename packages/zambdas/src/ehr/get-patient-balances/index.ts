@@ -66,7 +66,6 @@ export async function performEffect(
     totalBalanceCents: 0,
   };
 
-  // get all encounters
   console.group('getFhirEncountersAndAppointmentsForPatient');
   const { encounters, appointments } = await getFhirEncountersAndAppointmentsForPatient(_oystehr, patientId);
   console.groupEnd();
