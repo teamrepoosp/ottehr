@@ -132,7 +132,7 @@ export function usePaperworkFormHelpers(input: UsePaperworkFormHelpersInput): Pa
           });
           return renderOnChange({ ...base, answer });
         }
-        let valueString = e.target.value.trimStart();
+        let valueString = e.target.value?.trimStart();
         // restrict user from ever entering non-numeric digits
         if (item.dataType === 'ZIP') {
           valueString = valueString.replace(/[^0-9]/g, '');
