@@ -849,12 +849,12 @@ export default function VisitDetailsPage(): ReactElement {
 
   const patientInfoAdditionalItem: any = {};
 
-  const patientBeenToClinicPreviously = patient?.meta?.tag?.some(
+  const patientBeenToClinicPreviously = appointment?.meta?.tag?.some(
     (tag) => tag.system === PATIENT_INFO_META_DATA_SYSTEM && tag.code === PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE
   );
 
   if (patientBeenToClinicPreviously) {
-    patientInfoAdditionalItem['Patient has been to clinic previously'] = true;
+    patientInfoAdditionalItem['Patient has been to clinic previously'] = 'true';
   }
 
   return (
