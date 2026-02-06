@@ -57,6 +57,13 @@ const BrandingConfigSchema = z.object({
     email: z.string().optional(),
     pdf: z.string().optional(),
   }),
+  intake: z
+    .object({
+      appBar: z.object({
+        logoutButtonTextColor: z.string().min(1, { message: 'AppBar logout button color cannot be empty' }),
+      }),
+    })
+    .optional(),
 });
 
 export const BRANDING_CONFIG = Object.freeze(BrandingConfigSchema.parse(mergedBrandingConfig));
