@@ -355,6 +355,10 @@ export const mapBookingQRItemToPatientInfo = (qrItem: QuestionnaireResponseItem[
         const weight = parseFloat(pickFirstValueFromAnswerItem(item, 'string') || '');
         patientInfo.weight = Number.isNaN(weight) ? undefined : weight;
         break;
+      case 'return-patient-check':
+        patientInfo.patientBeenSeenBefore =
+          (pickFirstValueFromAnswerItem(item, 'string') ?? 'no').toLowerCase() === 'yes';
+        break;
       default:
         break;
     }
