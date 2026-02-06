@@ -39,7 +39,12 @@ export const index = wrapHandler(ZAMBDA_NAME, async (unsafeInput: ZambdaInput): 
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
 
-    const response = await performEffect(validatedInput, secrets, oystehr);
+    console.group('creating candid api client');
+    const candidApiClient = createCandidApiClient(secrets);
+    console.groupEnd();
+    console.debug('creating candid api client success');
+
+    const response = await performEffect(validatedInput, secrets, oystehr, candidApiClient);
 
     return lambdaResponse(200, response);
   } catch (error: any) {
@@ -48,10 +53,11 @@ export const index = wrapHandler(ZAMBDA_NAME, async (unsafeInput: ZambdaInput): 
   }
 });
 
-async function performEffect(
+export async function performEffect(
   validatedInput: ValidatedInput,
   _secrets: Secrets,
-  _oystehr: Oystehr
+  _oystehr: Oystehr,
+  candidApiClient: CandidApiClient
 ): Promise<GetPatientBalancesZambdaOutput> {
   const { patientId } = validatedInput.body;
 
@@ -94,12 +100,6 @@ async function performEffect(
   if (candidEncountersLength === 0) {
     return noData;
   }
-
-  // get all candid encounters
-  console.group('creating candid api client');
-  const candidApiClient = createCandidApiClient(_secrets);
-  console.groupEnd();
-  console.debug('creating candid api client success');
 
   // todo should i use getCandidInventoryPagesRecursive instead and then filter after the fact?
   console.group('getAllCandidEncounters');
@@ -217,7 +217,7 @@ function saveFirstClaimIdInMap(
 ): number {
   candidEncounters.forEach((candidEncounter) => {
     if (!candidEncounter.ok) {
-      throw new Error(`Failed to fetch Candid encounter: ${candidEncounter.error}`);
+      throw new Error(`Failed to fetch Candid encounter: ${JSON.stringify(candidEncounter.error)}`);
     }
 
     const { claims } = candidEncounter.body;
@@ -259,7 +259,7 @@ function saveBalancesInMap(
 ): void {
   candidClaims.forEach((candidClaim) => {
     if (!candidClaim.ok) {
-      throw new Error(`Failed to fetch Candid claim: ${candidClaim.error}`);
+      throw new Error(`Failed to fetch Candid claim: ${JSON.stringify(candidClaim.error)}`);
     }
 
     const encounterMapObject = Array.from(idMap.entries()).find(
