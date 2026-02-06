@@ -75,10 +75,10 @@ export const createInHouseLabsSection = <TData extends { inHouseLabs?: InHouseLa
               const style = lastFlag ? styles.textStyles.regularText : regularTextNoLineAfter;
 
               if (flag === NonNormalResult.Abnormal) {
-                client.drawImage(icons.abnormalIcon, resultFlagIconStyle, regularTextNoLineAfter);
+                client.drawImage(icons.abnormal, resultFlagIconStyle, regularTextNoLineAfter);
                 client.drawTextSequential('Abnormal', { ...style, color: rgbNormalized(237, 108, 2) }, getCurBounds());
               } else if (flag === NonNormalResult.Inconclusive) {
-                client.drawImage(icons.inconclusiveIcon, resultFlagIconStyle, regularTextNoLineAfter);
+                client.drawImage(icons.inconclusive, resultFlagIconStyle, regularTextNoLineAfter);
                 client.drawTextSequential(
                   'Inconclusive',
                   { ...style, color: rgbNormalized(117, 117, 117) },
@@ -89,7 +89,7 @@ export const createInHouseLabsSection = <TData extends { inHouseLabs?: InHouseLa
           }
         } else if (labType === 'inhouse') {
           // too hairy to assume normal results for external labs so we will only do this for inhouse
-          client.drawImage(icons.normalIcon, resultFlagIconStyle, regularTextNoLineAfter);
+          client.drawImage(icons.normal, resultFlagIconStyle, regularTextNoLineAfter);
           client.drawTextSequential(
             'Normal',
             { ...styles.textStyles.regularText, color: rgbNormalized(46, 125, 50) },
