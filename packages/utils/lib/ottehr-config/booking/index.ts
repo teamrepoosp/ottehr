@@ -13,6 +13,7 @@ import { BOOKING_OVERRIDES } from '../../../ottehr-config-overrides';
 import { FHIR_EXTENSION, getFirstName, getLastName, getMiddleName, SERVICE_CATEGORY_SYSTEM } from '../../fhir';
 import { makeAnswer, pickFirstValueFromAnswerItem } from '../../helpers';
 import { flattenQuestionnaireAnswers, PatientInfo, PersonSex } from '../../types';
+import { BRANDING_CONFIG } from '../branding';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 import {
   createQuestionnaireFromConfig,
@@ -145,6 +146,14 @@ const FormFields = {
         type: 'string',
         dataType: 'Email',
       },
+      returnPatientCheck: {
+        key: 'return-patient-check',
+        label: `Have you been to ${BRANDING_CONFIG.projectName} in the past 3 years?`,
+        type: 'choice',
+        disabledDisplay: 'hidden',
+        options: VALUE_SETS.yesNoOptions,
+        triggers: [PatientDoesntExistTriggerEnableAndRequire],
+      },
       reasonForVisit: {
         key: 'reason-for-visit',
         label: 'Reason for visit',
@@ -208,7 +217,7 @@ const FormFields = {
         type: 'string',
       },
     },
-    hiddenFields: [],
+    hiddenFields: ['return-patient-check'],
     requiredFields: ['patient-birth-sex', 'patient-email'],
   },
 };
@@ -234,11 +243,11 @@ const FORM_DEFAULTS = {
   FormFields,
 };
 
-const mergedBookingQConfig = _.merge(FORM_DEFAULTS, {
+const mergedBookingQConfig = mergeAndFreezeConfigObjects(FORM_DEFAULTS, {
   FormFields: BOOKING_OVERRIDES.FormFields ?? {},
   questionnaireBase: BOOKING_OVERRIDES.questionnaireBase ?? {},
+  hiddenFormSections: BOOKING_OVERRIDES.hiddenFormSections ?? [],
 });
-mergedBookingQConfig.hiddenFormSections = BOOKING_OVERRIDES.hiddenFormSections ?? FORM_DEFAULTS.hiddenFormSections;
 
 const BookingPaperworkConfigSchema = QuestionnaireConfigSchema.extend({
   FormFields: FormFieldsSchema,
@@ -345,6 +354,10 @@ export const mapBookingQRItemToPatientInfo = (qrItem: QuestionnaireResponseItem[
         // eslint-disable-next-line no-case-declarations
         const weight = parseFloat(pickFirstValueFromAnswerItem(item, 'string') || '');
         patientInfo.weight = Number.isNaN(weight) ? undefined : weight;
+        break;
+      case 'return-patient-check':
+        patientInfo.patientBeenSeenBefore =
+          (pickFirstValueFromAnswerItem(item, 'string') ?? 'no').toLowerCase() === 'yes';
         break;
       default:
         break;

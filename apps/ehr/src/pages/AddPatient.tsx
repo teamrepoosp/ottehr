@@ -394,7 +394,7 @@ export default function AddPatient(): JSX.Element {
                           id="reason-additional-text"
                           value={reasonForVisitAdditional}
                           aria-describedby="reason-additional-helper-text"
-                          onChange={(e) => handleAdditionalReasonForVisitChange(e.target.value.trimStart())}
+                          onChange={(e) => handleAdditionalReasonForVisitChange(e.target.value?.trimStart())}
                           maxRows={2}
                           multiline={true}
                           error={!validReasonForVisit}

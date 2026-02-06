@@ -1,3 +1,4 @@
+import { Coding } from 'fhir/r4b';
 import { ottehrExtensionUrl } from '../fhir/systemUrls';
 import { BRANDING_CONFIG } from '../ottehr-config/branding';
 
@@ -56,3 +57,11 @@ export const AI_QUESTIONNAIRE_ID = 'aiInterviewQuestionnaire';
 export const REASON_FOR_VISIT_SEPARATOR = ' - ';
 
 export const USER_TIMEZONE_EXTENSION_URL = ottehrExtensionUrl('user-timezone');
+
+export const PATIENT_INFO_META_DATA_SYSTEM = 'https://fhir.zapehr.com/r4/StructureDefinitions/patient-info-meta-data';
+export const PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE = 'returning-patient';
+
+export const RETURNING_PATIENT_META_TAG = (): Coding => ({
+  system: PATIENT_INFO_META_DATA_SYSTEM,
+  code: PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE,
+});

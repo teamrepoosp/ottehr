@@ -64,8 +64,6 @@ export const PatientInfoCollection: FC = () => {
 
   const { allItems, questionnaireResponse: prepopulatedQuestionnaire } = questionnaireData || {};
 
-  console.log('questionnaireData', questionnaireData);
-
   const pages = useMemo(() => {
     return (allItems ?? []).filter((item) => {
       return item.linkId;
