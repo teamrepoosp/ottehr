@@ -121,7 +121,9 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     if (stripePaymentIntentId) {
       try {
-        paymentIntent = await stripeClient.paymentIntents.retrieve(stripePaymentIntentId);
+        paymentIntent = await stripeClient.paymentIntents.retrieve(stripePaymentIntentId, {
+          stripeAccount: stripeAccountId,
+        });
       } catch (error) {
         console.error('Error fetching Stripe payment intent:', error);
         captureException(error);
