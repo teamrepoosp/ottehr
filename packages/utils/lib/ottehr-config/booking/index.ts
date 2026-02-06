@@ -149,8 +149,9 @@ const FormFields = {
       returnPatientCheck: {
         key: 'return-patient-check',
         label: `Have you been to ${BRANDING_CONFIG.projectName} in the past 3 years?`,
-        type: 'boolean',
+        type: 'choice',
         disabledDisplay: 'hidden',
+        answerOptions: VALUE_SETS.yesNoOptions,
         triggers: [PatientDoesntExistTriggerEnableAndRequire],
       },
       reasonForVisit: {
