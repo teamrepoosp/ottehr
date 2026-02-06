@@ -875,7 +875,7 @@ export const useCreateUpdateMedicationOrder = () => {
 
 export const useGetMedicationOrders = (
   searchBy: GetMedicationOrdersInput['searchBy']
-): UseQueryResult<GetMedicationOrdersResponse, Error> => {
+): UseQueryResult<GetMedicationOrdersResponse | undefined, Error> => {
   const apiClient = useOystehrAPIClient();
 
   const encounterIdIsDefined = searchBy.field === 'encounterId' && searchBy.value;
@@ -886,7 +886,11 @@ export const useGetMedicationOrders = (
 
     queryFn: async () => {
       if (apiClient) {
-        return await apiClient.getMedicationOrders({ searchBy });
+        if (encounterIdIsDefined || encounterIdsHasLen) {
+          return await apiClient.getMedicationOrders({ searchBy });
+        } else {
+          return;
+        }
       }
       throw new Error('api client not defined');
     },
