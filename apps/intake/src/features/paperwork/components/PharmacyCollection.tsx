@@ -1,9 +1,18 @@
 import { QuestionnaireResponseItem } from 'fhir/r4b';
 import { FC, useEffect, useState } from 'react';
-import { PHARMACY_COLLECTION_LINK_IDS, PlacesResult } from 'utils';
-import { useQRState } from '../../useFormHelpers';
-import { PharmacyDisplay } from './PharmacyDisplay';
-import { PharmacySearch } from './PharmacySearch';
+import api from 'src/api/ottehrApi';
+import { useUCZambdaClient } from 'src/hooks/useUCZambdaClient';
+import { PharmacyDisplay, PharmacySearch } from 'ui-components';
+import {
+  clearPharmacyCollectionAnswerSet,
+  makePharmacyCollectionAnswerSetForQR,
+  PHARMACY_COLLECTION_LINK_IDS,
+  PharmacyCollectionAnswerSetInput,
+  PlacesResult,
+  SearchPlacesInput,
+  SearchPlacesOutput,
+} from 'utils';
+import { useQRState } from '../useFormHelpers';
 
 export interface PharmacyCollectionProps {
   onChange: (e: any) => void;
@@ -13,6 +22,8 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
   const { onChange } = props;
   const [selectedPlace, setSelectedPlace] = useState<PlacesResult | null>(null);
   const { formValues } = useQRState();
+
+  const zambdaClient = useUCZambdaClient({ tokenless: false });
 
   const pharmacyCollectionItemValues = formValues[PHARMACY_COLLECTION_LINK_IDS.pharmacyCollection]?.item;
 
@@ -63,13 +74,32 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
     }
   }, [pharmacyCollectionItemValues]);
 
+  const handleSearchPlaces = async (input: SearchPlacesInput): Promise<SearchPlacesOutput> => {
+    if (!zambdaClient) throw new Error('error searching'); // todo sarah test this
+    return await api.searchPlaces(input, zambdaClient);
+  };
+
+  const clearPharmacyData = (): void => {
+    const answerSet = clearPharmacyCollectionAnswerSet();
+    onChange(answerSet);
+  };
+
+  const handlePharmacySelection = (input: PharmacyCollectionAnswerSetInput): void => {
+    const answerSet = makePharmacyCollectionAnswerSetForQR(input);
+    onChange(answerSet);
+  };
+
   return selectedPlace ? (
     <PharmacyDisplay
       selectedPlace={selectedPlace}
       setSelectedPlace={setSelectedPlace}
-      onChange={onChange}
+      clearPharmacyData={clearPharmacyData}
     ></PharmacyDisplay>
   ) : (
-    <PharmacySearch onChange={onChange} setSelectedPlace={setSelectedPlace}></PharmacySearch>
+    <PharmacySearch
+      handlePharmacySelection={handlePharmacySelection}
+      setSelectedPlace={setSelectedPlace}
+      searchPlaces={handleSearchPlaces}
+    ></PharmacySearch>
   );
 };

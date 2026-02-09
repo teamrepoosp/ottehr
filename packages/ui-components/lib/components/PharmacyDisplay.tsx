@@ -1,22 +1,19 @@
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import { Box, Button, Typography } from '@mui/material';
 import { FC } from 'react';
-import { otherColors } from 'src/IntakeThemeProvider';
 import { PlacesResult } from 'utils';
-import { clearPharmacyCollectionAnswerSet } from './helpers';
 
 export interface PharmacyDisplayProps {
   selectedPlace: PlacesResult;
   setSelectedPlace: (place: PlacesResult | null) => void;
-  onChange: (e: any) => void;
+  clearPharmacyData: () => void;
 }
 
 export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplayProps) => {
-  const { selectedPlace, setSelectedPlace, onChange } = props;
+  const { selectedPlace, setSelectedPlace, clearPharmacyData } = props;
 
   const handleResetPharmacySelection = (): void => {
-    const answerSet = clearPharmacyCollectionAnswerSet();
-    onChange(answerSet);
+    clearPharmacyData();
     setSelectedPlace(null);
   };
 
@@ -37,7 +34,7 @@ export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplay
             fontWeight: 'bold',
           }}
         >
-          <DeleteIcon sx={{ color: otherColors.cancel }} />
+          <DeleteIcon sx={{ color: '#B22020' }} />
         </Button>
       </Box>
     </Box>

@@ -1,17 +1,19 @@
 import SearchIcon from '@mui/icons-material/Search';
 import { Autocomplete, Box, debounce, InputAdornment, ListItem, Skeleton, TextField, Typography } from '@mui/material';
 import { FC, useEffect, useMemo, useState } from 'react';
-import api from 'src/api/ottehrApi';
-import { useUCZambdaClient } from 'src/hooks/useUCZambdaClient';
-import { PlacesResult } from 'utils';
-import { makePharmacyCollectionAnswerSet } from './helpers';
+import { PharmacyCollectionAnswerSetInput, PlacesResult, SearchPlacesInput, SearchPlacesOutput } from 'utils';
 
 interface PharmacySearchProps {
-  onChange: (e: any) => void;
+  handlePharmacySelection: (input: PharmacyCollectionAnswerSetInput) => void;
   setSelectedPlace: (place: PlacesResult | null) => void;
+  searchPlaces: (input: SearchPlacesInput) => Promise<SearchPlacesOutput>;
 }
 
-export const PharmacySearch: FC<PharmacySearchProps> = ({ onChange, setSelectedPlace }) => {
+export const PharmacySearch: FC<PharmacySearchProps> = ({
+  handlePharmacySelection,
+  setSelectedPlace,
+  searchPlaces,
+}) => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [results, setResults] = useState<PlacesResult[]>([]);
@@ -19,7 +21,6 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({ onChange, setSelectedP
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const zambdaClient = useUCZambdaClient({ tokenless: false });
 
   const debouncedSetSearchTerm = useMemo(
     () =>
@@ -41,12 +42,10 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({ onChange, setSelectedP
       return;
     }
 
-    if (!zambdaClient) return;
-
-    const searchPlaces = async (): Promise<void> => {
+    const handleSearchPlaces = async (): Promise<void> => {
       try {
         setSearching(true);
-        const searchResponse = await api.searchPlaces({ searchTerm: debouncedSearchTerm }, zambdaClient);
+        const searchResponse = await searchPlaces({ searchTerm: debouncedSearchTerm });
         setResults(searchResponse.pharmacyPlaces);
       } catch (e) {
         console.log('error calling searchPlaces with searchTerm', e);
@@ -57,26 +56,26 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({ onChange, setSelectedP
       }
     };
 
-    void searchPlaces();
-  }, [debouncedSearchTerm, zambdaClient]);
+    void handleSearchPlaces();
+  }, [debouncedSearchTerm, searchPlaces]);
 
   const handlePharmSelect = async (placesId: string | undefined): Promise<void> => {
-    if (!placesId || !zambdaClient) return;
+    if (!placesId) return;
 
     try {
       setLoading(true);
 
-      const searchResponse = await api.searchPlaces({ placesId }, zambdaClient);
+      const searchResponse = await searchPlaces({ placesId });
       const place = searchResponse.pharmacyPlaces?.[0];
 
-      const answerSet = makePharmacyCollectionAnswerSet({
+      const pharmacyInput = {
         placesId: place.placesId,
         placesName: place.name,
         placesAddress: place.address,
         erxPharmacyId: place.erxPharmacyId,
-      });
+      };
 
-      onChange(answerSet);
+      handlePharmacySelection(pharmacyInput);
       setSelectedPlace(place);
     } catch (e) {
       console.log('error calling searchPlaces with placesId', e);
@@ -94,7 +93,9 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({ onChange, setSelectedP
       size="small"
       fullWidth
       popupIcon={null}
-      noOptionsText={debouncedSearchTerm && results.length === 0 ? 'No results' : 'Please enter search criteria'}
+      noOptionsText={
+        debouncedSearchTerm && results.length === 0 ? 'No results' : 'Please enter pharmacy name and address'
+      }
       options={results}
       value={null}
       inputValue={inputValue}

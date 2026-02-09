@@ -20,14 +20,20 @@ export const structureQuestionnaireResponse = (
   const itemInput = questionnaire.item ?? [];
   const qItems = mapQuestionnaireAndValueSetsToItemsList(_.cloneDeep(itemInput), []);
   qItems.forEach((item) => {
+    console.log('ugh', item);
     pageDict.set(item.linkId, []);
   });
+  console.log('formValues', formValues);
+  console.log('pageDict', pageDict);
 
   Object.entries(formValues).forEach(([key, value]) => {
     const parentItem = qItems?.find((item) => containedItemWithLinkId(item, key));
     if (parentItem) {
+      console.log('parentItem', parentItem);
       const pageItems = pageDict.get(parentItem.linkId);
+      console.log('pageItems', pageItems);
       const qItem = containedItemWithLinkId(parentItem, key) as IntakeQuestionnaireItem;
+      console.log('qItem', qItem);
       if (pageItems && qItem) {
         const answer = value != undefined ? makeQRResponseItem(value, qItem) : undefined;
         if (answer) {
@@ -49,6 +55,8 @@ export const structureQuestionnaireResponse = (
       return item;
     })
     .filter((i) => Boolean(i.item?.length));
+
+  console.log('whats here?', JSON.stringify(qrItem));
 
   return {
     resourceType: 'QuestionnaireResponse',
