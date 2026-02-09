@@ -410,10 +410,8 @@ export async function createExternalLabResultPDFBasedOnDr(
   secrets: Secrets | null,
   token: string
 ): Promise<void> {
-  const { patient, diagnosticReport, observations, schedule } = await getExternalLabOrderResourcesViaDiagnosticReport(
-    oystehr,
-    diagnosticReportID
-  );
+  const { patient, labOrganization, diagnosticReport, observations, schedule } =
+    await getExternalLabOrderResourcesViaDiagnosticReport(oystehr, diagnosticReportID);
 
   if (!patient.id) throw new Error('patient.id is undefined');
 
@@ -464,7 +462,7 @@ export async function createExternalLabResultPDFBasedOnDr(
     patientID: patient.id,
     encounterID: undefined,
     related: makeRelatedForLabsPDFDocRef({ diagnosticReportId: diagnosticReportID }),
-    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: undefined }, // where to get fillerLab for unsolicited ??
+    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: labOrganization?.name ?? '' },
     diagnosticReportID,
     reviewed,
   });
