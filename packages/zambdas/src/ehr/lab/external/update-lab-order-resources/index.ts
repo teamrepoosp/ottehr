@@ -40,6 +40,7 @@ import {
   checkOrCreateM2MClientToken,
   createOystehrClient,
   getMyPractitionerId,
+  sendErrors,
   sendOrderResultEmailToPatient,
   topLevelCatch,
   wrapHandler,
@@ -419,11 +420,18 @@ const handleReviewedEvent = async ({
   if (patient) {
     const visitDate = appointment?.start ? DateTime.fromISO(appointment?.start).toFormat('MM/DD/YYYY') : '';
     const testName = getTestNameFromDr(diagnosticReport) || '';
-    await sendOrderResultEmailToPatient({
-      fhirPatient: patient,
-      emailDetails: { orderType: 'lab', testName, visitDate, appointmentId: appointment?.id || '' },
-      secrets,
-    });
+    try {
+      await sendOrderResultEmailToPatient({
+        fhirPatient: patient,
+        emailDetails: { orderType: 'lab', testName, visitDate, appointmentId: appointment?.id || '' },
+        secrets,
+      });
+    } catch (e) {
+      const errorMessage = `Error sending the patient alert to review lab results, ${e}`;
+      const ENVIRONMENT = getSecret(SecretsKeys.ENVIRONMENT, secrets);
+      console.log(errorMessage);
+      await sendErrors(errorMessage, ENVIRONMENT);
+    }
   } else {
     console.log(
       `could not find patient for DiagnosticReport/${diagnosticReport.id} so skipping alert to review results`
