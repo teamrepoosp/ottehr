@@ -9,8 +9,8 @@ export interface ValidatedInput {
 export const validateInput = async (input: ZambdaInput): Promise<ValidatedInput> => {
   const body = validateBody(input);
 
-  const callerAccessToken = input.headers.Authorization.replace('Bearer ', '');
-  if (callerAccessToken == null) {
+  const callerAccessToken = input.headers.Authorization?.replace('Bearer ', '');
+  if (!callerAccessToken) {
     throw new Error('Caller access token is required');
   }
 
