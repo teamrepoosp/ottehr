@@ -92,7 +92,7 @@ describe('get-patient-balances integration tests', () => {
       body: { patientId },
       callerAccessToken: token,
     };
-    return performEffect(validatedInput, SECRETS, oystehr, candidApiClient);
+    return performEffect(validatedInput, oystehr, candidApiClient);
   };
 
   const createMockPatient = async (): Promise<Patient> => {

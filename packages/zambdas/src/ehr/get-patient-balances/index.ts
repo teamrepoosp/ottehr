@@ -3,7 +3,7 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { CandidApi, CandidApiClient } from 'candidhealth';
 import { APIResponse } from 'candidhealth/core';
 import { Appointment, Encounter } from 'fhir/r4b';
-import { createCandidApiClient, GetPatientBalancesZambdaOutput, Secrets } from 'utils';
+import { createCandidApiClient, GetPatientBalancesZambdaOutput } from 'utils';
 import {
   CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM,
   checkOrCreateM2MClientToken,
@@ -44,7 +44,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (unsafeInput: ZambdaInput): 
     console.groupEnd();
     console.debug('creating candid api client success');
 
-    const response = await performEffect(validatedInput, secrets, oystehr, candidApiClient);
+    const response = await performEffect(validatedInput, oystehr, candidApiClient);
 
     return lambdaResponse(200, response);
   } catch (error: any) {
@@ -55,8 +55,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (unsafeInput: ZambdaInput): 
 
 export async function performEffect(
   validatedInput: ValidatedInput,
-  _secrets: Secrets,
-  _oystehr: Oystehr,
+  oystehr: Oystehr,
   candidApiClient: CandidApiClient
 ): Promise<GetPatientBalancesZambdaOutput> {
   const { patientId } = validatedInput.body;
@@ -67,7 +66,7 @@ export async function performEffect(
   };
 
   console.group('getFhirEncountersAndAppointmentsForPatient');
-  const { encounters, appointments } = await getFhirEncountersAndAppointmentsForPatient(_oystehr, patientId);
+  const { encounters, appointments } = await getFhirEncountersAndAppointmentsForPatient(oystehr, patientId);
   console.groupEnd();
   console.debug('getFhirEncountersAndAppointmentsForPatient success');
   if (encounters.length === 0) {
