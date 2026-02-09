@@ -24,7 +24,7 @@ export const getOystehrApiHelpers = <T extends Record<string, string>>(
     zambdaName: keyof typeof zambdasToIdsMap
   ): zambdaID is Exclude<typeof zambdaID, undefined> => {
     if (zambdaID === undefined || !isAppLocalProvided) {
-      throw new Error(`${String(zambdaName)} zambda environment variable could not be loaded!!!`);
+      throw new Error(`${String(zambdaName)} zambda environment variable could not be loaded`);
     }
     return true;
   };

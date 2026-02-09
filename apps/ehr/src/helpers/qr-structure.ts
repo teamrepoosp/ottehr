@@ -56,8 +56,6 @@ export const structureQuestionnaireResponse = (
     })
     .filter((i) => Boolean(i.item?.length));
 
-  console.log('whats here?', JSON.stringify(qrItem));
-
   return {
     resourceType: 'QuestionnaireResponse',
     questionnaire: `${questionnaire.url}|${questionnaire.version}`,

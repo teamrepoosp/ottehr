@@ -801,7 +801,7 @@ const FormFields = {
           },
           {
             targetQuestionLinkId: 'pharmacy-page-manual-entry',
-            effect: ['filter'],
+            effect: ['filter'], // todo sarah, i dont think this is doing anything here, can probably remove, need to confirm
             operator: '=',
             answerBoolean: true,
           },
