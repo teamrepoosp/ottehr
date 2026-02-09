@@ -14,13 +14,12 @@ import {
 } from '../../shared';
 import { ValidatedInput, validateInput, validateSecrets } from './validateRequestParameters';
 
-type IdMap = Map<
+type EncounterIdMap = Map<
   string,
   {
     encounterDate: string;
     appointmentId: string;
-    candidId: string | undefined;
-    claimId: string | undefined;
+    candidId: string;
     patientBalanceCents?: number;
   }
 >;
@@ -73,35 +72,30 @@ export async function performEffect(
     return noData;
   }
 
-  // to keep track of all the separate ids
-  const idMap: IdMap = new Map();
+  const encounterDataMap: EncounterIdMap = new Map();
+  const candidIdToEncounterIdMap = new Map<string, string>();
+  const claimIdToEncounterIdMap = new Map<string, string>();
+
   encounters.forEach((encounter) => {
     const appointmentId = encounter.appointment?.[0].reference?.split('/')[1];
     const appointment = appointments.find((app) => app.id === appointmentId);
     const encounterDate = appointment?.start;
-    if (!appointmentId || !encounterDate) {
-      throw new Error(`Encounter is missing appointmentId or encounterDate: ${encounter.id}`);
+    const candidId = encounter.identifier?.find(
+      (identifier) => identifier.system === CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM && identifier.value != null
+    )?.value;
+    if (!appointmentId || !encounterDate || !candidId) {
+      throw new Error(`Encounter is missing appointmentId, encounterDate, or candidId: ${encounter.id}`);
     }
-    idMap.set(encounter.id!, {
+    encounterDataMap.set(encounter.id!, {
       encounterDate,
       appointmentId,
-      candidId: undefined,
-      claimId: undefined,
+      candidId,
     });
+    candidIdToEncounterIdMap.set(candidId, encounter.id!);
   });
 
-  // get candid ids from encounters
-  console.group('saveCandidEncounterIdsInMap');
-  const candidEncountersLength = saveCandidEncounterIdsInMap(encounters, idMap);
-  console.groupEnd();
-  console.debug('saveCandidEncounterIdsInMap success');
-  if (candidEncountersLength === 0) {
-    return noData;
-  }
-
-  // todo should i use getCandidInventoryPagesRecursive instead and then filter after the fact?
   console.group('getAllCandidEncounters');
-  const candidEncounters = await getAllCandidEncounters(candidApiClient, idMap);
+  const candidEncounters = await getAllCandidEncounters(candidApiClient, encounterDataMap);
   console.groupEnd();
   console.debug('getAllCandidEncounters success');
   if (candidEncounters.length === 0) {
@@ -109,19 +103,19 @@ export async function performEffect(
   }
 
   // Unpack the array of claims (should only be one) and grab the first claim id
-  console.group('saveFirstClaimIdInMap');
-  const claimsLength = saveFirstClaimIdInMap(candidEncounters, idMap);
+  console.group('addIdsToMaps');
+  addIdsToMaps(candidEncounters, candidIdToEncounterIdMap, claimIdToEncounterIdMap);
   console.groupEnd();
-  console.debug('saveFirstClaimIdInMap success');
-  if (claimsLength === 0) {
+  console.debug('addIdsToMaps success');
+  if (claimIdToEncounterIdMap.size === 0) {
     return noData;
   }
 
-  console.log('idMap', idMap);
+  console.log('claimIdToEncounterIdMap', claimIdToEncounterIdMap);
 
   // For each Candid claim id, call the Candid invoice itemization API endpoint
   console.group('getAllCandidClaims');
-  const claims = await getAllCandidClaims(candidApiClient, idMap);
+  const claims = await getAllCandidClaims(candidApiClient, claimIdToEncounterIdMap);
   console.groupEnd();
   console.debug('getAllCandidClaims success');
   if (claims.length === 0) {
@@ -130,13 +124,13 @@ export async function performEffect(
 
   // Save the balances in the map
   console.group('saveBalancesInMap');
-  saveBalancesInMap(claims, idMap);
+  saveBalancesInMap(claims, claimIdToEncounterIdMap, encounterDataMap);
   console.groupEnd();
   console.debug('saveBalancesInMap success');
 
-  console.log('idMap with balances', idMap);
+  console.log('encounterDataMap', encounterDataMap);
 
-  const returnData = Array.from(idMap.entries()).map(([encounterId, mapValue]) => ({
+  const returnData = Array.from(encounterDataMap.entries()).map(([encounterId, mapValue]) => ({
     encounterId,
     encounterDate: mapValue.encounterDate,
     appointmentId: mapValue.appointmentId,
@@ -175,44 +169,24 @@ async function getFhirEncountersAndAppointmentsForPatient(
   };
 }
 
-function saveCandidEncounterIdsInMap(encounters: Encounter[], idMap: IdMap): number {
-  encounters.forEach((encounter) => {
-    const candidId = encounter.identifier?.find(
-      (identifier) => identifier.system === CANDID_ENCOUNTER_ID_IDENTIFIER_SYSTEM && identifier.value != null
-    )?.value;
-    if (!encounter.id || !candidId) {
-      // no candid id for this encounter
-      return;
-    }
-    const mapValue = idMap.get(encounter.id);
-    if (!mapValue) return;
-    mapValue.candidId = candidId;
-    idMap.set(encounter.id, mapValue);
-  });
-  const length = Array.from(idMap.values()).filter(({ candidId }) => candidId !== undefined).length;
-  console.log(`Found ${length} Candid ids`);
-  return length;
-}
-
 async function getAllCandidEncounters(
   candidApiClient: CandidApiClient,
-  idMap: IdMap
+  encounterIdMap: EncounterIdMap
 ): Promise<APIResponse<CandidApi.encounters.v4.Encounter, CandidApi.encounters.v4.get.Error._Unknown>[]> {
   const candidEncounters = await Promise.all(
-    Array.from(idMap.values())
-      .filter(({ candidId }) => candidId !== undefined)
-      .map(({ candidId }) => {
-        return candidApiClient.encounters.v4.get(CandidApi.EncounterId(candidId!));
-      })
+    Array.from(encounterIdMap.values()).map(({ candidId }) => {
+      return candidApiClient.encounters.v4.get(CandidApi.EncounterId(candidId!));
+    })
   );
   console.log(`Fetched ${candidEncounters.length} Candid encounters`);
   return candidEncounters;
 }
 
-function saveFirstClaimIdInMap(
+function addIdsToMaps(
   candidEncounters: APIResponse<CandidApi.encounters.v4.Encounter, CandidApi.encounters.v4.get.Error._Unknown>[],
-  idMap: IdMap
-): number {
+  candidIdToEncounterIdMap: Map<string, string>,
+  claimIdToEncounterIdMap: Map<string, string>
+): void {
   candidEncounters.forEach((candidEncounter) => {
     if (!candidEncounter.ok) {
       throw new Error(`Failed to fetch Candid encounter: ${JSON.stringify(candidEncounter.error)}`);
@@ -223,29 +197,22 @@ function saveFirstClaimIdInMap(
       throw new Error(`Expected exactly one claim per encounter, but got ${claims.length}`);
     }
 
-    const encounterMapObject = Array.from(idMap.entries()).find(
-      ([_, mapValue]) => mapValue.candidId === candidEncounter.body.encounterId
-    );
-    if (!encounterMapObject) return;
-    const [encounterId, mapValue] = encounterMapObject;
-    mapValue.claimId = claims[0].claimId;
-    idMap.set(encounterId, mapValue);
+    const candidId = candidEncounter.body.encounterId;
+    const claimId = claims[0].claimId;
+    const encounterId = candidIdToEncounterIdMap.get(candidId);
+
+    claimIdToEncounterIdMap.set(claimId, encounterId!);
   });
-  const length = Array.from(idMap.values()).filter(({ claimId }) => claimId !== undefined).length;
-  console.log(`found ${length} claim ids`);
-  return length;
 }
 
 async function getAllCandidClaims(
   candidApiClient: CandidApiClient,
-  idMap: IdMap
+  claimIdMap: Map<string, string>
 ): Promise<APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[]> {
   const claimItemizations = await Promise.all(
-    Array.from(idMap.values())
-      .filter(({ claimId }) => claimId !== undefined)
-      .map(({ claimId }) => {
-        return candidApiClient.patientAr.v1.itemize(CandidApi.ClaimId(claimId!));
-      })
+    Array.from(claimIdMap.keys()).map((claimId) => {
+      return candidApiClient.patientAr.v1.itemize(CandidApi.ClaimId(claimId!));
+    })
   );
   console.log(`Fetched ${claimItemizations.length} claims`);
   return claimItemizations;
@@ -253,19 +220,21 @@ async function getAllCandidClaims(
 
 function saveBalancesInMap(
   candidClaims: APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[],
-  idMap: IdMap
+  claimIdToEncounterIdMap: Map<string, string>,
+  encounterDataMap: EncounterIdMap
 ): void {
   candidClaims.forEach((candidClaim) => {
     if (!candidClaim.ok) {
       throw new Error(`Failed to fetch Candid claim: ${JSON.stringify(candidClaim.error)}`);
     }
 
-    const encounterMapObject = Array.from(idMap.entries()).find(
-      ([_, mapValue]) => mapValue.claimId === candidClaim.body.claimId
-    );
-    if (!encounterMapObject) return;
-    const [encounterId, mapValue] = encounterMapObject;
+    const claimId = candidClaim.body.claimId;
+    const encounterId = claimIdToEncounterIdMap.get(claimId);
+    const mapValue = encounterDataMap.get(encounterId!);
+    if (!mapValue) {
+      throw new Error(`No map value found for encounterId ${encounterId}`);
+    }
     mapValue.patientBalanceCents = candidClaim.body.patientBalanceCents;
-    idMap.set(encounterId, mapValue);
+    encounterDataMap.set(encounterId!, mapValue);
   });
 }

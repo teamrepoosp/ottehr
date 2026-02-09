@@ -482,7 +482,7 @@ describe('get-patient-balances integration tests', () => {
       const mockCandidClient = createMockCandidApiClient();
 
       await expect(getPatientBalances(patient.id!, mockCandidClient)).rejects.toThrow(
-        /Encounter is missing appointmentId or encounterDate/
+        /Encounter is missing appointmentId, encounterDate, or candidId/
       );
     });
 
@@ -540,7 +540,7 @@ describe('get-patient-balances integration tests', () => {
       const mockCandidClient = createMockCandidApiClient();
 
       await expect(getPatientBalances(patient.id!, mockCandidClient)).rejects.toThrow(
-        /Encounter is missing appointmentId or encounterDate/
+        /Encounter is missing appointmentId, encounterDate, or candidId/
       );
     });
 
@@ -670,7 +670,7 @@ describe('get-patient-balances integration tests', () => {
       await expect(getPatientBalances(patient.id!, mockCandidClient)).rejects.toThrow(/Failed to fetch Candid claim/);
     });
 
-    it('should return empty data when encounter has no Candid ID', async () => {
+    it('should throw error when encounter has no Candid ID', async () => {
       const patient = await createMockPatient();
       const appointment = await createMockAppointment({ patientId: patient.id!, processId });
 
@@ -699,11 +699,9 @@ describe('get-patient-balances integration tests', () => {
 
       const mockCandidClient = createMockCandidApiClient();
 
-      const response = await getPatientBalances(patient.id!, mockCandidClient);
-
-      expect(response).toBeDefined();
-      expect(response.encounters).toEqual([]);
-      expect(response.totalBalanceCents).toBe(0);
+      await expect(getPatientBalances(patient.id!, mockCandidClient)).rejects.toThrow(
+        /Encounter is missing appointmentId, encounterDate, or candidId/
+      );
     });
   });
 });
