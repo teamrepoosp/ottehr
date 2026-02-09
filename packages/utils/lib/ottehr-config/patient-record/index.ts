@@ -1123,7 +1123,6 @@ export const prepopulatePatientRecordItems = (
     }
   }
   const patientRecordItems = makePrepopulatedItemsFromPatientRecord({ ...input, overriddenItems: prepopOverrides });
-  // console.log('whats here!', patientRecordItems);
 
   return patientRecordItems;
 };

@@ -7,7 +7,13 @@ const containedItemWithLinkId = (item: QuestionnaireItem, linkId: string): Quest
   const { linkId: itemLinkId, item: subItems } = item;
   if (itemLinkId === linkId) return item;
   if (!subItems) return undefined;
-  return subItems.find((subItem) => containedItemWithLinkId(subItem, linkId));
+
+  for (const subItem of subItems) {
+    const found = containedItemWithLinkId(subItem, linkId);
+    if (found) return found;
+  }
+
+  return undefined;
 };
 
 export const structureQuestionnaireResponse = (
@@ -20,20 +26,14 @@ export const structureQuestionnaireResponse = (
   const itemInput = questionnaire.item ?? [];
   const qItems = mapQuestionnaireAndValueSetsToItemsList(_.cloneDeep(itemInput), []);
   qItems.forEach((item) => {
-    console.log('ugh', item);
     pageDict.set(item.linkId, []);
   });
-  console.log('formValues', formValues);
-  console.log('pageDict', pageDict);
 
   Object.entries(formValues).forEach(([key, value]) => {
     const parentItem = qItems?.find((item) => containedItemWithLinkId(item, key));
     if (parentItem) {
-      console.log('parentItem', parentItem);
       const pageItems = pageDict.get(parentItem.linkId);
-      console.log('pageItems', pageItems);
       const qItem = containedItemWithLinkId(parentItem, key) as IntakeQuestionnaireItem;
-      console.log('qItem', qItem);
       if (pageItems && qItem) {
         const answer = value != undefined ? makeQRResponseItem(value, qItem) : undefined;
         if (answer) {

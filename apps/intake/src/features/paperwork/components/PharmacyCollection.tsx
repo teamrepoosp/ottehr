@@ -75,7 +75,7 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
   }, [pharmacyCollectionItemValues]);
 
   const handleSearchPlaces = async (input: SearchPlacesInput): Promise<SearchPlacesOutput> => {
-    if (!zambdaClient) throw new Error('error searching'); // todo sarah test this
+    if (!zambdaClient) throw new Error('error searching, api client is undefined');
     return await api.searchPlaces(input, zambdaClient);
   };
 
