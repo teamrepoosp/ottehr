@@ -1,7 +1,7 @@
 {
   "resourceType": "Questionnaire",
   "url": "https://ottehr.com/FHIR/Questionnaire/intake-paperwork-inperson",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "name": "in-person_pre-visit_paperwork",
   "title": "in-person pre-visit paperwork",
   "status": "active",
@@ -3058,6 +3058,11 @@
               "valueString": "hidden"
             }
           ]
+        },
+        {
+          "linkId": "card-payment-details-text",
+          "type": "display",
+          "text": "If you choose not to enter your credit card information in advance, payment (cash or credit) will be required upon arrival."
         }
       ],
       "enableWhen": [
