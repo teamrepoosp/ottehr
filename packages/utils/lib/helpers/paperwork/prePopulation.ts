@@ -1337,11 +1337,8 @@ const mapGuarantorToQuestionnaireResponseItems = (input: MapGuarantorItemsInput)
 
   if (patient && guarantorResource) {
     const patientAddress = patient.address?.[0];
-    const guarantorAddress = guarantorResource.address?.[0];
     if (patientAddress && guarantorAddress) {
       addressSameAsPatient = areAddressesEqual(patientAddress, guarantorAddress);
-    } else {
-      addressSameAsPatient = false;
     }
   }
 
