@@ -118,7 +118,7 @@ export async function performEffect(
     return noData;
   }
 
-  console.log('idMap', JSON.stringify(idMap));
+  console.log('idMap', idMap);
 
   // For each Candid claim id, call the Candid invoice itemization API endpoint
   console.group('getAllCandidClaims');
@@ -135,7 +135,7 @@ export async function performEffect(
   console.groupEnd();
   console.debug('saveBalancesInMap success');
 
-  console.log('idMap with balances', JSON.stringify(idMap));
+  console.log('idMap with balances', idMap);
 
   const returnData = Array.from(idMap.entries()).map(([encounterId, mapValue]) => ({
     encounterId,
