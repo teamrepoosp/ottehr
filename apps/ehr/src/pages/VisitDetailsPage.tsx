@@ -33,7 +33,6 @@ import {
   createZ3Object,
   generatePaperworkPdf,
   getOrCreateVisitDetailsPdf,
-  getPatientBalances,
   getPatientVisitDetails,
   getPatientVisitFiles,
   updatePatientVisitDetails,
@@ -47,6 +46,7 @@ import { ScannerModal } from 'src/components/ScannerModal';
 import { TelemedAppointmentStatusChip } from 'src/components/TelemedAppointmentStatusChip';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { useGetPatientAccount, useGetPatientCoverages } from 'src/hooks/useGetPatient';
+import { useGetPatientBalances } from 'src/hooks/useGetPatientBalances';
 import { useGetPatientDocs } from 'src/hooks/useGetPatientDocs';
 import {
   BOOKING_CONFIG,
@@ -63,7 +63,6 @@ import {
   getLastName,
   getMiddleName,
   getPatchOperationForNewMetaTag,
-  GetPatientBalancesZambdaOutput,
   getReasonForVisitAndAdditionalDetailsFromAppointment,
   getTelemedVisitStatus,
   getUnconfirmedDOBForAppointment,
@@ -464,17 +463,9 @@ export default function VisitDetailsPage(): ReactElement {
     data: patientBalancesData,
     isLoading: patientBalancesLoading,
     refetch: refetchPatientBalances,
-  } = useQuery({
-    queryKey: ['get-patient-balances', patientId],
-
-    queryFn: async (): Promise<GetPatientBalancesZambdaOutput> => {
-      if (oystehrZambda && patientId) {
-        return getPatientBalances(oystehrZambda, { patientId });
-      }
-      throw new Error('fhir client not defined or patientIds not provided');
-    },
-
-    enabled: Boolean(oystehrZambda) && patientId !== undefined,
+  } = useGetPatientBalances({
+    patientId,
+    disabled: !patientId,
   });
 
   useEffect(() => {
