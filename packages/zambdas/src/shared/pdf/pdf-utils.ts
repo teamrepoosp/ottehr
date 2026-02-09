@@ -266,6 +266,18 @@ export async function createPdfClient(initialStyles: PdfClientStyles): Promise<P
       currXPos = leftBound;
     } else currXPos = startingXPos;
 
+    if (text.length > 0) {
+      const firstChar = text[0];
+      const firstWidth = font.widthOfTextAtSize(firstChar, fontSize);
+      const availableWidth = rightBound - currXPos;
+
+      if (availableWidth < firstWidth) {
+        console.log('Not enough width for first glyph — forcing newline');
+        newLine(currentTextHeight + spacing);
+        currXPos = leftBound;
+      }
+    }
+
     console.log(`Drawing at xPos: ${currXPos}. String to draw is ${text}`);
     drawTextSequential(text, textStyle, { leftBound: currXPos, rightBound: pageRightBound });
 
@@ -383,6 +395,21 @@ export async function createPdfClient(initialStyles: PdfClientStyles): Promise<P
           break;
         }
         currentWidth += elementWidth + widthOfSeparator;
+      }
+
+      if (!fittingText) {
+        newLine(lineHeight + spacing);
+
+        const newAvailableWidth = rightBound - currXPos;
+        const { width: firstWidth } = getTextDimensions(elements[0], textStyle);
+
+        if (newAvailableWidth < firstWidth) {
+          console.warn('Bounds too narrow to render text — skipping to avoid infinite recursion');
+          return;
+        }
+
+        drawTextSequential(text, textStyle, bounds);
+        return;
       }
 
       // Draw the fitting part on the current line
