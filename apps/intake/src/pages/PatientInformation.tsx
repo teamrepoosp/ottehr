@@ -196,8 +196,10 @@ const PatientInformation = (): JSX.Element => {
       }
       if (foundDuplicate) {
         setErrorDialog({
-          title: `${t('aboutPatient.errors.foundDuplicate.title')} ${data.firstName}`,
-          description: `${t('aboutPatient.errors.foundDuplicate.description1')} ${data.firstName} ${data.lastName}, 
+          title: `${t('aboutPatient.errors.foundDuplicate.title')} ${postedPatientInfo.firstName}`,
+          description: `${t('aboutPatient.errors.foundDuplicate.description1')} ${postedPatientInfo.firstName} ${
+            postedPatientInfo.lastName
+          }, 
            ${postedPatientInfo?.dateOfBirth ? mdyStringFromISOString(postedPatientInfo?.dateOfBirth) : ''}. ${t(
              'aboutPatient.errors.foundDuplicate.description2'
            )}`,
