@@ -43,7 +43,9 @@ export const FormGroupPharmacyCollection: FC = () => {
     setValue(PHARMACY_COLLECTION_LINK_IDS.placesDataSaved, false, { shouldDirty: true });
   };
 
-  const handlePharmacySelection = (input: PharmacyCollectionAnswerSetInput): void => {
+  const handlePlacesPharmacySelection = (input: PharmacyCollectionAnswerSetInput): void => {
+    setValue(PHARMACY_COLLECTION_LINK_IDS.manualPharmacyName, undefined, { shouldDirty: true });
+    setValue(PHARMACY_COLLECTION_LINK_IDS.manualPharmacyAddress, undefined, { shouldDirty: true });
     setValue(PHARMACY_COLLECTION_LINK_IDS.erxPharmacyId, input.erxPharmacyId, { shouldDirty: true });
     setValue(PHARMACY_COLLECTION_LINK_IDS.placesAddress, input.placesAddress, { shouldDirty: true });
     setValue(PHARMACY_COLLECTION_LINK_IDS.placesId, input.placesId, { shouldDirty: true });
@@ -59,7 +61,7 @@ export const FormGroupPharmacyCollection: FC = () => {
     ></PharmacyDisplay>
   ) : (
     <PharmacySearch
-      handlePharmacySelection={handlePharmacySelection}
+      handlePharmacySelection={handlePlacesPharmacySelection}
       setSelectedPlace={setSelectedPlace}
       searchPlaces={handleSearchPlaces}
     ></PharmacySearch>

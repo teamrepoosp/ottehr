@@ -799,12 +799,6 @@ const FormFields = {
             operator: '!=',
             answerBoolean: true,
           },
-          {
-            targetQuestionLinkId: 'pharmacy-page-manual-entry',
-            effect: ['filter'], // todo sarah, i dont think this is doing anything here, can probably remove, need to confirm
-            operator: '=',
-            answerBoolean: true,
-          },
         ],
       },
       manualEntry: {
@@ -839,12 +833,6 @@ const FormFields = {
             operator: '=',
             answerBoolean: true,
           },
-          {
-            targetQuestionLinkId: 'pharmacy-page-manual-entry',
-            effect: ['filter'],
-            operator: '!=',
-            answerBoolean: true,
-          },
         ],
       },
       address: {
@@ -856,12 +844,6 @@ const FormFields = {
             targetQuestionLinkId: 'pharmacy-page-manual-entry',
             effect: ['enable'],
             operator: '=',
-            answerBoolean: true,
-          },
-          {
-            targetQuestionLinkId: 'pharmacy-page-manual-entry',
-            effect: ['filter'],
-            operator: '!=',
             answerBoolean: true,
           },
         ],
