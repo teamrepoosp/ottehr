@@ -334,6 +334,10 @@ export async function createPdfClient(initialStyles: PdfClientStyles): Promise<P
     // Calculate available space on the current line
     const availableWidth = rightBound - currXPos;
     const totalWidth = rightBound - leftBound;
+    if (totalWidth <= 0) {
+      console.warn('Invalid text bounds. Skipping render', { leftBound, rightBound });
+      return;
+    }
     console.log(`AvailableWidth is ${availableWidth}. Total width is ${totalWidth}`);
 
     // If the text fits within the current line, draw it directly
