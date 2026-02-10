@@ -217,8 +217,14 @@ const makeCreateRequests = (
       )
   );
 
+  const existingRosCondition = encounterBundle.find(
+    (resource) =>
+      resource.meta?.tag?.some((tag) => tag.system === 'https://fhir.zapehr.com/r4/StructureDefinitions/ros')
+  );
+
   const templateEncounterDiagnoses = templateList.contained?.find((r) => r.resourceType === 'Encounter')?.diagnosis;
   let templateHpiCondition: Condition | undefined;
+  let templateRosCondition: Condition | undefined;
 
   for (const resource of templateList.entry) {
     // grab contained resource from resource.id in entry
@@ -236,6 +242,16 @@ const makeCreateRequests = (
       existingHpiCondition
     ) {
       templateHpiCondition = containedResource as Condition;
+      continue;
+    }
+
+    if (
+      containedResource.meta?.tag?.some(
+        (tag) => tag.system === 'https://fhir.zapehr.com/r4/StructureDefinitions/ros'
+      ) &&
+      existingRosCondition
+    ) {
+      templateRosCondition = containedResource as Condition;
       continue;
     }
 
@@ -309,6 +325,23 @@ const makeCreateRequests = (
           op: 'replace',
           path: '/note/0/text',
           value: `${condition.note?.[0]?.text}\n\n${templateHpiCondition?.note?.[0]?.text}`,
+        },
+      ],
+    };
+    createResourcesRequests.push(encounterDiagnosisPatch);
+  }
+
+  // Patch ROS note if it already exists
+  if (existingRosCondition) {
+    const condition = existingRosCondition as Condition;
+    const encounterDiagnosisPatch: BatchInputJSONPatchRequest = {
+      method: 'PATCH',
+      url: `Condition/${condition.id}`,
+      operations: [
+        {
+          op: 'replace',
+          path: '/note/0/text',
+          value: `${condition.note?.[0]?.text}\n\n${templateRosCondition?.note?.[0]?.text}`,
         },
       ],
     };
