@@ -2415,7 +2415,7 @@ const hiddenFormSections: string[] = [];
 const questionnaireBaseDefaults: QuestionnaireBase = {
   resourceType: 'Questionnaire',
   url: 'https://ottehr.com/FHIR/Questionnaire/intake-paperwork-virtual',
-  version: '1.0.21',
+  version: '1.0.22',
   name: 'virtual_pre-visit_paperwork',
   title: 'virtual pre-visit paperwork',
   status: 'active',
