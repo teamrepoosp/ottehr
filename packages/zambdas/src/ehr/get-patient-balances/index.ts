@@ -180,10 +180,10 @@ async function getAllCandidEncounters(
   const candidEncounters: APIResponse<CandidApi.encounters.v4.Encounter, CandidApi.encounters.v4.get.Error._Unknown>[] =
     [];
   for (const chunk of chunkedCandidIds) {
-    const chunkEncounters = await Promise.all(
+    const currentCandidEncounters = await Promise.all(
       chunk.map((candidId) => candidApiClient.encounters.v4.get(CandidApi.EncounterId(candidId)))
     );
-    candidEncounters.push(...chunkEncounters);
+    candidEncounters.push(...currentCandidEncounters);
   }
   console.log(`Fetched ${candidEncounters.length} Candid encounters`);
   return candidEncounters;
@@ -216,20 +216,18 @@ async function getAllCandidClaims(
   candidApiClient: CandidApiClient,
   claimIdMap: Map<string, string>
 ): Promise<APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[]> {
-  const claimIds = Array.from(claimIdMap.values());
+  const claimIds = Array.from(claimIdMap.keys());
   const chunkedClaimIds = chunkThings(claimIds, CANDID_API_CONCURRENCY_LIMIT);
-  const claimItemizations: APIResponse<
-    CandidApi.patientAr.v1.InvoiceItemizationResponse,
-    CandidApi.patientAr.v1.itemize.Error
-  >[] = [];
+  const claims: APIResponse<CandidApi.patientAr.v1.InvoiceItemizationResponse, CandidApi.patientAr.v1.itemize.Error>[] =
+    [];
   for (const chunk of chunkedClaimIds) {
-    const chunkItemizations = await Promise.all(
+    const currentClaims = await Promise.all(
       chunk.map((claimId) => candidApiClient.patientAr.v1.itemize(CandidApi.ClaimId(claimId)))
     );
-    claimItemizations.push(...chunkItemizations);
+    claims.push(...currentClaims);
   }
-  console.log(`Fetched ${claimItemizations.length} claims`);
-  return claimItemizations;
+  console.log(`Fetched ${claims.length} claims`);
+  return claims;
 }
 
 function saveBalancesInMap(
