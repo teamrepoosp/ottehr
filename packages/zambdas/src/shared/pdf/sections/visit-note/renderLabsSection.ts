@@ -33,7 +33,7 @@ export function renderLabsSection(
     flags.filter((flag) => flag !== NonNormalResult.Neutral);
 
   const getCurBounds = (): { leftBound: number; rightBound: number } => ({
-    leftBound: client.getLeftBound(),
+    leftBound: client.getX(),
     rightBound: client.getRightBound(),
   });
 
@@ -99,7 +99,10 @@ export function renderLabsSection(
   if (labsData.results.length) {
     client.drawText('Results:', styles.textStyles.subHeader);
     labsData.results.forEach((result) => {
-      client.drawTextSequential(result.name, getTestNameTextStyle(result.nonNormalResultContained), getCurBounds());
+      client.drawTextSequential(result.name, getTestNameTextStyle(result.nonNormalResultContained), {
+        leftBound: client.getLeftBound(),
+        rightBound: client.getRightBound(),
+      });
       drawResultFlags(result.nonNormalResultContained);
     });
   }
