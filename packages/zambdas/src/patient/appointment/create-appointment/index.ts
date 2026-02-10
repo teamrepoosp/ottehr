@@ -34,6 +34,7 @@ import {
   getAppointmentDurationFromSlot,
   getCanonicalQuestionnaire,
   getCoding,
+  getFullestAvailableName,
   getSecret,
   getTaskResource,
   isValidUUID,
@@ -554,6 +555,7 @@ export const performTransactionalFhirRequests = async (input: TransactionInput):
     unconfirmedDateOfBirth,
     appointmentStartTime: startTime,
     appointmentServiceCategory: getCoding(slot?.serviceCategory, SERVICE_CATEGORY_SYSTEM)?.code ?? '',
+    reasonForVisit,
     questionnaire,
     documents,
     accountInfo,
@@ -601,7 +603,11 @@ export const performTransactionalFhirRequests = async (input: TransactionInput):
     patientRequests.push(createPatientRequest);
   }
 
-  const confirmationTextTask = getTaskResource(TaskIndicator.confirmationMessages, apptUrl);
+  const confirmationTextTask = getTaskResource(
+    TaskIndicator.confirmationMessages,
+    `Send confirmation text to ${getFullestAvailableName(patientToUse)}`,
+    apptUrl
+  );
   const taskRequest: BatchInputPostRequest<Task> = {
     method: 'POST',
     url: '/Task',

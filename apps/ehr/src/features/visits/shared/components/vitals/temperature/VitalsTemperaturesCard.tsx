@@ -4,9 +4,11 @@ import React, { ChangeEvent, JSX, useCallback, useState } from 'react';
 import { AccordionCard } from 'src/components/AccordionCard';
 import { DoubleColumnContainer } from 'src/components/DoubleColumnContainer';
 import { RoundedButton } from 'src/components/RoundedButton';
+import { dataTestIds } from 'src/constants/data-test-ids';
 import {
   celsiusToFahrenheit,
   fahrenheitToCelsius,
+  roundTemperatureValue,
   toVitalTemperatureObservationMethod,
   VitalFieldNames,
   VitalsTemperatureObservationDTO,
@@ -145,6 +147,7 @@ const VitalsTemperaturesCard: React.FC<VitalsTemperatureCardProps> = ({
             <VitalHistoryElement
               historyEntry={historyEntry}
               onDelete={isCurrent && !isReadOnly ? handleDeleteVital : undefined}
+              dataTestId={dataTestIds.vitalsPage.temperatureItem}
             />
           );
         }}
@@ -155,9 +158,10 @@ const VitalsTemperaturesCard: React.FC<VitalsTemperatureCardProps> = ({
   return (
     <Box sx={{ mt: 3 }}>
       <AccordionCard
-        label={`Temp (C) ${latestTemperatureValue ?? ''}`}
+        label={`Temp (C) ${latestTemperatureValue != null ? roundTemperatureValue(latestTemperatureValue) : ''}`}
         collapsed={isCollapsed}
         onSwitch={handleSectionCollapse}
+        dataTestId={dataTestIds.vitalsPage.temperatureHeader}
       >
         {isReadOnly ? (
           renderRightColumn()
@@ -195,6 +199,7 @@ const VitalsTemperaturesCard: React.FC<VitalsTemperatureCardProps> = ({
                       disabled={isSaving}
                       isInputError={isTemperatureValidationError}
                       onChange={handleTextInputChange}
+                      data-testid={dataTestIds.vitalsPage.temperatureInput}
                     />
                     <Typography fontSize={25}>=</Typography>
                     <VitalsTextInputFiled
@@ -224,6 +229,7 @@ const VitalsTemperaturesCard: React.FC<VitalsTemperatureCardProps> = ({
                       height: '40px',
                       px: 2,
                     }}
+                    data-testid={dataTestIds.vitalsPage.temperatureAddButton}
                   >
                     Add
                   </RoundedButton>

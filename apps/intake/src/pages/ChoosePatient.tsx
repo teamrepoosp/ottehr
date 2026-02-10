@@ -1,6 +1,6 @@
 import CloseIcon from '@mui/icons-material/Close';
 import { Box, CircularProgress, Dialog, IconButton, Paper, Typography } from '@mui/material';
-import { ottehrLightBlue } from '@theme/icons';
+import { primaryIcon } from '@theme/icons';
 import { DateTime } from 'luxon';
 import { useEffect, useMemo, useState } from 'react';
 import { FieldValues } from 'react-hook-form';
@@ -288,8 +288,9 @@ const ChoosePatient = (): JSX.Element => {
       {
         appointmentID: appointmentID,
         cancellationReason:
-          VALUE_SETS.cancelReasonOptions.find((option) => option.value === 'Duplicate visit or account error')?.value ||
-          'Other',
+          VALUE_SETS.cancelReasonOptionsInPersonPatient.find(
+            (option) => option.value === 'Duplicate visit or account error'
+          )?.value || 'Other',
         silent: true,
         language: 'en', // replace with i18n.language to enable
       },
@@ -306,8 +307,9 @@ const ChoosePatient = (): JSX.Element => {
         {
           appointmentID: bookedAppointment.id,
           cancellationReason:
-            VALUE_SETS.cancelReasonOptions.find((option) => option.value === 'Duplicate visit or account error')
-              ?.value || 'Other',
+            VALUE_SETS.cancelReasonOptionsInPersonPatient.find(
+              (option) => option.value === 'Duplicate visit or account error'
+            )?.value || 'Other',
           language: 'en', // replace with i18n.language to enable
         },
         false
@@ -360,7 +362,7 @@ const ChoosePatient = (): JSX.Element => {
         visitType === VisitType.WalkIn && showCheckIn ? (
           <CardWithDescriptionAndLink
             iconHeight={50}
-            icon={ottehrLightBlue}
+            icon={primaryIcon}
             iconAlt={BRANDING_CONFIG.primaryIconAlt}
             mainText={t('welcomeBack.alreadyReserved')}
             textColor={otherColors.white}

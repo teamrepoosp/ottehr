@@ -13,10 +13,13 @@ export class FillingInfo extends BaseFillingInfo {
   }
 
   private reasonForVisit = [VALUE_SETS.reasonForVisitOptions[0].value];
-  private cancelReason = VALUE_SETS.cancelReasonOptions.slice();
+  private cancelReason = VALUE_SETS.cancelReasonOptionsInPersonPatient.slice();
 
   getRandomString() {
     return Math.random().toString().slice(2, 7);
+  }
+  getReasonForVisit() {
+    return this.reasonForVisit[0];
   }
 
   async selectSlot() {

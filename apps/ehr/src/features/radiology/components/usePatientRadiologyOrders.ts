@@ -39,6 +39,7 @@ export const usePatientRadiologyOrders = (options: {
   patientId?: string;
   encounterIds?: string | string[];
   serviceRequestId?: string;
+  refreshKey?: number;
 }): UsePatientRadiologyOrdersResult => {
   const { oystehrZambda } = useApiClients();
 
@@ -151,7 +152,7 @@ export const usePatientRadiologyOrders = (options: {
     if (searchParams.patientId || encounterIdsHasValue || searchParams.serviceRequestId) {
       void fetchOrders(searchParams);
     }
-  }, [fetchOrders, getCurrentSearchParamsForPage]);
+  }, [fetchOrders, getCurrentSearchParamsForPage, options?.refreshKey]);
 
   const didOrdersFetch = orders.length > 0;
 

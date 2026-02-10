@@ -270,6 +270,15 @@ export const LAB_DOC_REF_TAG_hl7_TRANSMISSION = {
   display: 'Original HL7 Transmission',
 };
 
+export const LAB_DOC_REF_DETAIL_TAGS = {
+  testName: { system: 'test-name' }, // code will be dynamic to the test name
+  fillerLab: { system: 'filler-lab' }, // code will be dynamic to the filler lab name
+  labType: {
+    system: 'lab-type',
+    code: LabType,
+  },
+};
+
 export const PERFORMING_SITE_INFO_EXTENSION_URLS = {
   parentExtUrl: 'https://extensions.fhir.oystehr.com/obx-performing-site-info',
   name: 'name',
@@ -334,3 +343,11 @@ export const LAB_ORDER_CLINICAL_INFO_COMM_CATEGORY = {
 };
 
 export const DEFAULT_OYSTEHR_LABS_HL7_SYSTEM = '(HL7_V2)';
+
+export const LAB_SERVICE_REQUEST_CATEGORY_SYSTEM =
+  'https://terminology.fhir.oystehr.com/CodeSystem/lab-servicerequest-category';
+export const WORKERS_COMP_SERVICE_REQUEST_CATEGORY = {
+  system: LAB_SERVICE_REQUEST_CATEGORY_SYSTEM,
+  code: 'workers-comp',
+  display: `Worker's compensation`,
+};

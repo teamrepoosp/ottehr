@@ -10,6 +10,7 @@ import {
   CreateAppointmentResponse,
   CreateSlotParams,
   createSlotParamsFromSlotAndOptions,
+  getCancellationReasonDisplay,
   getOriginalBookingUrlFromSlot,
   getScheduleExtension,
   GetScheduleResponse,
@@ -181,6 +182,7 @@ interface SetUpOutput {
   schedule: Schedule;
   scheduleOwnerType: ScheduleOwnerFhirResource['resourceType'];
   slug: string;
+  location: Location;
 }
 
 interface GetSlotFromScheduleInput extends SetUpOutput {
@@ -289,6 +291,7 @@ describe('prebook integration - from getting list of slots to booking with selec
       schedule,
       slug,
       scheduleOwnerType: owner.resourceType,
+      location: owner as Location,
     };
   };
 
@@ -357,6 +360,7 @@ describe('prebook integration - from getting list of slots to booking with selec
       schedule,
       slug,
       scheduleOwnerType: owner.resourceType,
+      location: owner as Location,
     };
   };
 
@@ -571,13 +575,16 @@ describe('prebook integration - from getting list of slots to booking with selec
     };
   };
 
-  const cancelAndValidate = async (input: CancelAndValidateInput): Promise<void> => {
-    const { appointmentId, oldSlotId } = input;
+  const cancelAndValidate = async (
+    input: CancelAndValidateInput & { cancellationReasonAdditional?: string }
+  ): Promise<void> => {
+    const { appointmentId, oldSlotId, cancellationReasonAdditional } = input;
     try {
       const cancelResult = await oystehrTestUserM2M.zambda.executePublic({
         id: 'cancel-appointment',
         appointmentID: appointmentId,
         cancellationReason: 'Patient improved',
+        ...(cancellationReasonAdditional && { cancellationReasonAdditional }),
       });
       console.log('cancelResult', JSON.stringify(cancelResult));
       expect(cancelResult.status).toBe(200);
@@ -593,6 +600,15 @@ describe('prebook integration - from getting list of slots to booking with selec
     expect(canceledAppointment).toBeDefined();
     assert(canceledAppointment);
     expect(canceledAppointment.status).toEqual('cancelled');
+
+    // Verify cancellation reason is stored correctly
+    if (cancellationReasonAdditional) {
+      expect(getCancellationReasonDisplay(canceledAppointment)).toBe(
+        `Patient improved - ${cancellationReasonAdditional}`
+      );
+    } else {
+      expect(canceledAppointment.cancelationReason?.coding?.[0]?.code).toBe('Patient improved');
+    }
     const slotSearch = await oystehrAdmin.fhir.search<Slot>({
       resourceType: 'Slot',
       params: [
@@ -645,6 +661,21 @@ describe('prebook integration - from getting list of slots to booking with selec
     expect(fetchedSlot.status).toEqual('busy');
 
     return validated;
+  };
+
+  const cleanUpResources = async (initialResources: SetUpOutput): Promise<void> => {
+    if (initialResources.schedule.id) {
+      await oystehrAdmin.fhir.delete({
+        resourceType: 'Schedule',
+        id: initialResources.schedule.id,
+      });
+    }
+    if (initialResources.location.id) {
+      await oystehrAdmin.fhir.delete({
+        resourceType: 'Location',
+        id: initialResources.location.id,
+      });
+    }
   };
 
   beforeAll(async () => {
@@ -704,6 +735,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         appointmentId,
         oldSlotId: newSlotId,
       });
+
+      await cleanUpResources(initialResources);
     }
   );
 
@@ -748,6 +781,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         appointmentId,
         oldSlotId: newSlotId,
       });
+
+      await cleanUpResources(initialResources);
     }
   );
 
@@ -855,6 +890,8 @@ describe('prebook integration - from getting list of slots to booking with selec
       expect(canceledAppointment).toBeDefined();
       assert(canceledAppointment);
       expect(canceledAppointment.status).toEqual('booked'); // should still be booked since we can't cancel it
+
+      await cleanUpResources(initialResources);
     }
   );
 
@@ -909,6 +946,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         appointmentId,
         oldSlotId: newSlotId,
       });
+
+      await cleanUpResources(initialResources);
     }
   );
 
@@ -963,6 +1002,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         appointmentId,
         oldSlotId: newSlotId,
       });
+
+      await cleanUpResources(initialResources);
     }
   );
 
@@ -1006,8 +1047,50 @@ describe('prebook integration - from getting list of slots to booking with selec
         patient: undefined,
         slot: createdSlotResponse,
       });
+
+      await cleanUpResources(initialResources);
     }
   );
+
+  test.concurrent('successfully cancels appointment with additional cancellation reason details', async () => {
+    assert(processId);
+    const initialResources = await setUpInPersonResources();
+    const { timezone } = initialResources;
+
+    const patientInfo: PatientInfo = {
+      id: existingTestPatient.id,
+      firstName: existingTestPatient.name![0]!.given![0],
+      lastName: existingTestPatient!.name![0]!.family,
+      email: 'okovalenko+coolPatient@masslight.com',
+      sex: 'female',
+      dateOfBirth: existingTestPatient.birthDate,
+      newPatient: false,
+    };
+
+    const { slot: createdSlotResponse, slotId } = await getSlot({
+      ...initialResources,
+      serviceMode: ServiceMode['in-person'],
+      isWalkin: false,
+      isPostTelemed: false,
+    });
+
+    const { appointmentId } = await createAppointmentAndValidate({
+      timezone,
+      patientInfo,
+      patient: existingTestPatient,
+      slot: createdSlotResponse,
+    });
+
+    // Cancel with additional reason details
+    await cancelAndValidate({
+      appointmentId,
+      oldSlotId: slotId,
+      cancellationReasonAdditional: 'Found a closer clinic with better hours',
+    });
+
+    await cleanUpResources(initialResources);
+  });
+
   describe('walkin appointments', () => {
     test.concurrent(
       'successfully creates an in-person walkin appointment for a new patient after selecting an available slot',
@@ -1044,6 +1127,8 @@ describe('prebook integration - from getting list of slots to booking with selec
           patient: undefined,
           slot: createdSlotResponse,
         });
+
+        await cleanUpResources(initialResources);
       }
     );
     test.concurrent(
@@ -1073,6 +1158,8 @@ describe('prebook integration - from getting list of slots to booking with selec
           patient: existingTestPatient,
           slot: createdSlotResponse,
         });
+
+        await cleanUpResources(initialResources);
       }
     );
     test.concurrent('successfully creates a virtual walkin appointment for a new patient', async () => {
@@ -1108,6 +1195,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         patient: undefined,
         slot: createdSlotResponse,
       });
+
+      await cleanUpResources(initialResources);
     });
     test.concurrent('successfully creates a virtual walkin appointment for an existing patient', async () => {
       assert(processId);
@@ -1134,6 +1223,8 @@ describe('prebook integration - from getting list of slots to booking with selec
         patient: existingTestPatient,
         slot: createdSlotResponse,
       });
+
+      await cleanUpResources(initialResources);
     });
   });
 });

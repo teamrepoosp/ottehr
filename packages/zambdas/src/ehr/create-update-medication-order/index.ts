@@ -62,6 +62,7 @@ const ZAMBDA_NAME = 'create-update-medication-order';
 export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promise<APIGatewayProxyResult> => {
   try {
     const validatedParameters = validateRequestParameters(input);
+    console.log('Validated parameters: ', JSON.stringify(validatedParameters));
 
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, validatedParameters.secrets);
     const oystehr = createOystehrClient(m2mToken, validatedParameters.secrets);
@@ -340,14 +341,36 @@ async function changeOrderStatus(
 
   operations.push(replaceOperation('/status', mapOrderStatusToFhir(newStatus)));
 
-  return await oystehr.fhir.patch({
-    resourceType: 'MedicationAdministration',
-    id: pkg.medicationAdministration.id!,
-    operations,
-  });
+  const transactionRequests: BatchInputRequest<FhirResource>[] = [];
+
+  transactionRequests.push(
+    getPatchBinary({
+      resourceType: 'MedicationAdministration',
+      resourceId: pkg.medicationAdministration.id!,
+      patchOperations: operations,
+    })
+  );
+
+  // If we're cancelling a medication and there's a corresponding MedicationStatement, update its status to 'entered-in-error'
+  if (newStatus === 'cancelled' && pkg.medicationStatement && pkg.medicationStatement.id) {
+    transactionRequests.push(
+      getPatchBinary({
+        resourceType: 'MedicationStatement',
+        resourceId: pkg.medicationStatement.id,
+        patchOperations: [replaceOperation('/status', 'entered-in-error')],
+      })
+    );
+    console.log(`Adding MedicationStatement ${pkg.medicationStatement.id} status update to transaction`);
+  }
+
+  const transactionResult = await oystehr.fhir.transaction({ requests: transactionRequests });
+
+  return transactionResult.entry?.find((entry) => entry.resource?.resourceType === 'MedicationAdministration')
+    ?.resource as MedicationAdministration;
 }
 
 async function getOrderResources(oystehr: Oystehr, orderId: string): Promise<OrderPackage | undefined> {
+  console.log(`Getting order resources for orderId: ${orderId}`);
   const bundle = await oystehr.fhir.search({
     resourceType: 'MedicationAdministration',
     params: [
@@ -384,6 +407,10 @@ async function getOrderResources(oystehr: Oystehr, orderId: string): Promise<Ord
   const medicationRequest = resources.find(
     (resource) => resource.resourceType === 'MedicationRequest' && resource.id === medicationRequestId
   ) as MedicationRequest;
+
+  console.log('MedicationAdministration id: ', medicationAdministration.id);
+  console.log('MedicationStatement id: ', medicationStatement?.id);
+  console.log('MedicationRequest id: ', medicationRequest?.id);
 
   return {
     medicationAdministration,

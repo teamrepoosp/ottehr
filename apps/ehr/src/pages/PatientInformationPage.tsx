@@ -8,19 +8,23 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AboutPatientContainer } from 'src/features/visits/shared/components/patient/AboutPatientContainer';
 import { ActionBar } from 'src/features/visits/shared/components/patient/ActionBar';
 import { AddInsuranceModal } from 'src/features/visits/shared/components/patient/AddInsuranceModal';
+import { AttorneyInformationContainer } from 'src/features/visits/shared/components/patient/AttorneyInformationContainer';
 import { BreadCrumbs } from 'src/features/visits/shared/components/patient/BreadCrumbs';
 import { ContactContainer } from 'src/features/visits/shared/components/patient/ContactContainer';
 import { EmergencyContactContainer } from 'src/features/visits/shared/components/patient/EmergencyContactContainer';
 import { EmployerInformationContainer } from 'src/features/visits/shared/components/patient/EmployerInformationContainer';
 import { Header } from 'src/features/visits/shared/components/patient/Header';
 import { InsuranceSection } from 'src/features/visits/shared/components/patient/InsuranceSection';
+import { OccupationalMedicineEmployerInformationContainer } from 'src/features/visits/shared/components/patient/OccupationalMedicineEmployerContainer';
 import { PatientDetailsContainer } from 'src/features/visits/shared/components/patient/PatientDetailsContainer';
+import { createDynamicValidationResolver } from 'src/features/visits/shared/components/patient/patientRecordValidation';
 import { PharmacyContainer } from 'src/features/visits/shared/components/patient/PharmacyContainer';
 import { PrimaryCareContainer } from 'src/features/visits/shared/components/patient/PrimaryCareContainer';
 import { ResponsibleInformationContainer } from 'src/features/visits/shared/components/patient/ResponsibleInformationContainer';
 import { WarningBanner } from 'src/features/visits/shared/components/patient/WarningBanner';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import {
+  AppointmentContext,
   CoverageWithPriority,
   extractFirstValueFromAnswer,
   flattenItems,
@@ -137,7 +141,8 @@ const transformInsurancePlans = (bundleEntries: BundleEntry[]): InsurancePlanDTO
 };
 
 const usePatientData = (
-  id: string | undefined
+  id: string | undefined,
+  appointmentContext?: AppointmentContext
 ): {
   accountData?: PatientAccountResponse;
   insuranceData?: {
@@ -197,12 +202,13 @@ const usePatientData = (
         coverages: {},
         insuranceOrgs: [],
         questionnaire,
+        appointmentContext,
       });
       defaultFormVals = makeFormDefaults(prepopulatedForm);
     }
 
     return { patient, isFetching, defaultFormVals };
-  }, [accountData, accountFetching]);
+  }, [accountData, accountFetching, appointmentContext]);
 
   return {
     accountData,
@@ -224,11 +230,33 @@ const useFormData = (
   methods: ReturnType<typeof useForm>;
   coveragesFormValues: any;
 } => {
+  // Build a map of section IDs to their rendered counts for sections with conditional rendering
+  const renderedSectionCounts: Record<string, number> = {};
+
+  // Insurance sections are only rendered based on actual coverage data
+  // The count represents the maximum index + 1 that should be validated
+  // e.g., if only secondary exists (index 1), count should be 2 to validate indices 0 and 1
+  if (insuranceData?.coverages) {
+    // Determine the highest insurance index that will be rendered
+    const maxInsuranceIndex = Math.max(
+      insuranceData.coverages.primary ? 0 : -1,
+      insuranceData.coverages.secondary ? 1 : -1
+    );
+    // Count is max index + 1 (to validate all indices from 0 to maxIndex)
+    const insuranceCount = maxInsuranceIndex + 1;
+    renderedSectionCounts['insurance-section'] = insuranceCount;
+    renderedSectionCounts['insurance-section-2'] = insuranceCount;
+  } else {
+    renderedSectionCounts['insurance-section'] = 0;
+    renderedSectionCounts['insurance-section-2'] = 0;
+  }
+
   const methods = useForm({
     defaultValues: defaultFormVals,
     values: defaultFormVals,
     mode: 'onBlur',
     reValidateMode: 'onChange',
+    resolver: createDynamicValidationResolver({ renderedSectionCounts }),
   });
 
   const { coveragesFormValues } = useMemo(() => {
@@ -285,6 +313,7 @@ interface PatientAccountComponentProps {
   containerSX?: SxProps;
   loadingComponent?: ReactElement;
   renderBackButton?: boolean;
+  appointmentContext?: AppointmentContext;
 }
 
 export const PatientAccountComponent: FC<PatientAccountComponentProps> = ({
@@ -295,12 +324,13 @@ export const PatientAccountComponent: FC<PatientAccountComponentProps> = ({
   containerSX = {},
   loadingComponent = <LoadingScreen />,
   renderBackButton = true,
+  appointmentContext,
 }) => {
   const navigate = useNavigate();
   const { setInsurancePlans } = usePatientStore();
 
   const { accountData, insuranceData, coverages, patient, isFetching, defaultFormVals, coveragesFetching } =
-    usePatientData(id);
+    usePatientData(id, appointmentContext);
 
   const { methods, coveragesFormValues } = useFormData(defaultFormVals, coveragesFetching, insuranceData, accountData);
 
@@ -365,6 +395,11 @@ export const PatientAccountComponent: FC<PatientAccountComponentProps> = ({
     }
 
     const qr = pruneEmptySections(structureQuestionnaireResponse(questionnaire, values, patient.id));
+    if (appointmentContext?.encounterId) {
+      qr.encounter = {
+        reference: 'Encounter/' + appointmentContext.encounterId,
+      };
+    }
     submitQR.mutate(qr);
   };
 
@@ -434,6 +469,8 @@ export const PatientAccountComponent: FC<PatientAccountComponentProps> = ({
                   />
                   <ResponsibleInformationContainer isLoading={isFetching || submitQR.isPending} />
                   <EmployerInformationContainer isLoading={isFetching || submitQR.isPending} />
+                  <OccupationalMedicineEmployerInformationContainer isLoading={isFetching || submitQR.isPending} />
+                  <AttorneyInformationContainer isLoading={isFetching || submitQR.isPending} />
                   <EmergencyContactContainer isLoading={isFetching || submitQR.isPending} />
                   <PharmacyContainer isLoading={isFetching || submitQR.isPending} />
                 </Box>

@@ -10,8 +10,8 @@ const isUI = process.argv.includes('--ui');
 const isLoginOnly = process.argv.includes('--login-only');
 const isSpecsOnly = process.argv.includes('--specs-only');
 const isGenerateSeedData = process.argv.includes('--generate-seed-data');
-const isEnvWithZambdaLocalServer = ENV === 'local' || ENV === 'e2e';
-const isEnvWithFrontendLocalServer = ENV === 'local' || ENV === 'e2e' || isCI;
+const isEnvWithZambdaLocalServer = ENV === 'local' || ENV === 'e2e' || ENV === 'e2e2' || ENV === 'e2e3';
+const isEnvWithFrontendLocalServer = ENV === 'local' || ENV === 'e2e' || ENV === 'e2e2' || ENV === 'e2e3' || isCI;
 const testFileArg = process.argv.find((arg) => arg.startsWith('--test-file='));
 const testFile = testFileArg ? testFileArg.split('=')[1] : undefined;
 const supportedApps = ['ehr', 'intake'] as const;
@@ -30,6 +30,8 @@ const envMapping = {
     staging: 'staging',
     testing: 'testing',
     e2e: 'e2e',
+    e2e2: 'e2e2',
+    e2e3: 'e2e3',
   },
   intake: {
     local: 'default',
@@ -38,6 +40,8 @@ const envMapping = {
     staging: 'staging',
     testing: 'testing',
     e2e: 'e2e',
+    e2e2: 'e2e2',
+    e2e3: 'e2e3',
   },
 } as const;
 
@@ -229,9 +233,8 @@ function createTestProcess(testType: 'login' | 'specs', appName: string): any {
     const playwrightArgs = ['test', testFile];
     if (isUI) {
       playwrightArgs.push('--ui');
-    } else {
-      playwrightArgs.push('--headed=false');
     }
+    // Tests run headless by default. Pass --headed manually if you want to see browser windows
 
     console.log('SMOKE_TEST value:', SMOKE_TEST);
 
@@ -260,11 +263,8 @@ function createTestProcess(testType: 'login' | 'specs', appName: string): any {
   const baseArgs = commands[testType];
   const extraArgs: string[] = [];
 
-  // Only add --headed if we want headed mode (UI mode)
-  // By default Playwright runs headless, so we don't need to pass anything for headless
-  if (isUI) {
-    extraArgs.push('--headed');
-  }
+  // By default, tests run headless (no browser windows)
+  // If you want to see browser windows, pass --headed manually via PLAYWRIGHT_EXTRA_ARGS
 
   if (SMOKE_TEST === 'true' && testType !== 'login') {
     extraArgs.push('--grep', '@smoke');

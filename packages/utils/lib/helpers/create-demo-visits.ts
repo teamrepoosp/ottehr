@@ -5,20 +5,19 @@ import {
   Location,
   Patient,
   Questionnaire,
+  QuestionnaireItem,
   QuestionnaireResponseItem,
   Schedule,
   Slot,
 } from 'fhir/r4b';
 import { DateTime } from 'luxon';
-import inPersonIntakeQuestionnaireJson from '../../../../config/oystehr/in-person-intake-questionnaire.json' assert { type: 'json' };
 import { FHIR_APPOINTMENT_INTAKE_HARVESTING_COMPLETED_TAG, isLocationVirtual } from '../fhir';
-import { ServiceCategoryCode } from '../ottehr-config';
+import { IN_PERSON_INTAKE_PAPERWORK_QUESTIONNAIRE, ServiceCategoryCode } from '../ottehr-config';
 import {
   CreateAppointmentInputParams,
   CreateAppointmentResponse,
   CreateSlotParams,
   E2E_TEST_RESOURCE_PROCESS_ID_SYSTEM,
-  findQuestionnaireItemByLinkId,
   PatchPaperworkParameters,
   PatientInfo,
   PersonSex,
@@ -28,6 +27,7 @@ import {
 import {
   getAdditionalQuestionsAnswers,
   getAllergiesStepAnswers,
+  getAttorneyInformationStepAnswers,
   getCardPaymentStepAnswers,
   getConsentStepAnswers,
   getContactInformationAnswers,
@@ -46,6 +46,7 @@ import {
   isoToDateObject,
 } from './helpers';
 import { chooseJson } from './oystehrApi';
+import { QuestionnaireHelper } from './paperwork';
 
 interface AppointmentData {
   firstNames?: string[];
@@ -68,20 +69,33 @@ interface DemoConfig {
 
 type DemoAppointmentData = AppointmentData & DemoConfig;
 
-export const hasEmployerInformationPage = (): boolean => {
-  const fhirResources = inPersonIntakeQuestionnaireJson.fhirResources as Record<string, { resource: Questionnaire }>;
-  const questionnaire = Object.values(fhirResources).find(
-    (q) =>
-      q.resource.resourceType === 'Questionnaire' &&
-      q.resource.status === 'active' &&
-      q.resource.url?.includes('intake-paperwork-inperson')
-  )?.resource;
+const getInPersonIntakeQuestionnaire = (): Questionnaire | undefined => {
+  return IN_PERSON_INTAKE_PAPERWORK_QUESTIONNAIRE();
+};
 
-  if (!questionnaire?.item) {
+const findItemByLinkId = (items: QuestionnaireItem[] | undefined, linkId: string): boolean => {
+  if (!items) return false;
+  return items.some((item: QuestionnaireItem) => {
+    if (item.linkId === linkId) return true;
+    if (item.item) return findItemByLinkId(item.item, linkId);
+    return false;
+  });
+};
+
+const hasQuestionnaireItem = (linkId: string): boolean => {
+  const questionnaire = getInPersonIntakeQuestionnaire();
+  if (!questionnaire || !questionnaire.item) {
     return false;
   }
+  return findItemByLinkId(questionnaire.item, linkId);
+};
 
-  return !!findQuestionnaireItemByLinkId(questionnaire.item, 'employer-information-page');
+export const hasEmployerInformationPage = (): boolean => {
+  return hasQuestionnaireItem('employer-information-page');
+};
+
+export const hasAttorneyInformationPage = (): boolean => {
+  return hasQuestionnaireItem('attorney-mva-page');
 };
 
 const DEFAULT_FIRST_NAMES = [
@@ -323,7 +337,6 @@ const processPaperwork = async (
 ): Promise<void> => {
   try {
     const { appointmentId, questionnaireResponseId } = appointmentData;
-
     if (!questionnaireResponseId) return;
 
     const birthDate = isoToDateObject(patientInfo.dateOfBirth || '') || undefined;
@@ -347,7 +360,6 @@ const processPaperwork = async (
       getAllergiesStepAnswers(),
       getMedicalConditionsStepAnswers(),
       getSurgicalHistoryStepAnswers(),
-      getAdditionalQuestionsAnswers({ useRandomAnswers: true }),
       getPaymentOptionSelfPayAnswers(),
       getResponsiblePartyStepAnswers({}),
       getCardPaymentStepAnswers(),
@@ -355,6 +367,10 @@ const processPaperwork = async (
       getInviteParticipantStepAnswers(),
       getConsentStepAnswers({}),
     ];
+
+    if (QuestionnaireHelper.hasVirtualAdditionalPage()) {
+      telemedWalkinAnswers.push(getAdditionalQuestionsAnswers({ useRandomAnswers: true }));
+    }
 
     paperworkPatches = paperworkAnswers
       ? await paperworkAnswers({ patientInfo, appointmentId: appointmentId!, authToken, zambdaUrl, projectId })
@@ -382,7 +398,14 @@ const processPaperwork = async (
             baseAnswers.push(getEmployerInformationStepAnswers({}));
           }
 
-          baseAnswers.push(getEmergencyContactStepAnswers({}), getConsentStepAnswers({}));
+          baseAnswers.push(getEmergencyContactStepAnswers({}));
+
+          // Only add attorney information step if the questionnaire has it
+          if (hasAttorneyInformationPage()) {
+            baseAnswers.push(getAttorneyInformationStepAnswers({}));
+          }
+
+          baseAnswers.push(getConsentStepAnswers({}));
 
           return baseAnswers;
         })();

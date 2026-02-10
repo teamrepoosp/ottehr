@@ -1,6 +1,6 @@
 import { SearchParam } from '@oystehr/sdk';
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
-import { Reference, Task as FhirTask, TaskInput } from 'fhir/r4b';
+import { Encounter, Reference, Task as FhirTask, TaskInput } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import { useApiClients } from 'src/hooks/useAppClients';
 import {
@@ -9,9 +9,11 @@ import {
   getCoding,
   getExtension,
   IN_HOUSE_LAB_TASK,
+  isFollowupEncounter,
   LAB_ORDER_TASK,
   LabType,
   MANUAL_TASK,
+  PROVIDER_NOTIFICATION_TAG_SYSTEM,
   RADIOLOGY_TASK,
   Task,
   TASK_ASSIGNED_DATE_TIME_EXTENSION_URL,
@@ -28,6 +30,12 @@ const GO_TO_TASK = 'Go to task';
 const GO_TO_ORDER = 'Go to Order';
 
 export const TASKS_PAGE_SIZE = 20;
+
+const TASK_CODES_TO_EXCLUDE = [
+  LAB_ORDER_TASK.code.preSubmission,
+  IN_HOUSE_LAB_TASK.code.collectSampleTask,
+  IN_HOUSE_LAB_TASK.code.inputResultsTask,
+];
 
 export interface TasksSearchParams {
   assignedTo?: string | null;
@@ -86,6 +94,7 @@ export const useGetTasks = ({
           name: 'status:not',
           value: 'cancelled',
         },
+        ...TASK_CODES_TO_EXCLUDE.map((code) => ({ name: 'code:not', value: code })),
       ];
       if (page) {
         params.push({
@@ -117,14 +126,27 @@ export const useGetTasks = ({
           value: status,
         });
       }
-      const bundle = await oystehr.fhir.search<FhirTask>({
+      params.push({
+        name: '_include',
+        value: 'Task:encounter',
+      });
+      const bundle = await oystehr.fhir.search<FhirTask | Encounter>({
         resourceType: 'Task',
         params,
       });
+      const resources = bundle.unbundle();
+      const tasks = resources.filter((r) => r.resourceType === 'Task') as FhirTask[];
+      const encounters = resources.filter((r) => r.resourceType === 'Encounter') as Encounter[];
+      const encountersMap = new Map<string, Encounter>();
+      encounters.forEach((encounter) => {
+        if (encounter.id) {
+          encountersMap.set(encounter.id, encounter);
+        }
+      });
       // can probably remove filterTasks, leaving for now because we have a handful of tasks in prod that will get pulled on in a weird way if removed
-      const tasks = bundle.unbundle().filter(filterTasks).map(fhirTaskToTask);
+      const transformedTasks = tasks.filter(filterTasks).map((task) => fhirTaskToTask(task, encountersMap));
       return {
-        tasks,
+        tasks: transformedTasks,
         total: bundle.total ?? -1,
       };
     },
@@ -181,6 +203,11 @@ export const useUnassignTask = (): UseMutationResult<void, Error, UnassignTaskRe
   return useMutation({
     mutationFn: async (input: UnassignTaskRequest) => {
       if (!oystehr) throw new Error('oystehr not defined');
+      const taskResource = await oystehr.fhir.get<FhirTask>({
+        resourceType: 'Task',
+        id: input.taskId,
+      });
+      const updatedMetaTags = taskResource.meta?.tag?.filter((tag) => tag.system !== PROVIDER_NOTIFICATION_TAG_SYSTEM);
       await oystehr.fhir.patch<FhirTask>({
         resourceType: 'Task',
         id: input.taskId,
@@ -193,6 +220,11 @@ export const useUnassignTask = (): UseMutationResult<void, Error, UnassignTaskRe
             op: 'replace',
             path: '/status',
             value: 'ready',
+          },
+          {
+            op: 'replace',
+            path: `/meta/tag`,
+            value: updatedMetaTags,
           },
         ],
       });
@@ -265,12 +297,26 @@ export const useCompleteTask = (): UseMutationResult<void, Error, CompleteTaskRe
   });
 };
 
-function fhirTaskToTask(task: FhirTask): Task {
+function fhirTaskToTask(task: FhirTask, encountersMap?: Map<string, Encounter>): Task {
   const category = task.groupIdentifier?.value ?? '';
   let action: any = undefined;
   let title = '';
   let subtitle = '';
   let details: string | undefined = undefined;
+
+  // Extract encounterId and check if it's a follow-up encounter
+  let encounterId = task.encounter?.reference?.split('/')?.[1];
+  if (!encounterId) {
+    encounterId = getInputString(MANUAL_TASK.input.encounterId, task);
+  }
+  const encounter = encounterId ? encountersMap?.get(encounterId) : undefined;
+  const isFollowUp = encounter ? isFollowupEncounter(encounter) : false;
+
+  // Helper function to add encounterId query parameter if it's a follow-up
+  const addEncounterIdToLink = (link: string | undefined): string | undefined => {
+    if (!link || !isFollowUp || !encounterId) return link;
+    return `${link}?encounterId=${encounterId}`;
+  };
   if (category === LAB_ORDER_TASK.category) {
     const code = getCoding(task.code, LAB_ORDER_TASK.system)?.code ?? '';
     const testName = getInputString(LAB_ORDER_TASK.input.testName, task);
@@ -293,7 +339,7 @@ function fhirTaskToTask(task: FhirTask): Task {
       subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}`;
       action = {
         name: GO_TO_LAB_TEST,
-        link: `/in-person/${appointmentId}/external-lab-orders/${serviceRequestId}/order-details`,
+        link: addEncounterIdToLink(`/in-person/${appointmentId}/external-lab-orders/${serviceRequestId}/order-details`),
       };
     }
     if (
@@ -304,7 +350,7 @@ function fhirTaskToTask(task: FhirTask): Task {
       subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}`;
       action = {
         name: GO_TO_LAB_TEST,
-        link: `/in-person/${appointmentId}/external-lab-orders/${serviceRequestId}/order-details`,
+        link: addEncounterIdToLink(`/in-person/${appointmentId}/external-lab-orders/${serviceRequestId}/order-details`),
       };
     }
     if (code === LAB_ORDER_TASK.code.matchUnsolicitedResult) {
@@ -337,7 +383,9 @@ function fhirTaskToTask(task: FhirTask): Task {
         subtitle = `Received on ${receivedDate ? formatDate(receivedDate) : ''}`;
         action = {
           name: 'Go to Lab Test',
-          link: `/in-person/${appointmentId}/external-lab-orders/report/${diagnosticReportId}/order-details`,
+          link: addEncounterIdToLink(
+            `/in-person/${appointmentId}/external-lab-orders/report/${diagnosticReportId}/order-details`
+          ),
         };
       }
     }
@@ -358,9 +406,9 @@ function fhirTaskToTask(task: FhirTask): Task {
     }
     action = {
       name: GO_TO_LAB_TEST,
-      link: `/in-person/${appointmentId}/in-house-lab-orders/${task.basedOn?.[0]?.reference?.split(
-        '/'
-      )?.[1]}/order-details`,
+      link: addEncounterIdToLink(
+        `/in-person/${appointmentId}/in-house-lab-orders/${task.basedOn?.[0]?.reference?.split('/')?.[1]}/order-details`
+      ),
     };
   }
   if (category.startsWith('manual')) {
@@ -377,37 +425,37 @@ function fhirTaskToTask(task: FhirTask): Task {
       if (category === MANUAL_TASK.category.inHouseLab) {
         action = {
           name: GO_TO_TASK,
-          link: `/in-person/${appointmentId}/in-house-lab-orders/${orderId}/order-details`,
+          link: addEncounterIdToLink(`/in-person/${appointmentId}/in-house-lab-orders/${orderId}/order-details`),
         };
       }
       if (category === MANUAL_TASK.category.externalLab) {
         action = {
           name: GO_TO_TASK,
-          link: `/in-person/${appointmentId}/external-lab-orders/${orderId}/order-details`,
+          link: addEncounterIdToLink(`/in-person/${appointmentId}/external-lab-orders/${orderId}/order-details`),
         };
       }
       if (category === MANUAL_TASK.category.nursingOrders) {
         action = {
           name: GO_TO_TASK,
-          link: `/in-person/${appointmentId}/nursing-orders/${orderId}/order-details`,
+          link: addEncounterIdToLink(`/in-person/${appointmentId}/nursing-orders/${orderId}/order-details`),
         };
       }
       if (category === MANUAL_TASK.category.radiology) {
         action = {
           name: GO_TO_TASK,
-          link: `/in-person/${appointmentId}/radiology/${orderId}/order-details`,
+          link: addEncounterIdToLink(`/in-person/${appointmentId}/radiology/${orderId}/order-details`),
         };
       }
       if (category === MANUAL_TASK.category.procedures) {
         action = {
           name: GO_TO_TASK,
-          link: `/in-person/${appointmentId}/procedures/${orderId}`,
+          link: addEncounterIdToLink(`/in-person/${appointmentId}/procedures/${orderId}`),
         };
       }
     } else if (appointmentId) {
       action = {
         name: GO_TO_TASK,
-        link: `/in-person/${appointmentId}`,
+        link: addEncounterIdToLink(`/in-person/${appointmentId}`),
       };
     } else if (patientReference) {
       action = {
@@ -417,24 +465,30 @@ function fhirTaskToTask(task: FhirTask): Task {
     }
   }
   if (category === RADIOLOGY_TASK.category) {
-    // const patientName = getInputString(IN_HOUSE_LAB_TASK.input.patientName, task);
+    const patientName = getInputString(RADIOLOGY_TASK.input.patientName, task);
     const code = getCoding(task.code, RADIOLOGY_TASK.system)?.code ?? '';
-    const appointmentId = getInputString(IN_HOUSE_LAB_TASK.input.appointmentId, task) ?? '';
+    const appointmentId = getInputString(RADIOLOGY_TASK.input.appointmentId, task) ?? '';
     const orderId =
       task.basedOn
         ?.find((ref) => ref.reference?.startsWith('ServiceRequest/'))
         ?.reference?.replace('ServiceRequest/', '') ?? '';
     const link = getRadiologyOrderEditUrl(appointmentId, orderId);
-    action = { name: GO_TO_ORDER, link };
+    action = { name: GO_TO_ORDER, link: addEncounterIdToLink(link) };
 
     const orderDate = getInputString(RADIOLOGY_TASK.input.orderDate, task);
-    const providerName = getInputString(LAB_ORDER_TASK.input.providerName, task);
-    subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}`;
+    const providerName = getInputString(RADIOLOGY_TASK.input.providerName, task);
+    const locationDisplay = task.location?.display ? ` | ${task.location?.display}` : '';
+    subtitle = `Ordered by ${providerName} on ${orderDate ? formatDate(orderDate) : ''}${locationDisplay}`;
+
+    const studyTypeCode = getInputString(RADIOLOGY_TASK.input.studyTypeCode, task);
+    const studyTypeDisplay = getInputString(RADIOLOGY_TASK.input.studyTypeDisplay, task);
+    const studyTypeForTitle = studyTypeCode || studyTypeDisplay ? `for ${studyTypeCode} - ${studyTypeDisplay}` : '';
 
     if (code === RADIOLOGY_TASK.code.reviewFinalResultTask) {
-      title = `Review Radiology Final Results`;
+      title = `Review Radiology Final Results ${studyTypeForTitle} for ${patientName}`;
     }
   }
+
   return {
     id: task.id ?? '',
     category: category,
