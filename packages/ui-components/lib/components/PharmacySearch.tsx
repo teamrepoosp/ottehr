@@ -7,12 +7,14 @@ interface PharmacySearchProps {
   handlePharmacySelection: (input: PharmacyCollectionAnswerSetInput) => void;
   setSelectedPlace: (place: PlacesResult | null) => void;
   searchPlaces: (input: SearchPlacesInput) => Promise<SearchPlacesOutput>;
+  dataTestId: string;
 }
 
 export const PharmacySearch: FC<PharmacySearchProps> = ({
   handlePharmacySelection,
   setSelectedPlace,
   searchPlaces,
+  dataTestId,
 }) => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -90,6 +92,7 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({
   ) : (
     <Autocomplete
       blurOnSelect
+      data-testid={dataTestId}
       size="small"
       fullWidth
       popupIcon={null}

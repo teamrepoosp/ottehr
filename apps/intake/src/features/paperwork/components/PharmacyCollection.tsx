@@ -1,6 +1,7 @@
 import { QuestionnaireResponseItem } from 'fhir/r4b';
 import { FC, useEffect, useState } from 'react';
 import api from 'src/api/ottehrApi';
+import { dataTestIds } from 'src/helpers/data-test-ids';
 import { useUCZambdaClient } from 'src/hooks/useUCZambdaClient';
 import { PharmacyDisplay, PharmacySearch } from 'ui-components';
 import {
@@ -94,12 +95,14 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
       selectedPlace={selectedPlace}
       setSelectedPlace={setSelectedPlace}
       clearPharmacyData={clearPharmacyData}
+      dataTestIds={dataTestIds.preferredPharmacy.pharmacySearchDisplay}
     ></PharmacyDisplay>
   ) : (
     <PharmacySearch
       handlePharmacySelection={handlePharmacySelection}
       setSelectedPlace={setSelectedPlace}
       searchPlaces={handleSearchPlaces}
+      dataTestId={dataTestIds.preferredPharmacy.pharmacySearch}
     ></PharmacySearch>
   );
 };

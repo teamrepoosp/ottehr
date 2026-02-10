@@ -7,10 +7,11 @@ export interface PharmacyDisplayProps {
   selectedPlace: PlacesResult;
   setSelectedPlace: (place: PlacesResult | null) => void;
   clearPharmacyData: () => void;
+  dataTestIds: { text: string; button: string };
 }
 
 export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplayProps) => {
-  const { selectedPlace, setSelectedPlace, clearPharmacyData } = props;
+  const { selectedPlace, setSelectedPlace, clearPharmacyData, dataTestIds } = props;
 
   const handleResetPharmacySelection = (): void => {
     clearPharmacyData();
@@ -19,7 +20,7 @@ export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplay
 
   return (
     <Box display="flex" justifyContent="space-between" alignItems="center">
-      <Box>
+      <Box data-testid={dataTestIds.text}>
         <Typography>{selectedPlace.name}</Typography>
         <Typography variant="body2" color="text.secondary">
           {selectedPlace.address}
@@ -27,6 +28,7 @@ export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplay
       </Box>
       <Box>
         <Button
+          data-testid={dataTestIds.button}
           onClick={handleResetPharmacySelection}
           sx={{
             textTransform: 'none',

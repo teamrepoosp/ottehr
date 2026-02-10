@@ -1,5 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { dataTestIds } from 'src/constants/data-test-ids';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { PharmacyDisplay, PharmacySearch } from 'ui-components';
 import {
@@ -58,12 +59,14 @@ export const FormGroupPharmacyCollection: FC = () => {
       selectedPlace={selectedPlace}
       setSelectedPlace={setSelectedPlace}
       clearPharmacyData={clearPharmacyData}
+      dataTestIds={dataTestIds.patientInformationPage.pharmacySearchDisplay}
     ></PharmacyDisplay>
   ) : (
     <PharmacySearch
       handlePharmacySelection={handlePlacesPharmacySelection}
       setSelectedPlace={setSelectedPlace}
       searchPlaces={handleSearchPlaces}
+      dataTestId={dataTestIds.patientInformationPage.pharmacySearch}
     ></PharmacySearch>
   );
 };

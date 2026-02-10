@@ -78,6 +78,8 @@ export const dataTestIds = {
     saveChangesButton: 'save-changes-button',
     addInsuranceButton: 'add-insurance-button',
     breadcrumb: 'breadcrumb',
+    pharmacySearch: 'pharmacy-search',
+    pharmacySearchDisplay: { text: 'pharmacy-search-display', button: 'pharmacy-search-display-reset-btn' },
   },
   patientHeader: {
     patientId: 'header-patient-id',

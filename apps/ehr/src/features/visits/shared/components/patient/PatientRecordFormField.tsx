@@ -203,7 +203,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                     component="button"
                     type="button"
                     onClick={() => onChange(!value)}
-                    aria-label={`${item.key}-toggle`}
+                    aria-label={item.key}
                     underline="hover"
                     sx={{
                       pt: 1,
