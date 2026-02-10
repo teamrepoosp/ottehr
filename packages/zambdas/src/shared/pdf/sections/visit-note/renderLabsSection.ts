@@ -33,7 +33,7 @@ export function renderLabsSection(
     flags.filter((flag) => flag !== NonNormalResult.Neutral);
 
   const getCurBounds = (): { leftBound: number; rightBound: number } => ({
-    leftBound: client.getX(),
+    leftBound: client.getLeftBound(),
     rightBound: client.getRightBound(),
   });
 
