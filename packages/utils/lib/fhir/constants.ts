@@ -111,9 +111,6 @@ export const FHIR_EXTENSION = {
     legalTimezone: {
       url: `${PUBLIC_EXTENSION_BASE_URL}/legal-timezone`,
     },
-    submitterIP: {
-      url: `${PRIVATE_EXTENSION_BASE_URL}/ip-address`,
-    },
   },
   ContactPoint: {
     erxTelecom: {
@@ -126,11 +123,6 @@ export const FHIR_EXTENSION = {
     },
     notes: {
       url: ottehrExtensionUrl('notes'),
-    },
-  },
-  QuestionnaireResponse: {
-    ipAddress: {
-      url: `${PRIVATE_EXTENSION_BASE_URL}/ip-address`,
     },
   },
   Coverage: {

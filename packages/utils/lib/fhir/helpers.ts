@@ -27,7 +27,6 @@ import {
   Organization,
   Patient,
   Practitioner,
-  QuestionnaireResponse,
   Reference,
   RelatedPerson,
   Resource,
@@ -828,13 +827,6 @@ export const getUnconfirmedDOBIdx = (appointment?: Appointment): number | undefi
   return appointment.extension?.findIndex((ext) => {
     return ext.url.replace('http:', 'https:') === FHIR_EXTENSION.Appointment.unconfirmedDateOfBirth.url;
   });
-};
-
-export const getIpAddress = (questionnaireResponse?: QuestionnaireResponse): string | undefined => {
-  if (!questionnaireResponse) return;
-  return questionnaireResponse.extension?.find((ext) => {
-    return ext.url.replace('http:', 'https:') === FHIR_EXTENSION.QuestionnaireResponse.ipAddress.url;
-  })?.valueString;
 };
 
 export function filterResources(allResources: Resource[], resourceType: string): Resource[] {
