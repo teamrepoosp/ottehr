@@ -17,6 +17,8 @@ interface TriggeredEffects {
   enabled: boolean | null;
 }
 
+type ValidationResolver = (values: any) => Promise<{ values: any; errors: Record<string, FieldError> }>;
+
 /**
  * Evaluates triggers for a field based on current form values
  */
@@ -286,7 +288,7 @@ export const generateValidationRulesForSection = (
  */
 export const createDynamicValidationResolver = (options?: {
   renderedSectionCounts?: Record<string, number>;
-}): ((values: any) => Promise<{ values: any; errors: Record<string, FieldError> }>) => {
+}): ValidationResolver => {
   const { renderedSectionCounts = {} } = options || {};
 
   return async (values: any) => {
