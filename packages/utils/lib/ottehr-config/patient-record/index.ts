@@ -715,6 +715,7 @@ const FormFields = {
       'responsible-party-first-name',
       'responsible-party-last-name',
       'responsible-party-date-of-birth',
+      'responsible-party-birth-sex',
       'responsible-party-address',
       'responsible-party-city',
       'responsible-party-state',
