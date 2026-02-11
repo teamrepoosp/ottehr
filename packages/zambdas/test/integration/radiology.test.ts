@@ -71,8 +71,7 @@ describe('radiology integration tests', () => {
         orderOutput = error as Error;
       }
       expect(orderOutput).toBeDefined();
-      expect(orderOutput).toHaveProperty('output');
-      expect(orderOutput.output).toHaveProperty('serviceRequestId');
+      expect(orderOutput).toHaveProperty('serviceRequestId');
     });
   });
 });
