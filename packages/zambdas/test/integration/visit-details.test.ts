@@ -895,12 +895,12 @@ describe('saving and getting visit details', () => {
         appointmentId: appointment.id!,
         bookingDetails: {
           reasonForVisit: 'gum in my hair',
-          serviceCategory: 'occupational-health',
+          serviceCategory: 'occupational-medicine',
         },
       });
     } catch (error) {
       expect((error as Error).message).toBe(
-        `reasonForVisit "gum in my hair" is not valid for service category "occupational-health"`
+        `reasonForVisit "gum in my hair" is not valid for service category "occupational-medicine"`
       );
     }
   });
