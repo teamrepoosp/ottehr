@@ -2417,7 +2417,7 @@
         "linkId": "responsible-party-birth-sex",
         "type": "choice",
         "text": "Birth sex",
-        "required": false,
+        "required": true,
         "answerOption": [
           {
             "valueString": "Male"
