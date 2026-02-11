@@ -611,5 +611,58 @@ describe('patientRecordValidation', () => {
       expect(result.errors['insurance-member-id']).toBeDefined();
       expect(result.errors['insurance-member-id-2']).toBeDefined();
     });
+
+    it('should skip validation for fields in sections disabled by section-level triggers', async () => {
+      // Scenario: responsibleParty section is disabled when appointment-service-category is 'occupational-medicine'
+      // The responsibleParty section has required fields, but they should not be validated when the section is disabled
+      const resolver = createDynamicValidationResolver();
+
+      const result = await resolver({
+        'appointment-service-category': 'occupational-medicine',
+        // Leave responsible party fields empty - they shouldn't be validated since section is disabled
+        'responsible-party-relationship': '',
+        'responsible-party-first-name': '',
+        'responsible-party-last-name': '',
+      });
+
+      // Should NOT have validation errors for responsible party fields when section is disabled
+      expect(result.errors['responsible-party-relationship']).toBeUndefined();
+      expect(result.errors['responsible-party-first-name']).toBeUndefined();
+      expect(result.errors['responsible-party-last-name']).toBeUndefined();
+    });
+
+    it('should validate fields in sections enabled by section-level triggers', async () => {
+      // Scenario: responsibleParty section is enabled when appointment-service-category is NOT 'occupational-medicine'
+      const resolver = createDynamicValidationResolver();
+
+      const result = await resolver({
+        'appointment-service-category': 'urgent-care',
+        // Leave responsible party fields empty - they SHOULD be validated since section is enabled
+        'responsible-party-relationship': '',
+        'responsible-party-first-name': '',
+        'responsible-party-last-name': '',
+      });
+
+      // Should have validation errors for required fields in enabled section
+      expect(result.errors['responsible-party-relationship']).toBeDefined();
+      expect(result.errors['responsible-party-first-name']).toBeDefined();
+      expect(result.errors['responsible-party-last-name']).toBeDefined();
+    });
+
+    it('should skip validation for emergencyContact section when disabled by triggers', async () => {
+      // Scenario: emergencyContact section requires appointment-service-category to be 'urgent-care' or not exist
+      const resolver = createDynamicValidationResolver();
+
+      const result = await resolver({
+        'appointment-service-category': 'occupational-medicine', // Not urgent-care, so section should be disabled
+        // Leave emergency contact fields empty - they shouldn't be validated
+        'emergency-contact-first-name': '',
+        'emergency-contact-relationship': '',
+      });
+
+      // Should NOT have validation errors for emergency contact fields when section is disabled
+      expect(result.errors['emergency-contact-first-name']).toBeUndefined();
+      expect(result.errors['emergency-contact-relationship']).toBeUndefined();
+    });
   });
 });

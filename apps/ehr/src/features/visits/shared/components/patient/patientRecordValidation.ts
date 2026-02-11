@@ -38,7 +38,15 @@ export const evaluateFieldTriggers = (
   );
 
   const triggerConditionsWithOutcomes: (Trigger & { conditionMet: boolean })[] = flattenedTriggers.map((trigger) => {
-    const currentValue = formValues[trigger.targetQuestionLinkId];
+    // Handle dotted notation in targetQuestionLinkId (e.g., 'patient-summary.appointment-service-category')
+    // Try the full ID first, then try extracting just the field part after the dot
+    let currentValue = formValues[trigger.targetQuestionLinkId];
+    if (currentValue === undefined && trigger.targetQuestionLinkId.includes('.')) {
+      const fieldKey = trigger.targetQuestionLinkId.split('.').pop();
+      if (fieldKey) {
+        currentValue = formValues[fieldKey];
+      }
+    }
     const { operator, answerBoolean, answerString, answerDateTime } = trigger;
     let conditionMet = false;
 
@@ -322,8 +330,7 @@ export const createDynamicValidationResolver = (options?: {
         continue;
       }
 
-      // Find which section this field belongs to and check if section is active
-      let sectionHasAnyValue = false;
+      // Find which section this field belongs to
       let currentSection: any = null;
       let sectionLinkId: string | string[] | undefined;
       let sectionItems: any[] = [];
@@ -358,11 +365,6 @@ export const createDynamicValidationResolver = (options?: {
               }
             }
 
-            // Check if any field in this specific item group has a value
-            sectionHasAnyValue = sectionItems.some((i: any) => {
-              const fieldValue = values[i.key];
-              return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
-            });
             break;
           }
         } else {
@@ -371,11 +373,6 @@ export const createDynamicValidationResolver = (options?: {
             currentSection = section;
             sectionLinkId = section.linkId;
             sectionItems = Object.values(section.items);
-            // Check if any field in this section has a value
-            sectionHasAnyValue = sectionItems.some((i: any) => {
-              const fieldValue = values[i.key];
-              return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
-            });
             break;
           }
         }
@@ -388,6 +385,22 @@ export const createDynamicValidationResolver = (options?: {
           : PATIENT_RECORD_CONFIG.hiddenFormSections.includes(sectionLinkId)
         : false;
 
+      // Check if section has section-level triggers that disable the entire section
+      let isSectionDisabledByTriggers = false;
+      if (currentSection && currentSection.triggers && currentSection.triggers.length > 0) {
+        // Create a minimal display field to evaluate section-level triggers
+        const sectionAsItem: FormFieldsDisplayItem = {
+          key: sectionLinkId as string,
+          type: 'display',
+          text: currentSection.title || '',
+          disabledDisplay: 'hidden',
+          triggers: currentSection.triggers,
+          enableBehavior: currentSection.enableBehavior,
+        };
+        const triggeredEffects = evaluateFieldTriggers(sectionAsItem, values, currentSection.enableBehavior);
+        isSectionDisabledByTriggers = triggeredEffects.enabled === false;
+      }
+
       // Check if section is conditionally hidden (all fields are hidden based on triggers)
       const isConditionallyHidden =
         sectionItems.length > 0 &&
@@ -397,11 +410,11 @@ export const createDynamicValidationResolver = (options?: {
           return effects.enabled === false && i.disabledDisplay === 'hidden';
         });
 
-      const isSectionHidden = isAlwaysHidden || isConditionallyHidden;
+      const isSectionHidden = isAlwaysHidden || isSectionDisabledByTriggers || isConditionallyHidden;
 
-      // Skip validation if section is hidden AND has requiredFields but no fields have been filled out
-      // Always validate visible sections with requiredFields even if empty
-      if (isSectionHidden && currentSection && (currentSection as any).requiredFields && !sectionHasAnyValue) {
+      // Skip validation if section is hidden
+      // This prevents validation errors on required fields within disabled sections
+      if (isSectionHidden) {
         continue;
       }
 
