@@ -1950,7 +1950,7 @@ export function extractAccountGuarantor(items: QuestionnaireResponseItem[]): Res
     number: findAnswer('responsible-party-number'),
   };
 
-  if (contact.firstName && contact.lastName && contact.dob && contact.birthSex && contact.relationship) {
+  if (contact.firstName && contact.lastName && contact.dob && contact.relationship) {
     return contact;
   }
   return undefined;
