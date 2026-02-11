@@ -873,7 +873,9 @@ describe('saving and getting visit details', () => {
         },
       });
     } catch (error) {
-      expect((error as Error).message).toBe('reasonForVisit, "gum in my hair", is not a valid option');
+      expect((error as Error).message).toBe(
+        'reasonForVisit, "gum in my hair", is not a valid option for service category "urgent-care"'
+      );
     }
   });
 
