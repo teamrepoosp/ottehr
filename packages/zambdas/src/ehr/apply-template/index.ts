@@ -110,7 +110,7 @@ const performEffect = async (
     })
   ).unbundle();
   // Temporary workaround: ROS_TEMPLATE_GENERAL should not delete existing resources.
-  // We skip delete requests for this template to preserve current ROS data.
+  // We skip delete requests for this template to preserve current data.
   // TODO: move this behavior to a more generic logic.
   const isRosTemplate = templateList.title === 'ROS : 14 Systems';
   // Make 1 transaction to delete old resources exam resources that are being replaced and write the new ones
