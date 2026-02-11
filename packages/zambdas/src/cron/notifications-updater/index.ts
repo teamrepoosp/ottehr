@@ -1,12 +1,22 @@
 import Oystehr, { BatchInputPostRequest, BatchInputRequest } from '@oystehr/sdk';
 import { captureException } from '@sentry/aws-serverless';
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { Appointment, Communication, Encounter, EncounterStatusHistory, Location, Practitioner, Task } from 'fhir/r4b';
+import {
+  Appointment,
+  Communication,
+  Encounter,
+  EncounterStatusHistory,
+  Location,
+  Patient,
+  Practitioner,
+  Task,
+} from 'fhir/r4b';
 import { DateTime, Duration } from 'luxon';
 import {
   allLicensesForPractitioner,
   AppointmentProviderNotificationTags,
   AppointmentProviderNotificationTypes,
+  getFullestAvailableName,
   getPatchBinary,
   getPatchOperationForNewMetaTag,
   getProviderNotificationSettingsForPractitioner,
@@ -143,7 +153,7 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
     // Going through ready or unsigned visits to create notifications and other update logic
     Object.keys(readyOrUnsignedVisitPackages).forEach((appointmentId) => {
       try {
-        const { appointment, encounter, practitioner, location, communications } =
+        const { appointment, encounter, practitioner, location, communications, patient } =
           readyOrUnsignedVisitPackages[appointmentId];
         if (encounter && appointment) {
           const status: TelemedAppointmentStatus | undefined = getTelemedVisitStatus(
@@ -212,6 +222,20 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
                   // - if practitioner has notifications disabled - we don't create notification at all
                   if (notificationSettings?.enabled) {
                     const status = getCommunicationStatus(notificationSettings, busyPractitionerIds, provider);
+
+                    let patientName: string | undefined = 'patient';
+                    if (patient) {
+                      patientName = getFullestAvailableName(patient);
+                    }
+                    let appointmentTime: string | undefined;
+                    if (appointment.start) {
+                      appointmentTime = DateTime.fromISO(appointment.start).toFormat('h:mm a');
+                    }
+                    const message =
+                      patientName && appointmentTime
+                        ? `Virtual visit with ${patientName} at ${appointmentTime}`
+                        : 'Virtual visit with patient soon'; // this should never happen
+
                     const request: BatchInputPostRequest<Communication> = {
                       method: 'POST',
                       url: '/Communication',
@@ -233,7 +257,7 @@ export const index = wrapHandler('notification-Updater', async (input: ZambdaInp
                         status: status,
                         encounter: { reference: `Encounter/${encounter.id}` },
                         recipient: [{ reference: `Practitioner/${provider.id}` }],
-                        payload: [{ contentString: `New patient in ${location.address.state} is waiting` }],
+                        payload: [{ contentString: message }],
                       },
                     };
                     createCommunicationRequests.push(request);
@@ -549,6 +573,7 @@ interface ResourcePackage {
   communications: Communication[];
   practitioner?: Practitioner;
   location?: Location;
+  patient?: Patient;
 }
 
 type ResourcePackagesMap = { [key: NonNullable<Appointment['id']>]: ResourcePackage };
@@ -563,7 +588,7 @@ async function getResourcePackagesAppointmentsMap(
   fromDate: DateTime
 ): Promise<ResourcePackagesMap> {
   const results = (
-    await oystehr.fhir.search<Appointment | Communication | Encounter | Location | Practitioner>({
+    await oystehr.fhir.search<Appointment | Communication | Encounter | Location | Patient | Practitioner>({
       resourceType: 'Appointment',
       params: [
         { name: '_tag', value: OTTEHR_MODULE.TM },
@@ -586,6 +611,10 @@ async function getResourcePackagesAppointmentsMap(
         {
           name: '_include',
           value: 'Appointment:location',
+        },
+        {
+          name: '_include',
+          value: 'Appointment:patient',
         },
         {
           name: '_revinclude:iterate',
@@ -612,6 +641,7 @@ async function getResourcePackagesAppointmentsMap(
   const resourcePackagesMap: ResourcePackagesMap = {};
   const practitionerIdMap: { [key: NonNullable<Practitioner['id']>]: Practitioner } = {};
   const locationIdMap: { [key: NonNullable<Location['id']>]: Location } = {};
+  const patientIdMap: { [key: NonNullable<Patient['id']>]: Patient } = {};
   // first fill maps with Appointments and Encounters
   results.forEach((res) => {
     if (res.resourceType === 'Encounter') {
@@ -636,6 +666,10 @@ async function getResourcePackagesAppointmentsMap(
       // create locations id map for later optimized mapping
       const location = res as Location;
       locationIdMap[location.id!] = location;
+    } else if (res.resourceType === 'Patient') {
+      // create patients id map for later optimized mapping
+      const patient = res as Patient;
+      patientIdMap[patient.id!] = patient;
     }
   });
 
@@ -652,9 +686,10 @@ async function getResourcePackagesAppointmentsMap(
     }
   });
 
-  // fill in practitioners and locations
+  // fill in practitioners, locations, and patients
   Object.keys(resourcePackagesMap).forEach((appointmentId) => {
     const encounter = resourcePackagesMap[appointmentId].encounter;
+    const appointment = resourcePackagesMap[appointmentId].appointment;
     const practitionerReference = encounter?.participant?.find(
       (participant) => participant.individual?.reference?.startsWith('Practitioner')
     )?.individual?.reference;
@@ -672,6 +707,17 @@ async function getResourcePackagesAppointmentsMap(
       if (locationId) {
         const pack = getOrCreateAppointmentResourcePackage(appointmentId);
         pack.location = locationIdMap[locationId];
+        resourcePackagesMap[appointmentId] = pack;
+      }
+    }
+    const patientReference = appointment?.participant?.find(
+      (participant) => participant.actor?.reference?.startsWith('Patient')
+    )?.actor?.reference;
+    if (patientReference) {
+      const patientId = removePrefix('Patient/', patientReference);
+      if (patientId) {
+        const pack = getOrCreateAppointmentResourcePackage(appointmentId);
+        pack.patient = patientIdMap[patientId];
         resourcePackagesMap[appointmentId] = pack;
       }
     }
