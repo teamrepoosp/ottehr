@@ -410,10 +410,8 @@ const complexValidation = async (input: Input, oystehr: Oystehr): Promise<Effect
   }
   // 2. get the list of valid reasons for visit for that service category from the config
   const validReasonsForVisit = getReasonForVisitOptionsForServiceCategory(appointmentServiceCategory || 'urgent-care');
-  console.log(JSON.stringify(validReasonsForVisit, null, 2));
   // 3. if the reason for visit provided in the request is not in the list of valid reasons for visit, throw an error
   const newRFV = input.bookingDetails.reasonForVisit;
-  console.log('newRFV: ', newRFV);
   if (newRFV) {
     const isValidReason = validReasonsForVisit.some((reason: { value: string }) => reason.value === newRFV);
     if (!isValidReason) {
