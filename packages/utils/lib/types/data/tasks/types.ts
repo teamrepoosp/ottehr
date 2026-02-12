@@ -22,6 +22,7 @@ export interface CreateManualTaskRequest {
   category: string;
   appointmentId?: string;
   orderId?: string;
+  encounterId?: string;
   taskTitle: string;
   taskDetails?: string;
   assignee?: {
@@ -59,6 +60,7 @@ export const MANUAL_TASK = {
     providerName: 'provider-name',
     appointmentId: 'appointment-id',
     orderId: 'order-id',
+    encounterId: 'encounter-id',
     patient: 'patient',
   },
 } as const;
@@ -81,5 +83,7 @@ export const RADIOLOGY_TASK = {
     orderDate: 'order-date',
     appointmentId: 'appointment-id',
     providerName: 'provider-name',
+    studyTypeDisplay: 'study-type-display',
+    studyTypeCode: 'study-type-code',
   },
 } as const;

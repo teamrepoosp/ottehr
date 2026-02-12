@@ -22,6 +22,7 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
   const weight = encounterVitals?.[VitalFieldNames.VitalWeight] || [];
   const height = encounterVitals?.[VitalFieldNames.VitalHeight] || [];
   const vision = encounterVitals?.[VitalFieldNames.VitalVision] || [];
+  const lastMenstrualPeriod = encounterVitals?.[VitalFieldNames.VitalLastMenstrualPeriod] || [];
 
   return (
     <Box
@@ -36,7 +37,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Temperature</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {temperature?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {temperature?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -44,7 +51,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Heartbeat</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {heartbeat?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {heartbeat?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -52,7 +65,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Respiration rate</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {respirationRate?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {respirationRate?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -60,7 +79,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Blood pressure</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {bloodPressure?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {bloodPressure?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -68,7 +93,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Oxygen saturation</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {oxygenSaturation?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {oxygenSaturation?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -76,7 +107,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Weight</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {weight?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {weight?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -84,7 +121,13 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Height</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {height?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {height?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}
@@ -92,7 +135,27 @@ export const PatientVitalsContainer: FC<PatientVitalsContainerProps> = ({ notes,
         <>
           <AssessmentTitle>Vision</AssessmentTitle>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {vision?.map((item) => <VitalHistoryElement historyEntry={item} key={item.resourceId} />)}
+            {vision?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
+          </Box>
+        </>
+      )}
+      {lastMenstrualPeriod && lastMenstrualPeriod.length > 0 && (
+        <>
+          <AssessmentTitle>Last Menstrual Period</AssessmentTitle>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {lastMenstrualPeriod?.map((item) => (
+              <VitalHistoryElement
+                dataTestId={dataTestIds.progressNotePage.vitalsItem}
+                historyEntry={item}
+                key={item.resourceId}
+              />
+            ))}
           </Box>
         </>
       )}

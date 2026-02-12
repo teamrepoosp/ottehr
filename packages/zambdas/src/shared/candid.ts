@@ -26,6 +26,7 @@ import {
 import {
   AddressUse,
   AppointmentId as CandidPreEncounterAppointmentId,
+  CanonicalNonInsurancePayerId,
   ContactPointUse,
   NameUse,
   PatientId,
@@ -79,12 +80,19 @@ import {
   MedicationOrderStatusesType,
   MedicationUnitOptions,
   MISSING_PATIENT_COVERAGE_INFO_ERROR,
+  OrderedCoveragesWithSubscribers,
   PaymentVariant,
   Secrets,
   SecretsKeys,
   TIMEZONES,
 } from 'utils';
-import { CODE_SYSTEM_CMS_PLACE_OF_SERVICE, emCodeOptions } from 'utils/lib/helpers/rcm';
+import {
+  CODE_SYSTEM_CMS_PLACE_OF_SERVICE,
+  CODE_SYSTEM_CPT,
+  CODE_SYSTEM_CPT_MODIFIER,
+  emCodeOptions,
+  EXTENSION_URL_CPT_MODIFIER,
+} from 'utils/lib/helpers/rcm';
 import { getAccountAndCoverageResourcesForPatient } from '../ehr/shared/harvest';
 import { chartDataResourceHasMetaTagByCode } from './chart-data';
 import { assertDefined } from './helpers';
@@ -98,6 +106,9 @@ export const CANDID_PRE_ENCOUNTER_APPOINTMENT_ID_IDENTIFIER_SYSTEM =
 
 export const CANDID_PATIENT_ID_IDENTIFIER_SYSTEM =
   'https://api.joincandidhealth.com/api/patients/v4/response/patient_id';
+
+export const CANDID_NON_INSURANCE_PAYER_ID_IDENTIFIER_SYSTEM =
+  'https://api.joincandidhealth.com/api/non-insurance-payers/v1/response/non_insurance_payer_id';
 
 const CANDID_TAG_WORKERS_COMP = 'workers-comp';
 const CANDID_TAG_OCCUPATIONAL_MEDICINE = 'occupational-medicine';
@@ -380,8 +391,10 @@ async function fetchPreEncounterPatient(
   return patient;
 }
 
-async function createPreEncounterPatient(
+async function createOrUpdatePreEncounterPatient(
   patient: Patient,
+  candidPatient: CandidPreEncounterPatient | undefined,
+  nonInsurancePayerId: string | undefined,
   apiClient: CandidApiClient
 ): Promise<CandidPreEncounterPatient> {
   if (!patient.birthDate) {
@@ -453,39 +466,71 @@ async function createPreEncounterPatient(
     );
   }
 
-  const patientResponse = await apiClient.preEncounter.patients.v1.createWithMrn({
+  const baseCreateOrUpdatePayload: CandidApi.preEncounter.patients.v1.MutablePatient = {
+    name: {
+      family: lastName,
+      given: [firstName],
+      use: 'USUAL',
+    },
+    otherNames: [],
+    birthDate: dateOfBirth,
+    biologicalSex: mapGenderToSex(gender),
+    primaryAddress: {
+      line: patientAddress.line,
+      city: patientAddress.city,
+      state: patientAddress.state as State,
+      postalCode: patientAddress.postalCode,
+      use: mapAddressUse(patientAddress.use),
+      country: patientAddress.country ? patientAddress.country : 'US',
+    },
+    otherAddresses: [],
+    primaryTelecom: {
+      value: patientPhone,
+      use: ContactPointUse.Home,
+    },
+    otherTelecoms: [],
+    contacts: [],
+    generalPractitioners: [],
+    filingOrder: {
+      coverages: [],
+    },
+    nonInsurancePayerAssociations: nonInsurancePayerId
+      ? [
+          {
+            id: CanonicalNonInsurancePayerId(nonInsurancePayerId),
+          },
+        ]
+      : undefined,
+  };
+
+  // Update existing patient
+  if (candidPatient) {
+    const patientResponse = await apiClient.preEncounter.patients.v1.update(
+      candidPatient.id,
+      (candidPatient.version + 1).toString(),
+      baseCreateOrUpdatePayload
+    );
+
+    if (!patientResponse.ok) {
+      throw new Error(
+        `Error creating Candid patient with MRN ${medicalRecordNumber}. Response body: ${JSON.stringify(
+          patientResponse.error
+        )}`
+      );
+    }
+
+    return patientResponse.body;
+  }
+
+  const createBody: CandidApi.preEncounter.patients.v1.CreatePatientWithMrnRequest = {
     skipDuplicateCheck: true, // continue adding to candid, even if it's a duplicate
     body: {
+      ...baseCreateOrUpdatePayload,
       mrn: medicalRecordNumber,
-      name: {
-        family: lastName,
-        given: [firstName],
-        use: 'USUAL',
-      },
-      otherNames: [],
-      birthDate: dateOfBirth,
-      biologicalSex: mapGenderToSex(gender),
-      primaryAddress: {
-        line: patientAddress.line,
-        city: patientAddress.city,
-        state: patientAddress.state as State,
-        postalCode: patientAddress.postalCode,
-        use: mapAddressUse(patientAddress.use),
-        country: patientAddress.country ? patientAddress.country : 'US',
-      },
-      otherAddresses: [],
-      primaryTelecom: {
-        value: patientPhone,
-        use: ContactPointUse.Home,
-      },
-      otherTelecoms: [],
-      contacts: [],
-      generalPractitioners: [],
-      filingOrder: {
-        coverages: [],
-      },
     },
-  });
+  };
+
+  const patientResponse = await apiClient.preEncounter.patients.v1.createWithMrn(createBody);
 
   if (!patientResponse.ok) {
     throw new Error(
@@ -583,18 +628,50 @@ export const performCandidPreEncounterSync = async (input: PerformCandidPreEncou
     throw new Error(`Patient ID is not defined for encounter ${encounterId}`);
   }
 
+  const { coverages, insuranceOrgs, occupationalMedicineAccount } = await getAccountAndCoverageResourcesForPatient(
+    ourPatient.id,
+    oystehr
+  );
+
+  let nonInsurancePayerId: string | undefined = undefined;
+  if (occupationalMedicineAccount) {
+    const ownerOrganizationId = occupationalMedicineAccount.owner?.reference?.split('/')[1];
+    if (ownerOrganizationId) {
+      const occupationalMedicineEmployerOrganization = await oystehr.fhir.get<Organization>({
+        id: occupationalMedicineAccount.owner?.reference?.split('/')[1] || '',
+        resourceType: 'Organization',
+      });
+      nonInsurancePayerId = occupationalMedicineEmployerOrganization.identifier?.find(
+        (identifier) => identifier.system === CANDID_NON_INSURANCE_PAYER_ID_IDENTIFIER_SYSTEM
+      )?.value;
+      if (!nonInsurancePayerId) {
+        console.error(
+          `Occupational Medicine Employer Organization ${ownerOrganizationId} does not have a Candid Non-Insurance Payer ID.`
+        );
+      }
+    } else {
+      console.error(
+        `Occupational Medicine Account ${occupationalMedicineAccount.id} does not have an owner organization.`
+      );
+    }
+  }
+
   // Get Candid Patient and create if it does not exist
   let candidPreEncounterPatient = await fetchPreEncounterPatient(ourPatient.id, candidApiClient);
 
-  if (!candidPreEncounterPatient) {
-    candidPreEncounterPatient = await createPreEncounterPatient(ourPatient, candidApiClient);
-  }
+  candidPreEncounterPatient = await createOrUpdatePreEncounterPatient(
+    ourPatient,
+    candidPreEncounterPatient,
+    nonInsurancePayerId,
+    candidApiClient
+  );
 
   const candidCoverages = await createCandidCoverages(
     ourPatient,
     ourAppointment,
     candidPreEncounterPatient,
-    oystehr,
+    coverages,
+    insuranceOrgs,
     candidApiClient
   );
 
@@ -738,14 +815,13 @@ const createCandidCoverages = async (
   patient: Patient,
   appointment: Appointment,
   candidPatient: CandidPreEncounterPatient,
-  oystehr: Oystehr,
+  coverages: OrderedCoveragesWithSubscribers,
+  insuranceOrgs: Organization[],
   candidApiClient: CandidApiClient
 ): Promise<CandidPreEncounterCoverage[]> => {
   if (!patient.id) {
     throw new Error(`Patient ID is not defined for patient ${JSON.stringify(patient)}`);
   }
-
-  const { coverages, insuranceOrgs } = await getAccountAndCoverageResourcesForPatient(patient.id, oystehr);
 
   const candidCoverages: CandidPreEncounterCoverage[] = [];
 
@@ -1086,11 +1162,25 @@ async function candidCreateEncounterFromAppointmentRequest(
 
   const serviceLines: ServiceLineCreate[] = [];
   procedures.forEach((procedure) => {
-    const procedureCode = procedure.code?.coding?.[0].code;
-    let modifiers: ProcedureModifier[] = [];
+    const procedureCoding = procedure.code?.coding?.[0];
+    const procedureCode = procedureCoding?.code;
+
     if (procedureCode == null) {
       return;
     }
+
+    let modifiers: ProcedureModifier[] = [];
+
+    procedureCoding?.extension?.forEach((ext) => {
+      if (ext.url === EXTENSION_URL_CPT_MODIFIER) {
+        ext.valueCodeableConcept?.coding?.forEach((coding) => {
+          if (coding.system === CODE_SYSTEM_CPT_MODIFIER) {
+            const modifier = coding.code;
+            if (modifier && isProcedureModifier(modifier)) modifiers.push(modifier);
+          }
+        });
+      }
+    });
 
     const isEAndMCode = emCodeOptions.some((emCodeOption) => emCodeOption.code === procedureCode);
     if (isEAndMCode && isTelemedAppointment(appointment)) {
@@ -1258,3 +1348,36 @@ export function mapMedicationToCandidMeasurement(units: MedicationUnitOptions): 
       return MeasurementUnitCode.InternationalUnit; // todo ??? i have unhandled 'cc' and 'application' cases
   }
 }
+
+const procedureModifierValues = new Set(Object.values(ProcedureModifier));
+
+const isProcedureModifier = (code: unknown): code is ProcedureModifier => {
+  return typeof code === 'string' && procedureModifierValues.has(code as ProcedureModifier);
+};
+
+export const makeCptModifierExtension = (input: { code: ProcedureModifier; display: string }[]): Extension => {
+  return {
+    url: EXTENSION_URL_CPT_MODIFIER,
+    valueCodeableConcept: {
+      coding: input.map((cptCodeInfo) => ({
+        system: CODE_SYSTEM_CPT_MODIFIER,
+        code: cptCodeInfo.code,
+        display: cptCodeInfo.display,
+      })),
+    },
+  };
+};
+
+export const getCptModifierCodeFromProcedure = (fhirProcedure: Procedure): string[] | undefined => {
+  const coding = fhirProcedure.code?.coding?.find((c) => c.system === CODE_SYSTEM_CPT);
+  if (!coding) return;
+
+  const modifierCodableConcept = coding?.extension?.find(
+    (ext) => ext.url === EXTENSION_URL_CPT_MODIFIER && ext.valueCodeableConcept
+  )?.valueCodeableConcept;
+  const modifier = modifierCodableConcept?.coding?.flatMap((c) =>
+    c.system === CODE_SYSTEM_CPT_MODIFIER && c.code ? [c.code] : []
+  );
+
+  return modifier;
+};

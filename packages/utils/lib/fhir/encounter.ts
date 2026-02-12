@@ -25,6 +25,7 @@ export const FOLLOWUP_REASONS = [
   'Order - eRX',
   'Clinical Follow-up',
   'Splint or DME',
+  'Immigration Screening',
   'Other',
 ] as const;
 type FollowupReasons = (typeof FOLLOWUP_REASONS)[number];

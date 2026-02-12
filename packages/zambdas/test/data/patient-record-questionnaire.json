@@ -915,7 +915,7 @@
         "linkId": "insurance-plan-type",
         "type": "choice",
         "text": "Insurance type",
-        "required": true,
+        "required": false,
         "answerOption": [
           {
             "valueString": "09"
@@ -1572,7 +1572,7 @@
         "linkId": "insurance-plan-type-2",
         "type": "choice",
         "text": "Insurance type",
-        "required": true,
+        "required": false,
         "answerOption": [
           {
             "valueString": "09"
@@ -3238,6 +3238,23 @@
           {
             "url": "https://fhir.zapehr.com/r4/StructureDefinitions/disabled-display",
             "valueString": "hidden"
+          },
+          {
+            "url": "https://fhir.zapehr.com/r4/StructureDefinitions/require-when",
+            "extension": [
+              {
+                "url": "https://fhir.zapehr.com/r4/StructureDefinitions/require-when-question",
+                "valueString": "workers-comp-insurance-name"
+              },
+              {
+                "url": "https://fhir.zapehr.com/r4/StructureDefinitions/require-when-operator",
+                "valueString": "exists"
+              },
+              {
+                "url": "https://fhir.zapehr.com/r4/StructureDefinitions/require-when-answer",
+                "valueBoolean": true
+              }
+            ]
           }
         ]
       },
@@ -3562,12 +3579,12 @@
     ],
     "enableWhen": [
       {
-        "question": "patient-summary.appointment-service-category",
+        "question": "appointment-service-category",
         "operator": "=",
-        "answerString": "workers-compensation"
+        "answerString": "workers-comp"
       },
       {
-        "question": "patient-summary.appointment-service-category",
+        "question": "appointment-service-category",
         "operator": "exists",
         "answerBoolean": false
       }
@@ -3610,12 +3627,12 @@
     ],
     "enableWhen": [
       {
-        "question": "patient-summary.appointment-service-category",
+        "question": "appointment-service-category",
         "operator": "=",
         "answerString": "occupational-medicine"
       },
       {
-        "question": "patient-summary.appointment-service-category",
+        "question": "appointment-service-category",
         "operator": "exists",
         "answerBoolean": false
       }
@@ -3714,12 +3731,12 @@
     ],
     "enableWhen": [
       {
-        "question": "patient-summary.reason-for-visit",
+        "question": "reason-for-visit",
         "operator": "=",
         "answerString": "Auto accident"
       },
       {
-        "question": "patient-summary.reason-for-visit",
+        "question": "reason-for-visit",
         "operator": "exists",
         "answerBoolean": false
       }

@@ -315,6 +315,7 @@ export const useGetAllergiesSearch = (
 
 export const useGetCreateExternalLabResources = ({
   patientId,
+  encounterId,
   search,
   labOrgIdsString,
 }: GetCreateLabOrderResources): UseQueryResult<LabOrderResourcesRes | null, Error> => {
@@ -323,7 +324,7 @@ export const useGetCreateExternalLabResources = ({
     queryKey: ['external lab resource search', patientId, search, labOrgIdsString],
 
     queryFn: async () => {
-      const res = await apiClient?.getCreateExternalLabResources({ patientId, search, labOrgIdsString });
+      const res = await apiClient?.getCreateExternalLabResources({ patientId, encounterId, search, labOrgIdsString });
       if (res) {
         return res;
       } else {

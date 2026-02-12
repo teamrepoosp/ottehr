@@ -208,11 +208,11 @@ export interface VitalsNumericValueObservationDTO extends VitalsBaseObservationD
   value: number;
 }
 
-export type VitalsWeightOption = 'patient_refused' | 's';
+export type VitalsWeightOption = 'patient_refused';
 
 type VitalsWeightWithValueDTO = VitalsNumericValueObservationDTO & {
   field: Extract<VitalFieldNames, 'vital-weight'>;
-  extraWeightOptions?: Omit<VitalsWeightOption, 'patient_refused'>[];
+  extraWeightOptions?: VitalsWeightOption[];
 };
 
 export type VitalsWeightPatientRefusedDTO = VitalsBaseObservationDTO & {
@@ -264,6 +264,12 @@ export interface VitalsRespirationRateObservationDTO extends VitalsNumericValueO
   field: Extract<VitalFieldNames, 'vital-respiration-rate'>;
 }
 
+export type VitalsLastMenstrualPeriodObservationDTO = VitalsBaseObservationDTO & {
+  field: Extract<VitalFieldNames, 'vital-last-menstrual-period'>;
+  value: string;
+  isUnsure?: boolean;
+};
+
 export type VitalsObservationDTO =
   | VitalsTemperatureObservationDTO
   | VitalsHeartbeatObservationDTO
@@ -272,7 +278,8 @@ export type VitalsObservationDTO =
   | VitalsRespirationRateObservationDTO
   | VitalsWeightObservationDTO
   | VitalsHeightObservationDTO
-  | VitalsVisionObservationDTO;
+  | VitalsVisionObservationDTO
+  | VitalsLastMenstrualPeriodObservationDTO;
 
 export interface ObservationBooleanFieldDTO extends SaveableDTO {
   field: string;
@@ -292,6 +299,7 @@ export type AiObservationDTO = {
 export interface CPTCodeDTO extends SaveableDTO {
   code: string;
   display: string;
+  modifier?: string[];
 }
 
 export const clinicalImpressionDTOSchema = z.object({

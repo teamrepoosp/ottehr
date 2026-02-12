@@ -1,6 +1,5 @@
 import { otherColors } from '@ehrTheme/colors';
 import { aiIcon } from '@ehrTheme/icons';
-import AddIcon from '@mui/icons-material/Add';
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined';
 import {
   alpha,
@@ -17,8 +16,6 @@ import {
 import { enqueueSnackbar } from 'notistack';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { RoundedButton } from 'src/components/RoundedButton';
-import { CreateTaskDialog } from 'src/features/tasks/components/CreateTaskDialog';
 import { handleChangeInPersonVisitStatus } from 'src/helpers/inPersonVisitStatusUtils';
 import { useApiClients } from 'src/hooks/useAppClients';
 import { getAdmitterPractitionerId, getInPersonVisitStatus, PRACTITIONER_CODINGS } from 'utils';
@@ -344,114 +341,89 @@ export const Sidebar = (): JSX.Element => {
       .filter((route) => route.path !== ROUTER_PATH.OTTEHR_AI || chartData?.aiChat?.documents?.[0])
   );
 
-  const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
-  const onCreateTaskClick = (): void => {
-    setShowCreateTaskDialog(true);
-  };
-
   return (
-    <>
-      <Drawer
-        variant="permanent"
-        open={open}
-        sx={{
+    <Drawer
+      variant="permanent"
+      open={open}
+      sx={{
+        position: 'relative',
+        width: open ? drawerWidth : (theme) => theme.spacing(7),
+        flexShrink: 0,
+        zIndex: 50,
+        '& .MuiDrawer-paper': {
           position: 'relative',
           width: open ? drawerWidth : (theme) => theme.spacing(7),
-          flexShrink: 0,
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
+          transition: 'width 0.1s',
           zIndex: 50,
-          '& .MuiDrawer-paper': {
-            position: 'relative',
-            width: open ? drawerWidth : (theme) => theme.spacing(7),
-            boxSizing: 'border-box',
-            overflowX: 'hidden',
-            transition: 'width 0.1s',
-            zIndex: 50,
-          },
+        },
+      }}
+    >
+      <DrawerHeader
+        sx={{
+          display: 'flex',
+          padding: '0px',
+          ...(open
+            ? { justifyContent: 'end', paddingRight: '10px' }
+            : { justifyContent: 'center', paddingRight: '0px' }),
         }}
+        style={{ minHeight: '48px' }}
       >
-        <DrawerHeader
+        <IconButton
           sx={{
-            display: 'flex',
-            padding: '0px',
-            ...(open
-              ? { justifyContent: 'end', paddingRight: '10px' }
-              : { justifyContent: 'center', paddingRight: '0px' }),
+            width: 40,
+            height: 40,
+            padding: 0,
+            '&:hover': {
+              backgroundColor: otherColors.sidebarItemHover,
+            },
           }}
-          style={{ minHeight: '48px' }}
+          onClick={handleDrawerToggle}
         >
-          <IconButton
-            sx={{
-              width: 40,
-              height: 40,
-              padding: 0,
-              '&:hover': {
-                backgroundColor: otherColors.sidebarItemHover,
-              },
-            }}
-            onClick={handleDrawerToggle}
-          >
-            <ArrowIcon direction={open ? 'left' : 'right'} />
-          </IconButton>
-        </DrawerHeader>
+          <ArrowIcon direction={open ? 'left' : 'right'} />
+        </IconButton>
+      </DrawerHeader>
 
-        <EncounterSwitcher open={open} />
+      <EncounterSwitcher open={open} />
 
-        <List sx={{ padding: '0px' }}>
-          <Box style={{ width: '100%', padding: '8px 16px' }}>
-            {open ? (
-              <RoundedButton
-                variant="outlined"
-                onClick={onCreateTaskClick}
-                startIcon={<AddIcon />}
-                style={{ width: '100%' }}
+      <List sx={{ padding: '0px' }}>
+        {menuItems.map((item, index) => {
+          const comparedPath = item?.activeCheckPath || item.to;
+          const showGroupLabel =
+            item.groupLabel && (index === 0 || menuItems[index - 1].groupLabel !== item.groupLabel);
+
+          return (
+            <React.Fragment key={item.text}>
+              {showGroupLabel && open && <GroupLabel>{item.groupLabel}</GroupLabel>}
+              <StyledButton
+                isActive={location.pathname.includes(comparedPath).toString()}
+                onClick={() => {
+                  requestAnimationFrame(() => {
+                    navigate(item.to);
+                  });
+                }}
               >
-                Create Task
-              </RoundedButton>
-            ) : null}
-          </Box>
-          {menuItems.map((item, index) => {
-            const comparedPath = item?.activeCheckPath || item.to;
-            const showGroupLabel =
-              item.groupLabel && (index === 0 || menuItems[index - 1].groupLabel !== item.groupLabel);
-
-            return (
-              <React.Fragment key={item.text}>
-                {showGroupLabel && open && <GroupLabel>{item.groupLabel}</GroupLabel>}
-                <StyledButton
-                  isActive={location.pathname.includes(comparedPath).toString()}
-                  onClick={() => {
-                    requestAnimationFrame(() => {
-                      navigate(item.to);
-                    });
-                  }}
+                <ListItem
+                  data-testid={dataTestIds.sideMenu.sideMenuItem(item.to)}
+                  sx={{ width: '100%', height: 'inherit' }}
                 >
-                  <ListItem
-                    data-testid={dataTestIds.sideMenu.sideMenuItem(item.to)}
-                    sx={{ width: '100%', height: 'inherit' }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 30 }}>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
-                  </ListItem>
-                </StyledButton>
-              </React.Fragment>
-            );
-          })}
-        </List>
-        <br />
-        {!isFollowup && (
-          <CompleteIntakeButton
-            isDisabled={!appointmentID || isEncounterUpdatePending || status !== 'intake'}
-            handleCompleteIntake={handleCompleteIntake}
-            status={status}
-          />
-        )}
-      </Drawer>
-      <CreateTaskDialog
-        open={showCreateTaskDialog}
-        handleClose={(): void => {
-          setShowCreateTaskDialog(false);
-        }}
-      />
-    </>
+                  <ListItemIcon sx={{ minWidth: 30 }}>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
+                </ListItem>
+              </StyledButton>
+            </React.Fragment>
+          );
+        })}
+      </List>
+      <br />
+      {!isFollowup && (
+        <CompleteIntakeButton
+          isDisabled={!appointmentID || isEncounterUpdatePending || status !== 'intake'}
+          handleCompleteIntake={handleCompleteIntake}
+          status={status}
+        />
+      )}
+    </Drawer>
   );
 };

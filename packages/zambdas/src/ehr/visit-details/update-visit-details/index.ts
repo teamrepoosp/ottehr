@@ -1,12 +1,15 @@
 import Oystehr, { BatchInputJSONPatchRequest, BatchInputPatchRequest, User } from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { Operation } from 'fast-json-patch';
-import { Appointment, Encounter, Extension, Patient } from 'fhir/r4b';
+import { Account, Appointment, Coding, Encounter, Extension, Patient } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
+  BOOKING_CONFIG,
+  BookingDetails,
   cleanUpStaffHistoryTag,
   FHIR_EXTENSION,
   FHIR_RESOURCE_NOT_FOUND,
+  FHIR_RESOURCE_NOT_FOUND_CUSTOM,
   getCriticalUpdateTagOp,
   getReasonForVisitAndAdditionalDetailsFromAppointment,
   getSecret,
@@ -16,12 +19,13 @@ import {
   isValidUUID,
   MISSING_REQUEST_BODY,
   MISSING_REQUIRED_PARAMETERS,
+  OCCUPATIONAL_MEDICINE_ACCOUNT_TYPE,
   REASON_ADDITIONAL_MAX_CHAR,
   Secrets,
   SecretsKeys,
-  UpdateVisitDetailsInput,
   userMe,
   VALUE_SETS,
+  WORKERS_COMP_ACCOUNT_TYPE,
 } from 'utils';
 import {
   checkOrCreateM2MClientToken,
@@ -30,6 +34,7 @@ import {
   wrapHandler,
   ZambdaInput,
 } from '../../../shared';
+import { accountMatchesType } from '../../shared/harvest';
 
 const ZAMBDA_NAME = 'update-visit-details';
 
@@ -60,15 +65,18 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   }
 });
 
-interface EffectInput extends UpdateVisitDetailsInput {
+interface EffectInput extends Input {
   patient: Patient;
   user: User;
   appointment: Appointment;
   encounter: Encounter;
+  workersCompAccount?: Account;
+  occupationalMedicineAccount?: Account;
 }
 
 const performEffect = async (input: EffectInput, oystehr: Oystehr): Promise<void> => {
-  const { patient, appointment, bookingDetails, user, encounter } = input;
+  const { patient, appointment, bookingDetails, user, encounter, workersCompAccount, occupationalMedicineAccount } =
+    input;
 
   const patchRequests: BatchInputJSONPatchRequest[] = [];
   if (bookingDetails.confirmedDob) {
@@ -305,6 +313,60 @@ const performEffect = async (input: EffectInput, oystehr: Oystehr): Promise<void
     }
   }
 
+  if (bookingDetails.serviceCategory) {
+    const newEncounterAccounts = (encounter.account ?? [])
+      .filter((reference) => reference.reference === 'Account/' + occupationalMedicineAccount?.id)
+      .filter((reference) => reference.reference === 'Account/' + workersCompAccount?.id);
+
+    if (bookingDetails.serviceCategory.code === 'workers-comp') {
+      if (!workersCompAccount) {
+        throw FHIR_RESOURCE_NOT_FOUND_CUSTOM('Workmans Comp Account missing');
+      }
+      newEncounterAccounts.push({
+        reference: 'Account/' + workersCompAccount.id,
+      });
+    }
+
+    if (bookingDetails.serviceCategory.code === 'occupational-medicine') {
+      if (!occupationalMedicineAccount) {
+        throw FHIR_RESOURCE_NOT_FOUND_CUSTOM('Occupational Medicine Account missing');
+      }
+      newEncounterAccounts.push({
+        reference: 'Account/' + occupationalMedicineAccount.id,
+      });
+    }
+
+    const encounterPatch: BatchInputPatchRequest<Encounter> = {
+      method: 'PATCH',
+      url: `/Encounter/${encounter.id}`,
+      operations: [
+        {
+          op: encounter?.account ? 'replace' : 'add',
+          path: '/account',
+          value: newEncounterAccounts,
+        },
+      ],
+    };
+    patchRequests.push(encounterPatch);
+
+    const appointmentPatch: BatchInputJSONPatchRequest = {
+      url: '/Appointment/' + appointment.id,
+      method: 'PATCH',
+      operations: [
+        {
+          op: appointment?.serviceCategory ? 'replace' : 'add',
+          path: '/serviceCategory',
+          value: [
+            {
+              coding: [bookingDetails.serviceCategory],
+            },
+          ],
+        },
+      ],
+    };
+    patchRequests.push(appointmentPatch);
+  }
+
   // this will combine any requests to patch the same object. for now there's no possibility of conflicting operations
   // in this endpoint, so simply consolidating the requests is safe.
   const consolidatedPatches = consolidatePatchRequests(patchRequests);
@@ -345,6 +407,13 @@ const complexValidation = async (input: Input, oystehr: Oystehr): Promise<Effect
     throw FHIR_RESOURCE_NOT_FOUND('Encounter');
   }
 
+  const accounts = (
+    await oystehr.fhir.search<Account>({
+      resourceType: 'Account',
+      params: [{ name: 'patient', value: patientResource.id }],
+    })
+  ).unbundle();
+
   // const selfPay = getPaymentVariantFromEncounter(encounterResource) === PaymentVariant.selfPay;
 
   return {
@@ -353,12 +422,20 @@ const complexValidation = async (input: Input, oystehr: Oystehr): Promise<Effect
     appointment,
     encounter: encounterResource,
     user,
+    workersCompAccount: accounts.find((account) => accountMatchesType(account, WORKERS_COMP_ACCOUNT_TYPE)),
+    occupationalMedicineAccount: accounts.find((account) =>
+      accountMatchesType(account, OCCUPATIONAL_MEDICINE_ACCOUNT_TYPE)
+    ),
   };
 };
 
-interface Input extends UpdateVisitDetailsInput {
+interface Input {
   userToken: string;
   secrets: Secrets | null;
+  appointmentId: string;
+  bookingDetails: Omit<BookingDetails, 'serviceCategory'> & {
+    serviceCategory?: Coding;
+  };
 }
 
 const validateRequestParameters = (input: ZambdaInput): Input => {
@@ -456,6 +533,18 @@ const validateRequestParameters = (input: ZambdaInput): Input => {
     }
   }
 
+  let serviceCategory: Coding | undefined = undefined;
+  if (bookingDetails.serviceCategory && typeof bookingDetails.serviceCategory !== 'string') {
+    throw INVALID_INPUT_ERROR('serviceCategory must be a string');
+  } else if (bookingDetails.serviceCategory) {
+    serviceCategory = BOOKING_CONFIG.serviceCategories.find(
+      (category: { code: string }) => category.code === bookingDetails.serviceCategory
+    );
+    if (!serviceCategory) {
+      throw INVALID_INPUT_ERROR(`serviceCategory, "${bookingDetails.serviceCategory}", is not a valid option`);
+    }
+  }
+
   // Require at least one field to be present
 
   if (
@@ -464,7 +553,8 @@ const validateRequestParameters = (input: ZambdaInput): Input => {
     bookingDetails.authorizedNonLegalGuardians === undefined &&
     bookingDetails.confirmedDob === undefined &&
     bookingDetails.patientName === undefined &&
-    bookingDetails.consentForms === undefined
+    bookingDetails.consentForms === undefined &&
+    bookingDetails.serviceCategory === undefined
   ) {
     throw INVALID_INPUT_ERROR('at least one field in bookingDetails must be provided');
   }
@@ -473,7 +563,10 @@ const validateRequestParameters = (input: ZambdaInput): Input => {
     secrets,
     userToken,
     appointmentId,
-    bookingDetails,
+    bookingDetails: {
+      ...bookingDetails,
+      serviceCategory,
+    },
   };
 };
 

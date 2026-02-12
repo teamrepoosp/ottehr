@@ -168,7 +168,7 @@ export abstract class BaseProgressNotePage {
     ).toBeVisible();
   }
 
-  async verifyRemovedMedicationNoteIsNotShown(note: string): Promise<void> {
+  async verifyMedicationNoteNotShown(note: string): Promise<void> {
     await expect(
       this.#page.getByTestId(dataTestIds.telemedEhrFlow.reviewTabMedicationsContainer).filter({
         hasText: note,
@@ -176,7 +176,7 @@ export abstract class BaseProgressNotePage {
     ).not.toBeVisible();
   }
 
-  async verifyRemovedMedicationIsNotShown(medication: string): Promise<void> {
+  async verifyMedicationNotShown(medication: string): Promise<void> {
     await expect(
       this.#page.getByTestId(dataTestIds.telemedEhrFlow.reviewTabMedicationsContainer).filter({
         hasText: medication,
@@ -211,6 +211,37 @@ export abstract class BaseProgressNotePage {
   async verifyHospitalizationNoteNotShown(note: string): Promise<void> {
     await expect(
       this.#page.getByTestId(dataTestIds.progressNotePage.hospitalizationContainer).filter({
+        hasText: note,
+      })
+    ).not.toBeVisible();
+  }
+
+  async verifyVitalIsShown(vitals: string, abnormal = false): Promise<void> {
+    await expect(this.#page.getByTestId(dataTestIds.progressNotePage.vitalsContainer)).toBeVisible();
+    const itemLocator = this.#page.getByTestId(dataTestIds.progressNotePage.vitalsItem).filter({ hasText: vitals });
+    await expect(itemLocator).toBeVisible();
+    await expect(itemLocator.getByTestId(dataTestIds.progressNotePage.alertIcon)).toBeVisible({ visible: abnormal });
+  }
+
+  async verifyVitalNotShown(vitals: string): Promise<void> {
+    await expect(
+      this.#page.getByTestId(dataTestIds.progressNotePage.vitalsContainer).filter({
+        hasText: new RegExp(vitals, 'i'),
+      })
+    ).not.toBeVisible();
+  }
+
+  async verifyVitalsNote(note: string): Promise<void> {
+    await expect(
+      this.#page.getByTestId(dataTestIds.progressNotePage.vitalsContainer).filter({
+        hasText: note,
+      })
+    ).toBeVisible();
+  }
+
+  async verifyVitalsNoteNotShown(note: string): Promise<void> {
+    await expect(
+      this.#page.getByTestId(dataTestIds.progressNotePage.vitalsContainer).filter({
         hasText: note,
       })
     ).not.toBeVisible();
