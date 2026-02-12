@@ -104,6 +104,18 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
   }
 
   const InputElement = (() => {
+    const defaultField = (): JSX.Element => (
+      <FormTextField
+        name={item.key}
+        control={control}
+        disabled={isDisabled}
+        id={omitRowWrapper ? item.key : undefined}
+        key={item.key}
+        inputProps={{ mask, placeholder }}
+        InputProps={mask ? { inputComponent: InputMask as any } : undefined}
+      />
+    );
+
     switch (item.type) {
       case 'choice':
       case 'reference':
@@ -247,29 +259,9 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
         if (item.groupType === QuestionnaireItemGroupType.PharmacyCollection) {
           return <FormGroupPharmacyCollection />;
         }
-        return (
-          <FormTextField
-            name={item.key}
-            control={control}
-            disabled={isDisabled}
-            id={omitRowWrapper ? item.key : undefined}
-            key={item.key}
-            inputProps={{ mask, placeholder }}
-            InputProps={mask ? { inputComponent: InputMask as any } : undefined}
-          />
-        );
+        return defaultField();
       default:
-        return (
-          <FormTextField
-            name={item.key}
-            control={control}
-            disabled={isDisabled}
-            id={omitRowWrapper ? item.key : undefined}
-            key={item.key}
-            inputProps={{ mask, placeholder }}
-            InputProps={mask ? { inputComponent: InputMask as any } : undefined}
-          />
-        );
+        return defaultField();
     }
   })();
 
