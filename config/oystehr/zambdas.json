@@ -904,6 +904,13 @@
       "src": "src/ehr/schedules/create-schedule/index",
       "zip": ".dist/zips/create-schedule.zip"
     },
+    "AI-SUGGESTION-NOTES": {
+      "name": "ai-suggestion-notes",
+      "type": "http_auth",
+      "runtime": "nodejs22.x",
+      "src": "src/ehr/ai-suggestion-notes/index",
+      "zip": ".dist/zips/ai-suggestion-notes.zip"
+    },
     "RECOMMEND-BILLING-SUGGESTIONS": {
       "name": "recommend-billing-suggestions",
       "type": "http_auth",

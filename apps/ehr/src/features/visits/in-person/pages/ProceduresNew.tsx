@@ -3,6 +3,7 @@ import {
   Backdrop,
   Checkbox,
   CircularProgress,
+  Container,
   Divider,
   FormControl,
   FormControlLabel,
@@ -38,6 +39,7 @@ import { dataTestIds } from 'src/constants/data-test-ids';
 import { useApiClients } from 'src/hooks/useAppClients';
 import { useDebounce } from 'src/shared/hooks/useDebounce';
 import {
+  AISuggestionNotes,
   BODY_SIDES_VALUE_SET_URL,
   BODY_SITES_VALUE_SET_URL,
   COMPLICATIONS_VALUE_SET_URL,
@@ -58,7 +60,11 @@ import {
 import { DiagnosesField } from '../../shared/components/assessment-tab/DiagnosesField';
 import { PageTitle } from '../../shared/components/PageTitle';
 import { useGetAppointmentAccessibility } from '../../shared/hooks/useGetAppointmentAccessibility';
-import { useGetCPTHCPCSSearch, useRecommendBillingCodes } from '../../shared/stores/appointment/appointment.queries';
+import {
+  useAiSuggestionNotes,
+  useGetCPTHCPCSSearch,
+  useRecommendBillingCodes,
+} from '../../shared/stores/appointment/appointment.queries';
 import { useChartData, useDeleteChartData, useSaveChartData } from '../../shared/stores/appointment/appointment.store';
 import { useAppFlags } from '../../shared/stores/contexts/useAppFlags';
 import AiSuggestion from '../components/AiSuggestion';
@@ -159,6 +165,7 @@ export default function ProceduresNew(): ReactElement {
   const appointmentAccessibility = useGetAppointmentAccessibility();
   const { isInPerson } = useAppFlags();
   const { mutateAsync: recommendBillingCodes } = useRecommendBillingCodes();
+  const { mutateAsync: aiSuggestionNotes } = useAiSuggestionNotes();
   const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
 
   const isReadOnly = useMemo(() => {
@@ -183,6 +190,7 @@ export default function ProceduresNew(): ReactElement {
   });
   const [saveInProgress, setSaveInProgress] = useState<boolean>(false);
   const [recommendedBillingCodes, setRecommendedBillingCodes] = useState<ProcedureSuggestion[] | null>(null);
+  const [suggestionNote, setSuggestionNote] = useState<AISuggestionNotes | null>(null);
 
   const updateState = (stateMutator: (draft: PageState) => void): void => {
     setState((prev) => {
@@ -226,6 +234,13 @@ export default function ProceduresNew(): ReactElement {
         timeSpent: state.timeSpent,
       });
       setRecommendedBillingCodes(codes);
+      if (formValues.procedureType === 'Laceration Repair (Suturing/Stapling)' && state.procedureDetails) {
+        const suggestions = await aiSuggestionNotes({
+          type: 'procedure',
+          details: { procedureDetails: state.procedureDetails || '' },
+        });
+        setSuggestionNote(suggestions);
+      }
       setLoadingSuggestions(false);
     };
 
@@ -241,6 +256,7 @@ export default function ProceduresNew(): ReactElement {
     state.suppliesUsed,
     // state.procedureDetails,
     state.timeSpent,
+    aiSuggestionNotes,
     recommendBillingCodes,
   ]);
 
@@ -894,6 +910,20 @@ export default function ProceduresNew(): ReactElement {
                 procedureSuggestions={recommendedBillingCodes}
                 loading={loadingSuggestions}
               />
+            )}
+            {suggestionNote && suggestionNote.suggestions?.[0] !== 'Procedure details are included' && (
+              <Container
+                style={{
+                  background: '#FFF3E0',
+                  borderRadius: '8px',
+                  padding: '4px 8px 4px 8px',
+                }}
+              >
+                <Typography variant="body1" style={{ fontWeight: 700 }}>
+                  Procedure Details AI Suggestions
+                </Typography>
+                <Typography variant="body1">{suggestionNote?.suggestions?.join(', ')}</Typography>
+              </Container>
             )}
             {cptWidget()}
             <Divider orientation="horizontal" />

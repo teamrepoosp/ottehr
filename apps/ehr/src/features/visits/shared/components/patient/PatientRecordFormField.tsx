@@ -56,7 +56,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
   // Evaluate triggers using the utility function
   const triggeredEffects = evaluateFieldTriggers(item, formValues, enableBehavior);
 
-  const isDisabled = disabled || isLoading || triggeredEffects.enabled === false;
+  const isDisabled = disabled || triggeredEffects.enabled === false;
   const isRequired = requiredFormFields?.includes(item.key) || triggeredEffects.required;
 
   if (triggeredEffects.substituteText) {
@@ -108,7 +108,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
       <FormTextField
         name={item.key}
         control={control}
-        disabled={isDisabled}
+        disabled={isDisabled || isLoading}
         id={omitRowWrapper ? item.key : undefined}
         key={item.key}
         inputProps={{ mask, placeholder }}
@@ -175,7 +175,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                         variant="standard"
                         error={!!error}
                         helperText={error?.message}
-                        disabled={isDisabled}
+                        disabled={isDisabled || isLoading}
                       />
                     )}
                   />
@@ -189,7 +189,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
             name={item.key}
             id={omitRowWrapper ? item.key : undefined}
             control={control}
-            disabled={isDisabled}
+            disabled={isDisabled || isLoading}
             options={item.options || []}
           />
         );
@@ -199,7 +199,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
             id={omitRowWrapper ? item.key : undefined}
             name={item.key}
             control={control}
-            disabled={isDisabled}
+            disabled={isDisabled || isLoading}
             component="Field"
           />
         );
@@ -247,7 +247,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                     {...field}
                     checked={item.key === 'pcp-active' ? !(value ?? false) : value ?? false} // this is incredibly silly but needed to invert the logic for this one field. todo...
                     onChange={(e) => field.onChange(item.key === 'pcp-active' ? !e.target.checked : e.target.checked)}
-                    disabled={isDisabled}
+                    disabled={isDisabled || isLoading}
                   />
                 }
                 label={item.label}
