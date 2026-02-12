@@ -385,12 +385,25 @@ const inPersonPrebookRoutingParams: { key: string; value: string }[] = [
   { key: 'scheduleType', value: 'group' },
 ];
 
+enum VisitType {
+  InPersonWalkIn = 'in-person-walk-in',
+  InPersonPreBook = 'in-person-pre-booked',
+  InPersonPostTelemed = 'in-person-post-telemed',
+  VirtualOnDemand = 'virtual-on-demand',
+  VirtualScheduled = 'virtual-scheduled',
+}
+
+interface BookingOption {
+  id: string;
+  label: string;
+}
 export interface BookingConfig {
   serviceCategoriesEnabled: {
     serviceModes: string[];
     visitType: string[];
   };
   homepageOptions: string[];
+  ehrBookingOptions: BookingOption[];
   serviceCategories: StrongCoding[];
   formConfig: z.infer<typeof QuestionnaireConfigSchema>;
   inPersonPrebookRoutingParams: { key: string; value: string }[];
@@ -417,6 +430,28 @@ const BOOKING_DEFAULTS: BookingConfig = {
     HomepageOptions.ScheduleInPersonVisit,
     HomepageOptions.StartVirtualVisit,
     HomepageOptions.ScheduleVirtualVisit,
+  ],
+  ehrBookingOptions: [
+    {
+      id: VisitType.InPersonWalkIn,
+      label: 'Walk-in In Person Visit',
+    },
+    {
+      id: VisitType.InPersonPreBook,
+      label: 'Pre-booked In Person Visit',
+    },
+    {
+      id: VisitType.VirtualOnDemand,
+      label: 'On Demand Virtual Visit',
+    },
+    {
+      id: VisitType.VirtualScheduled,
+      label: 'Scheduled Virtual Visit',
+    },
+    {
+      id: VisitType.InPersonPostTelemed,
+      label: 'Post Telemed Lab Only',
+    },
   ],
   serviceCategories: SERVICE_CATEGORIES_AVAILABLE,
   formConfig,
