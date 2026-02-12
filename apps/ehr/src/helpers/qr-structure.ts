@@ -2,7 +2,7 @@ import { Questionnaire, QuestionnaireItem, QuestionnaireResponse, QuestionnaireR
 import _ from 'lodash';
 import { IntakeQuestionnaireItem, makeQRResponseItem, mapQuestionnaireAndValueSetsToItemsList } from 'utils';
 
-const containedItemWithLinkId = (item: QuestionnaireItem, linkId: string): QuestionnaireItem | undefined => {
+export const containedItemWithLinkId = (item: QuestionnaireItem, linkId: string): QuestionnaireItem | undefined => {
   // note: if item.linkId === linkId, return item
   const { linkId: itemLinkId, item: subItems } = item;
   if (itemLinkId === linkId) return item;
