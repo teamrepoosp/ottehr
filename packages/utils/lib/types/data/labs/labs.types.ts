@@ -19,6 +19,16 @@ export interface OrderableItemSearchResult {
   lab: OrderableItemLab;
 }
 
+export interface LabListsDTO {
+  listId: string;
+  listName: string;
+  labs: {
+    display: string; // list of names of the tests contained in this list formatted list {lab name / filler lab name}
+    itemCode: string;
+    labGuid: string;
+  }[];
+}
+
 export interface sampleDTO {
   specimen: { id: string; collectionDate?: string }; // collectionDate exists after order is submitted
   definition: OrderableItemSpecimen;
@@ -309,7 +319,7 @@ export type CreateLabPaymentMethod =
 export type CreateLabOrderParameters = {
   dx: DiagnosisDTO[];
   encounter: Encounter;
-  orderableItem: OrderableItemSearchResult;
+  orderableItems: OrderableItemSearchResult[];
   psc: boolean;
   orderingLocation: ModifiedOrderingLocation;
   selectedPaymentMethod: CreateLabPaymentMethod;
@@ -323,6 +333,7 @@ export type GetCreateLabOrderResources = {
   encounterId?: string;
   search?: string;
   labOrgIdsString?: string;
+  selectedLabSet?: LabListsDTO;
 };
 
 export type ModifiedOrderingLocation = {
@@ -344,6 +355,7 @@ export type LabOrderResourcesRes = {
   labs: OrderableItemSearchResult[];
   isWorkersCompEncounter: boolean;
   additionalCptCodes?: CPTCodeOption[];
+  labSets: LabListsDTO[] | undefined;
 } & ExternalLabOrderingLocations;
 
 export type PatientLabItem = {

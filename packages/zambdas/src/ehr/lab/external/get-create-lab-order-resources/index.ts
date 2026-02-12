@@ -1,6 +1,6 @@
 import Oystehr, { BatchInputRequest, Bundle } from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { Account, Coverage, Encounter, Location, Organization } from 'fhir/r4b';
+import { Account, Coverage, Encounter, List, Location, Organization, Reference } from 'fhir/r4b';
 import {
   CODE_SYSTEM_COVERAGE_CLASS,
   CPTCodeOption,
@@ -10,7 +10,12 @@ import {
   flattenBundleResources,
   getSecret,
   LAB_ACCOUNT_NUMBER_SYSTEM,
+  LAB_LIST_CODE_CODING,
+  LAB_LIST_ITEM_SEARCH_FIELD_EXTENSION_URL,
+  LAB_LIST_SEARCH_FIELD_NESTED_EXTENSION_URL,
   LAB_ORG_TYPE_CODING,
+  LabListsDTO,
+  LabListSearchFieldKey,
   LabOrderResourcesRes,
   ModifiedOrderingLocation,
   OrderableItemSearchResult,
@@ -32,7 +37,14 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   try {
     console.group('validateRequestParameters');
     const validatedParameters = validateRequestParameters(input);
-    const { patientId, encounterId, search: testItemSearch, secrets, labOrgIdsString } = validatedParameters;
+    const {
+      patientId,
+      encounterId,
+      search: testItemSearch,
+      secrets,
+      labOrgIdsString,
+      selectedLabSet,
+    } = validatedParameters;
     console.log('search passed', testItemSearch);
     console.groupEnd();
     console.debug('validateRequestParameters success');
@@ -40,13 +52,8 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
 
-    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, isWorkersCompEncounter } = await getResources(
-      oystehr,
-      patientId,
-      encounterId,
-      testItemSearch,
-      labOrgIdsString
-    );
+    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, isWorkersCompEncounter, labLists } =
+      await getResources(oystehr, patientId, encounterId, testItemSearch, labOrgIdsString);
 
     let coverageInfo: CreateLabCoverageInfo[] | undefined;
     if (patientId) {
@@ -55,7 +62,16 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     let labs: OrderableItemSearchResult[] = [];
     if (testItemSearch) {
-      labs = await getLabs(labOrgsGUIDs, testItemSearch, m2mToken);
+      labs = await getLabs(labOrgsGUIDs, { textSearch: testItemSearch }, m2mToken);
+    }
+
+    if (selectedLabSet) {
+      console.log('searching orderable items for the lab set', selectedLabSet.listName);
+      const labRequests = selectedLabSet.labs.map((lab) => {
+        return getLabs([lab.labGuid], { itemCodes: [lab.itemCode] }, m2mToken);
+      });
+      const allLabsResults = await Promise.all(labRequests);
+      labs = allLabsResults.flat();
     }
 
     // not every instance will have values for this
@@ -77,6 +93,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       additionalCptCodes,
       isWorkersCompEncounter,
       ...orderingLocationDetails,
+      labSets: formatLabListDTOs(labLists),
     };
 
     return {
@@ -101,8 +118,9 @@ const getResources = async (
   labOrgsGUIDs: string[];
   orderingLocationDetails: ExternalLabOrderingLocations;
   isWorkersCompEncounter: boolean;
+  labLists: List[];
 }> => {
-  const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter>[] = [];
+  const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter | List>[] = [];
 
   if (patientId) {
     const coverageSearchRequest: BatchInputRequest<Coverage> = {
@@ -113,7 +131,11 @@ const getResources = async (
       method: 'GET',
       url: `/Account?subject=Patient/${patientId}&status=active`,
     };
-    requests.push(coverageSearchRequest, accountSearchRequest);
+    const labListRequest: BatchInputRequest<List> = {
+      method: 'GET',
+      url: `/List?code=${LAB_LIST_CODE_CODING.external.system}|${LAB_LIST_CODE_CODING.external.code}&status=current`,
+    };
+    requests.push(coverageSearchRequest, accountSearchRequest, labListRequest);
   }
 
   if (encounterId) {
@@ -140,10 +162,13 @@ const getResources = async (
   };
   requests.push(orderingLocationsRequest);
 
-  const searchResults: Bundle<Coverage | Account | Organization | Location | Encounter> = await oystehr.fhir.batch({
-    requests,
-  });
-  const resources = flattenBundleResources<Coverage | Account | Organization | Location | Encounter>(searchResults);
+  const searchResults: Bundle<Coverage | Account | Organization | Location | Encounter | List> =
+    await oystehr.fhir.batch({
+      requests,
+    });
+  const resources = flattenBundleResources<Coverage | Account | Organization | Location | Encounter | List>(
+    searchResults
+  );
 
   const coverages: Coverage[] = [];
   const accounts: Account[] = [];
@@ -153,6 +178,7 @@ const getResources = async (
   const orderingLocationIds: string[] = [];
   const encounters: Encounter[] = [];
   const workersCompAccounts: Account[] = [];
+  const labLists: List[] = [];
 
   resources.forEach((resource) => {
     if (resource.resourceType === 'Organization') {
@@ -197,6 +223,7 @@ const getResources = async (
       }
     }
     if (resource.resourceType === 'Encounter') encounters.push(resource);
+    if (resource.resourceType === 'List') labLists.push(resource);
   });
 
   let isWorkersCompEncounter = false;
@@ -230,12 +257,14 @@ const getResources = async (
     labOrgsGUIDs,
     orderingLocationDetails: { orderingLocationIds, orderingLocations },
     isWorkersCompEncounter,
+    labLists,
   };
 };
 
+type LabSearch = { textSearch: string } | { itemCodes: string[] } | { textSearch: string; itemCodes: string[] };
 const getLabs = async (
   labOrgsGUIDs: string[],
-  search: string,
+  search: LabSearch,
   m2mToken: string
 ): Promise<OrderableItemSearchResult[]> => {
   const labIds = labOrgsGUIDs.join(',');
@@ -243,8 +272,16 @@ const getLabs = async (
   let totalReturn = 0;
   const items: OrderableItemSearchResult[] = [];
 
+  const searchParams = [`labIds=${labIds}`];
+
+  if ('textSearch' in search) searchParams.push(`itemNames=${search.textSearch}`);
+  if ('itemCodes' in search) searchParams.push(`itemCodes=${search.itemCodes.join(',')}`);
+
+  console.log('searchParams before join', searchParams);
+
   do {
-    const url = `${OYSTEHR_LAB_ORDERABLE_ITEM_SEARCH_API}?labIds=${labIds}&itemNames=${search}&limit=100&cursor=${cursor}`;
+    const url = `${OYSTEHR_LAB_ORDERABLE_ITEM_SEARCH_API}?${searchParams.join('&')}&limit=100&cursor=${cursor}`;
+    console.log('check me!', url);
     const orderableItemsSearch = await fetch(url, {
       method: 'GET',
       headers: {
@@ -325,4 +362,48 @@ const getCoverageInfo = (accounts: Account[], coverages: Coverage[]): CreateLabC
     // empty array equates to self pay
     return [];
   }
+};
+
+const formatLabListDTOs = (labLists: List[]): LabListsDTO[] | undefined => {
+  if (labLists.length === 0) return;
+  const formattedListDTOs: LabListsDTO[] = [];
+  labLists.forEach((list) => {
+    const formatted: LabListsDTO = {
+      listId: list.id ?? 'missing',
+      listName: list.title ?? 'Lab List (title missing)',
+      labs:
+        list.entry?.map((lab) => {
+          const labForList = {
+            display: lab.item.display ?? 'lab item display missing',
+            itemCode: getLabListEntryFieldFromExtension(lab.item, 'itemCode', list.id),
+            labGuid: getLabListEntryFieldFromExtension(lab.item, 'labGuid', list.id),
+          };
+          return labForList;
+        }) ?? [],
+    };
+    formattedListDTOs.push(formatted);
+  });
+  return formattedListDTOs;
+};
+
+const getLabListEntryFieldFromExtension = (
+  lab: Reference,
+  field: LabListSearchFieldKey,
+  listId: string | undefined
+): string => {
+  const searchFieldsExt = lab.extension?.find((ext) => ext.url === LAB_LIST_ITEM_SEARCH_FIELD_EXTENSION_URL);
+
+  const nestedExtensionUrl = LAB_LIST_SEARCH_FIELD_NESTED_EXTENSION_URL[field];
+
+  const fieldValue = searchFieldsExt?.extension?.find((ext) => ext.url === nestedExtensionUrl)?.valueString;
+
+  if (!fieldValue) {
+    throw Error(
+      `Lab list misconfiguration: unable to find nested extension with url ${nestedExtensionUrl} from the extension on ${JSON.stringify(
+        lab
+      )} within List/${listId}`
+    );
+  }
+
+  return fieldValue;
 };
