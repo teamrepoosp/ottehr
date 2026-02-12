@@ -26,6 +26,7 @@ import { extractReviewAndSignAppointmentData } from 'src/features/visits/telemed
 import { useApiClients } from 'src/hooks/useAppClients';
 import useEvolveUser from 'src/hooks/useEvolveUser';
 import {
+  AISuggestionNotesInput,
   APIError,
   APIErrorCode,
   CancelMatchUnsolicitedResultTask,
@@ -544,6 +545,20 @@ export const useGetIcd10Search = ({
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export const useAiSuggestionNotes = () => {
+  const apiClient = useOystehrAPIClient();
+  return useMutation({
+    mutationFn: (props: AISuggestionNotesInput) => {
+      if (!apiClient) {
+        throw new Error('api client is not defined');
+      }
+      return apiClient.aiSuggestionNotes(props);
+    },
+    retry: 2,
+  });
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const useRecommendBillingSuggestions = () => {
   const apiClient = useOystehrAPIClient();
   return useMutation({
@@ -875,7 +890,7 @@ export const useCreateUpdateMedicationOrder = () => {
 
 export const useGetMedicationOrders = (
   searchBy: GetMedicationOrdersInput['searchBy']
-): UseQueryResult<GetMedicationOrdersResponse, Error> => {
+): UseQueryResult<GetMedicationOrdersResponse | undefined, Error> => {
   const apiClient = useOystehrAPIClient();
 
   const encounterIdIsDefined = searchBy.field === 'encounterId' && searchBy.value;
@@ -886,7 +901,11 @@ export const useGetMedicationOrders = (
 
     queryFn: async () => {
       if (apiClient) {
-        return await apiClient.getMedicationOrders({ searchBy });
+        if (encounterIdIsDefined || encounterIdsHasLen) {
+          return await apiClient.getMedicationOrders({ searchBy });
+        } else {
+          return;
+        }
       }
       throw new Error('api client not defined');
     },

@@ -13,6 +13,7 @@ import { BOOKING_OVERRIDES } from '../../../ottehr-config-overrides';
 import { FHIR_EXTENSION, getFirstName, getLastName, getMiddleName, SERVICE_CATEGORY_SYSTEM } from '../../fhir';
 import { makeAnswer, pickFirstValueFromAnswerItem } from '../../helpers';
 import { flattenQuestionnaireAnswers, PatientInfo, PersonSex } from '../../types';
+import { BRANDING_CONFIG } from '../branding';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 import {
   createQuestionnaireFromConfig,
@@ -145,6 +146,14 @@ const FormFields = {
         type: 'string',
         dataType: 'Email',
       },
+      returnPatientCheck: {
+        key: 'return-patient-check',
+        label: `Have you been to ${BRANDING_CONFIG.projectName} in the past 3 years?`,
+        type: 'choice',
+        disabledDisplay: 'hidden',
+        options: VALUE_SETS.yesNoOptions,
+        triggers: [PatientDoesntExistTriggerEnableAndRequire],
+      },
       reasonForVisit: {
         key: 'reason-for-visit',
         label: 'Reason for visit',
@@ -171,7 +180,7 @@ const FormFields = {
         key: 'reason-for-visit-om',
         label: 'Reason for visit',
         type: 'choice',
-        options: VALUE_SETS.reasonForVisitVirtualOptionsOccMed,
+        options: VALUE_SETS.reasonForVisitOptionsOccMed,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -186,7 +195,7 @@ const FormFields = {
         key: 'reason-for-visit-wc',
         label: 'Reason for visit',
         type: 'choice',
-        options: VALUE_SETS.reasonForVisitVirtualOptionsWorkersComp,
+        options: VALUE_SETS.reasonForVisitOptionsWorkersComp,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -208,7 +217,7 @@ const FormFields = {
         type: 'string',
       },
     },
-    hiddenFields: [],
+    hiddenFields: ['return-patient-check'],
     requiredFields: ['patient-birth-sex', 'patient-email'],
   },
 };
@@ -234,11 +243,11 @@ const FORM_DEFAULTS = {
   FormFields,
 };
 
-const mergedBookingQConfig = _.merge(FORM_DEFAULTS, {
+const mergedBookingQConfig = mergeAndFreezeConfigObjects(FORM_DEFAULTS, {
   FormFields: BOOKING_OVERRIDES.FormFields ?? {},
   questionnaireBase: BOOKING_OVERRIDES.questionnaireBase ?? {},
+  hiddenFormSections: BOOKING_OVERRIDES.hiddenFormSections ?? [],
 });
-mergedBookingQConfig.hiddenFormSections = BOOKING_OVERRIDES.hiddenFormSections ?? FORM_DEFAULTS.hiddenFormSections;
 
 const BookingPaperworkConfigSchema = QuestionnaireConfigSchema.extend({
   FormFields: FormFieldsSchema,
@@ -262,7 +271,7 @@ const SERVICE_CATEGORIES_AVAILABLE: StrongCoding[] = [
     code: 'occupational-medicine',
     system: SERVICE_CATEGORY_SYSTEM,
   },
-  { display: 'Workmans Comp', code: 'workers-comp', system: SERVICE_CATEGORY_SYSTEM },
+  { display: 'Workers Comp', code: 'workers-comp', system: SERVICE_CATEGORY_SYSTEM },
 ];
 
 interface BookingContext {
@@ -346,6 +355,10 @@ export const mapBookingQRItemToPatientInfo = (qrItem: QuestionnaireResponseItem[
         const weight = parseFloat(pickFirstValueFromAnswerItem(item, 'string') || '');
         patientInfo.weight = Number.isNaN(weight) ? undefined : weight;
         break;
+      case 'return-patient-check':
+        patientInfo.patientBeenSeenBefore =
+          (pickFirstValueFromAnswerItem(item, 'string') ?? 'no').toLowerCase() === 'yes';
+        break;
       default:
         break;
     }
@@ -372,12 +385,25 @@ const inPersonPrebookRoutingParams: { key: string; value: string }[] = [
   { key: 'scheduleType', value: 'group' },
 ];
 
+enum VisitType {
+  InPersonWalkIn = 'in-person-walk-in',
+  InPersonPreBook = 'in-person-pre-booked',
+  InPersonPostTelemed = 'in-person-post-telemed',
+  VirtualOnDemand = 'virtual-on-demand',
+  VirtualScheduled = 'virtual-scheduled',
+}
+
+interface BookingOption {
+  id: string;
+  label: string;
+}
 export interface BookingConfig {
   serviceCategoriesEnabled: {
     serviceModes: string[];
     visitType: string[];
   };
   homepageOptions: string[];
+  ehrBookingOptions: BookingOption[];
   serviceCategories: StrongCoding[];
   formConfig: z.infer<typeof QuestionnaireConfigSchema>;
   inPersonPrebookRoutingParams: { key: string; value: string }[];
@@ -387,16 +413,45 @@ export interface BookingConfig {
   hiddenFormSections?: string[];
 }
 
+export enum HomepageOptions {
+  StartInPersonVisit = 'start-in-person-visit',
+  ScheduleInPersonVisit = 'schedule-in-person-visit',
+  StartVirtualVisit = 'start-virtual-visit',
+  ScheduleVirtualVisit = 'schedule-virtual-visit',
+}
+
 const BOOKING_DEFAULTS: BookingConfig = {
   serviceCategoriesEnabled: {
     serviceModes: ['in-person', 'virtual'],
     visitType: ['prebook', 'walk-in'],
   },
   homepageOptions: [
-    'start-in-person-visit',
-    'schedule-in-person-visit',
-    'start-virtual-visit',
-    'schedule-virtual-visit',
+    HomepageOptions.StartInPersonVisit,
+    HomepageOptions.ScheduleInPersonVisit,
+    HomepageOptions.StartVirtualVisit,
+    HomepageOptions.ScheduleVirtualVisit,
+  ],
+  ehrBookingOptions: [
+    {
+      id: VisitType.InPersonWalkIn,
+      label: 'Walk-in In Person Visit',
+    },
+    {
+      id: VisitType.InPersonPreBook,
+      label: 'Pre-booked In Person Visit',
+    },
+    {
+      id: VisitType.VirtualOnDemand,
+      label: 'On Demand Virtual Visit',
+    },
+    {
+      id: VisitType.VirtualScheduled,
+      label: 'Scheduled Virtual Visit',
+    },
+    {
+      id: VisitType.InPersonPostTelemed,
+      label: 'Post Telemed Lab Only',
+    },
   ],
   serviceCategories: SERVICE_CATEGORIES_AVAILABLE,
   formConfig,
@@ -538,4 +593,19 @@ export const prepopulateBookingForm = (input: BookingFormPrePopulationInput): Qu
   });
 
   return item;
+};
+
+export const getReasonForVisitOptionsForServiceCategory = (
+  serviceCategory: string
+): { value: string; label: string }[] => {
+  if (serviceCategory === 'occupational-medicine') {
+    return VALUE_SETS.reasonForVisitOptionsOccMed;
+  }
+  if (serviceCategory === 'workers-comp') {
+    return VALUE_SETS.reasonForVisitOptionsWorkersComp;
+  }
+  if (serviceCategory === 'urgent-care') {
+    return VALUE_SETS.reasonForVisitOptions;
+  }
+  return [];
 };

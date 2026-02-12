@@ -208,11 +208,11 @@ export interface VitalsNumericValueObservationDTO extends VitalsBaseObservationD
   value: number;
 }
 
-export type VitalsWeightOption = 'patient_refused' | 's';
+export type VitalsWeightOption = 'patient_refused';
 
 type VitalsWeightWithValueDTO = VitalsNumericValueObservationDTO & {
   field: Extract<VitalFieldNames, 'vital-weight'>;
-  extraWeightOptions?: Omit<VitalsWeightOption, 'patient_refused'>[];
+  extraWeightOptions?: VitalsWeightOption[];
 };
 
 export type VitalsWeightPatientRefusedDTO = VitalsBaseObservationDTO & {
@@ -299,6 +299,7 @@ export type AiObservationDTO = {
 export interface CPTCodeDTO extends SaveableDTO {
   code: string;
   display: string;
+  modifier?: string[];
 }
 
 export const clinicalImpressionDTOSchema = z.object({

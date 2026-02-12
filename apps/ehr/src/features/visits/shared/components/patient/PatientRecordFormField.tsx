@@ -1,20 +1,14 @@
 import { Autocomplete, Checkbox, FormControlLabel, TextField } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { QuestionnaireItemAnswerOption, Reference } from 'fhir/r4b';
-import { DateTime } from 'luxon';
 import { FC, useEffect, useRef } from 'react';
-import { Controller, RegisterOptions, useFormContext } from 'react-hook-form';
+import { Controller, useFormContext } from 'react-hook-form';
 import { BasicDatePicker, FormSelect, FormTextField } from 'src/components/form';
 import InputMask from 'src/components/InputMask';
 import { Row } from 'src/components/layout';
 import { useApiClients } from 'src/hooks/useAppClients';
-import {
-  dedupeObjectsByKey,
-  FormFieldsDisplayItem,
-  FormFieldsInputItem,
-  FormFieldTrigger,
-  REQUIRED_FIELD_ERROR_MESSAGE,
-} from 'utils';
+import { dedupeObjectsByKey, FormFieldsDisplayItem, FormFieldsInputItem } from 'utils';
+import { evaluateFieldTriggers } from './patientRecordValidation';
 
 interface PatientRecordFormFieldProps {
   item: FormFieldsInputItem | FormFieldsDisplayItem;
@@ -23,10 +17,6 @@ interface PatientRecordFormFieldProps {
   requiredFormFields?: string[];
   omitRowWrapper?: boolean;
   disabled?: boolean;
-}
-
-interface Trigger extends Omit<FormFieldTrigger, 'effect'> {
-  effect: string;
 }
 
 const PatientRecordFormField: FC<PatientRecordFormFieldProps> = (props) => {
@@ -46,121 +36,20 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
 }) => {
   const { control, watch, setValue, getValues } = useFormContext();
 
-  const { triggers, enableBehavior = 'any', disabledDisplay } = item;
+  const { enableBehavior = 'any', disabledDisplay } = item;
 
   let dynamicPopulation: FormFieldsInputItem['dynamicPopulation'];
   if (item.type !== 'display') {
     dynamicPopulation = item.dynamicPopulation;
   }
 
-  const triggeredEffects = (() => {
-    if (!triggers || triggers.length === 0) {
-      return { required: false, enabled: true };
-    }
-    const flattenedTriggers: Trigger[] = triggers.flatMap((trigger) =>
-      trigger.effect.map((ef) => {
-        return { ...trigger, effect: ef };
-      })
-    );
-    const triggerQuestions = flattenedTriggers.map((trigger) => trigger.targetQuestionLinkId);
-    const triggerValueMap = triggerQuestions.reduce(
-      (acc, linkId) => {
-        acc[linkId] = watch(linkId);
-        return acc;
-      },
-      {} as Record<string, any>
-    );
-    const triggerConditionsWithOutcomes: (Trigger & { conditionMet: boolean })[] = flattenedTriggers.map((trigger) => {
-      const currentValue = triggerValueMap[trigger.targetQuestionLinkId];
-      const { operator, answerBoolean, answerString, answerDateTime } = trigger;
-      let conditionMet = false;
-      // todo: extract this logic to a shared util function?
-      switch (operator) {
-        case 'exists':
-          if (answerBoolean === true) {
-            conditionMet = currentValue !== undefined && currentValue !== null && currentValue !== '';
-          } else if (answerBoolean === false) {
-            conditionMet = currentValue === undefined || currentValue === null || currentValue === '';
-          }
-          break;
-        case '=':
-          if (answerBoolean !== undefined) {
-            conditionMet = currentValue === answerBoolean;
-          } else if (answerString !== undefined) {
-            conditionMet = currentValue === answerString;
-          } else if (answerDateTime !== undefined) {
-            conditionMet = currentValue === answerDateTime;
-          }
-          break;
-        case '!=':
-          if (answerBoolean !== undefined) {
-            conditionMet = currentValue !== answerBoolean;
-          } else if (answerString !== undefined) {
-            conditionMet = currentValue !== answerString;
-          } else if (answerDateTime !== undefined) {
-            conditionMet = currentValue !== answerDateTime;
-          }
-          break;
-        case '>':
-          if (answerDateTime !== undefined) {
-            conditionMet = DateTime.fromISO(currentValue) > DateTime.fromISO(answerDateTime);
-          }
-          break;
-        case '<':
-          if (answerDateTime !== undefined) {
-            conditionMet = DateTime.fromISO(currentValue) < DateTime.fromISO(answerDateTime);
-          }
-          break;
-        case '>=':
-          if (answerDateTime !== undefined) {
-            conditionMet = DateTime.fromISO(currentValue) >= DateTime.fromISO(answerDateTime);
-          }
-          break;
-        case '<=':
-          if (answerDateTime !== undefined) {
-            conditionMet = DateTime.fromISO(currentValue) <= DateTime.fromISO(answerDateTime);
-          }
-          break;
-        default:
-          console.warn(`Operator ${operator} not implemented in trigger processing`);
-      }
-      return { ...trigger, conditionMet };
-    });
-    // console.log('Trigger condition outcomes for', item.key, triggerConditionsWithOutcomes);
-    return triggerConditionsWithOutcomes.reduce(
-      (acc, trigger) => {
-        if (trigger.effect === 'enable' && trigger.conditionMet) {
-          if (acc.enabled === null) {
-            acc.enabled = true;
-          } else if (enableBehavior === 'all') {
-            acc.enabled = acc.enabled && true;
-          } else {
-            acc.enabled = true;
-          }
-        } else if (trigger.effect === 'enable' && !trigger.conditionMet) {
-          if (acc.enabled === null) {
-            acc.enabled = false;
-          } else if (enableBehavior === 'all') {
-            acc.enabled = false;
-          } else {
-            acc.enabled = acc.enabled || false;
-          }
-        }
-        // only 'enable' effect supports 'all' vs 'any' behavior for now; "any" is default for all other effects
-        if (trigger.effect === 'require' && trigger.conditionMet) {
-          acc.required = true;
-        }
-        if (trigger.effect === 'require' && !trigger.conditionMet) {
-          acc.required = acc.required || false;
-        }
+  // Get current form values for trigger evaluation
+  const formValues = watch();
 
-        return acc;
-      },
-      { required: false, enabled: null as boolean | null }
-    );
-  })();
+  // Evaluate triggers using the utility function
+  const triggeredEffects = evaluateFieldTriggers(item, formValues, enableBehavior);
 
-  const isDisabled = disabled || isLoading || triggeredEffects.enabled === false;
+  const isDisabled = disabled || triggeredEffects.enabled === false;
   const isRequired = requiredFormFields?.includes(item.key) || triggeredEffects.required;
 
   // Dynamic population: when field is disabled, copy value from source field
@@ -187,79 +76,6 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
   if (isDisabled && disabledDisplay === 'hidden') {
     return null;
   }
-
-  const rules = (() => {
-    // console.log('otherGroupKeys, adding rules for', item.key);
-    const rules: any = {};
-    if (item.type === 'display') {
-      return rules;
-    }
-    if (isRequired) {
-      rules.required = REQUIRED_FIELD_ERROR_MESSAGE;
-    }
-    if (item.dataType === 'ZIP') {
-      rules.pattern = {
-        value: /^\d{5}(-\d{4})?$/,
-        message: 'Must be 5 digits',
-      };
-    }
-    if (item.dataType === 'DOB') {
-      rules.validate = (value: string) => {
-        const today = DateTime.now();
-        const dob = DateTime.fromISO(value);
-        if (!dob.isValid) {
-          return 'Please enter a valid date';
-        }
-        if (dob > today) {
-          return 'Date of birth cannot be in the future';
-        }
-        return true;
-      };
-    }
-    if (item.dataType === 'Phone Number') {
-      rules.pattern = {
-        value: /^\(\d{3}\) \d{3}-\d{4}$/,
-        message: 'Phone number must be 10 digits in the format (xxx) xxx-xxxx',
-      };
-    }
-    if (item.dataType === 'SSN') {
-      rules.pattern = {
-        value: /^\d{3}-\d{2}-\d{4}$/,
-        message: 'Please enter a valid SSN',
-      };
-    }
-    if (item.type === 'date' && item.dataType !== 'DOB') {
-      rules.validate = (value: string) => {
-        const date = DateTime.fromISO(value);
-        if (!date.isValid) {
-          return 'Please enter a valid date';
-        }
-        return true;
-      };
-    }
-    if (item.dataType === 'Email') {
-      rules.pattern = {
-        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        message: 'Must be in the format "email@example.com"',
-      };
-    }
-    if (item.key === 'insurance-priority' || item.key === 'insurance-priority-2') {
-      rules.validate = (value: string, context: any) => {
-        // todo: this validation concept would be good to lift into the paperwork validation engine
-        // hardcoding for now
-        const otherGroupKey = item.key === 'insurance-priority' ? 'insurance-priority-2' : 'insurance-priority';
-        let otherGroupValue: 'Primary' | 'Secondary' | undefined;
-        if (otherGroupKey) {
-          otherGroupValue = context[otherGroupKey];
-        }
-        if (otherGroupValue === value) {
-          return `Account may not have two ${value.toLowerCase()} insurance plans`;
-        }
-        return true;
-      };
-    }
-    return rules;
-  })();
 
   let placeholder: string | undefined;
   let mask: string | undefined;
@@ -294,7 +110,6 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                       },
                     }
               }
-              rules={rules}
             />
           );
         }
@@ -303,20 +118,22 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
             <Controller
               name={item.key}
               control={control}
-              rules={rules}
               render={({ field, fieldState: { error } }) => {
-                const selectedOption = item.options?.find((option) => option.value === field.value) ?? {
-                  label: '',
-                  value: '',
-                };
+                const emptyOption = { label: '', value: '' };
+                const selectedOption = item.options?.find((option) => option.value === field.value) ?? emptyOption;
+                const optionsWithEmpty = [emptyOption, ...(item.options ?? [])];
                 return (
                   <Autocomplete
                     {...field}
-                    options={item.options ?? []}
+                    options={optionsWithEmpty}
                     id={omitRowWrapper ? item.key : undefined}
                     value={selectedOption}
+                    getOptionLabel={(option) => option?.label || ''}
+                    isOptionEqualToValue={(option, value) => {
+                      return option.value === value.value;
+                    }}
                     onChange={(_, newValue) => {
-                      if (newValue) {
+                      if (newValue && newValue.value) {
                         setValue(item.key, newValue.value, { shouldDirty: true });
                       } else {
                         setValue(item.key, '', { shouldDirty: true });
@@ -331,7 +148,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                         variant="standard"
                         error={!!error}
                         helperText={error?.message}
-                        disabled={isDisabled}
+                        disabled={isDisabled || isLoading}
                       />
                     )}
                   />
@@ -345,9 +162,8 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
             name={item.key}
             id={omitRowWrapper ? item.key : undefined}
             control={control}
-            disabled={isDisabled}
+            disabled={isDisabled || isLoading}
             options={item.options || []}
-            rules={rules}
           />
         );
       case 'date':
@@ -356,8 +172,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
             id={omitRowWrapper ? item.key : undefined}
             name={item.key}
             control={control}
-            disabled={isDisabled}
-            rules={rules}
+            disabled={isDisabled || isLoading}
             component="Field"
           />
         );
@@ -373,7 +188,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
                     {...field}
                     checked={item.key === 'pcp-active' ? !(value ?? false) : value ?? false} // this is incredibly silly but needed to invert the logic for this one field. todo...
                     onChange={(e) => field.onChange(item.key === 'pcp-active' ? !e.target.checked : e.target.checked)}
-                    disabled={isDisabled}
+                    disabled={isDisabled || isLoading}
                   />
                 }
                 label={item.label}
@@ -386,8 +201,7 @@ const PatientRecordFormFieldContent: FC<PatientRecordFormFieldProps> = ({
           <FormTextField
             name={item.key}
             control={control}
-            disabled={isDisabled}
-            rules={rules}
+            disabled={isDisabled || isLoading}
             id={omitRowWrapper ? item.key : undefined}
             key={item.key}
             inputProps={{ mask, placeholder }}
@@ -427,10 +241,9 @@ interface DynamicReferenceFieldProps {
   item: Omit<FormFieldsInputItem | FormFieldsDisplayItem, 'options'>;
   optionStrategy: ValueSetStrategy | AnswerSourceStrategy;
   id?: string;
-  rules?: RegisterOptions;
 }
 
-const DynamicReferenceField: FC<DynamicReferenceFieldProps> = ({ item, optionStrategy, id, rules }) => {
+const DynamicReferenceField: FC<DynamicReferenceFieldProps> = ({ item, optionStrategy, id }) => {
   const { oystehrZambda } = useApiClients();
   const { control, setValue } = useFormContext();
   const optionsInput = (() => {
@@ -480,22 +293,25 @@ const DynamicReferenceField: FC<DynamicReferenceFieldProps> = ({ item, optionStr
     <Controller
       name={item.key}
       control={control}
-      rules={rules}
       render={({ field: { value }, fieldState: { error } }) => {
-        const selectedOption = answerOptions?.find((option) => option.reference === value?.reference);
+        const selectedOption = value?.reference
+          ? answerOptions?.find((option) => option.reference === value.reference)
+          : undefined;
         return (
           <Autocomplete
             options={answerOptions ?? []}
             loading={isLoading || isRefetching}
             id={id}
             loadingText={'Loading...'}
-            value={selectedOption ?? {}}
+            value={selectedOption ?? ({ display: '', reference: '' } as Reference)}
             isOptionEqualToValue={(option, value) => {
-              return option?.id === value?.id;
+              // Empty placeholder object check
+              if (!value?.reference || !option?.reference) return false;
+              return option.reference === value.reference;
             }}
-            getOptionLabel={(option) => (option.display ? option.display : '-')}
+            getOptionLabel={(option) => (option?.display ? option.display : '')}
             onChange={(_, newValue) => {
-              if (newValue) {
+              if (newValue && newValue.reference) {
                 setValue(item.key, { ...newValue }, { shouldDirty: true });
               } else {
                 setValue(item.key, null, { shouldDirty: true });

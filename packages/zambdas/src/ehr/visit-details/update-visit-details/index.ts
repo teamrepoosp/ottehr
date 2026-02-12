@@ -1,7 +1,7 @@
 import Oystehr, { BatchInputJSONPatchRequest, BatchInputPatchRequest, User } from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { Operation } from 'fast-json-patch';
-import { Appointment, Coding, Encounter, Extension, Patient } from 'fhir/r4b';
+import { Account, Appointment, Coding, Encounter, Extension, Patient } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
   BOOKING_CONFIG,
@@ -9,8 +9,10 @@ import {
   cleanUpStaffHistoryTag,
   FHIR_EXTENSION,
   FHIR_RESOURCE_NOT_FOUND,
+  getCoding,
   getCriticalUpdateTagOp,
   getReasonForVisitAndAdditionalDetailsFromAppointment,
+  getReasonForVisitOptionsForServiceCategory,
   getSecret,
   getUnconfirmedDOBIdx,
   INVALID_INPUT_ERROR,
@@ -18,11 +20,13 @@ import {
   isValidUUID,
   MISSING_REQUEST_BODY,
   MISSING_REQUIRED_PARAMETERS,
+  OCCUPATIONAL_MEDICINE_ACCOUNT_TYPE,
   REASON_ADDITIONAL_MAX_CHAR,
   Secrets,
   SecretsKeys,
+  SERVICE_CATEGORY_SYSTEM,
   userMe,
-  VALUE_SETS,
+  WORKERS_COMP_ACCOUNT_TYPE,
 } from 'utils';
 import {
   checkOrCreateM2MClientToken,
@@ -31,6 +35,7 @@ import {
   wrapHandler,
   ZambdaInput,
 } from '../../../shared';
+import { accountMatchesType } from '../../shared/harvest';
 
 const ZAMBDA_NAME = 'update-visit-details';
 
@@ -66,10 +71,13 @@ interface EffectInput extends Input {
   user: User;
   appointment: Appointment;
   encounter: Encounter;
+  workersCompAccount?: Account;
+  occupationalMedicineAccount?: Account;
 }
 
 const performEffect = async (input: EffectInput, oystehr: Oystehr): Promise<void> => {
-  const { patient, appointment, bookingDetails, user, encounter } = input;
+  const { patient, appointment, bookingDetails, user, encounter, workersCompAccount, occupationalMedicineAccount } =
+    input;
 
   const patchRequests: BatchInputJSONPatchRequest[] = [];
   if (bookingDetails.confirmedDob) {
@@ -307,6 +315,35 @@ const performEffect = async (input: EffectInput, oystehr: Oystehr): Promise<void
   }
 
   if (bookingDetails.serviceCategory) {
+    const newEncounterAccounts = (encounter.account ?? [])
+      .filter((reference) => reference.reference === 'Account/' + occupationalMedicineAccount?.id)
+      .filter((reference) => reference.reference === 'Account/' + workersCompAccount?.id);
+
+    if (bookingDetails.serviceCategory.code === 'workers-comp' && workersCompAccount) {
+      newEncounterAccounts.push({
+        reference: 'Account/' + workersCompAccount.id,
+      });
+    }
+
+    if (bookingDetails.serviceCategory.code === 'occupational-medicine' && occupationalMedicineAccount) {
+      newEncounterAccounts.push({
+        reference: 'Account/' + occupationalMedicineAccount.id,
+      });
+    }
+
+    const encounterPatch: BatchInputPatchRequest<Encounter> = {
+      method: 'PATCH',
+      url: `/Encounter/${encounter.id}`,
+      operations: [
+        {
+          op: encounter?.account ? 'replace' : 'add',
+          path: '/account',
+          value: newEncounterAccounts,
+        },
+      ],
+    };
+    patchRequests.push(encounterPatch);
+
     const appointmentPatch: BatchInputJSONPatchRequest = {
       url: '/Appointment/' + appointment.id,
       method: 'PATCH',
@@ -365,6 +402,32 @@ const complexValidation = async (input: Input, oystehr: Oystehr): Promise<Effect
     throw FHIR_RESOURCE_NOT_FOUND('Encounter');
   }
 
+  // validate the reason for visit against the service category
+  // 1. get the service category for the appointment
+  let appointmentServiceCategory = getCoding(appointment?.serviceCategory, SERVICE_CATEGORY_SYSTEM)?.code;
+  if (input.bookingDetails.serviceCategory) {
+    appointmentServiceCategory = input.bookingDetails.serviceCategory.code;
+  }
+  // 2. get the list of valid reasons for visit for that service category from the config
+  const validReasonsForVisit = getReasonForVisitOptionsForServiceCategory(appointmentServiceCategory || 'urgent-care');
+  // 3. if the reason for visit provided in the request is not in the list of valid reasons for visit, throw an error
+  const newRFV = input.bookingDetails.reasonForVisit;
+  if (newRFV) {
+    const isValidReason = validReasonsForVisit.some((reason: { value: string }) => reason.value === newRFV);
+    if (!isValidReason) {
+      throw INVALID_INPUT_ERROR(
+        `reasonForVisit "${newRFV}" is not valid for service category "${appointmentServiceCategory ?? 'urgent-care'}"`
+      );
+    }
+  }
+
+  const accounts = (
+    await oystehr.fhir.search<Account>({
+      resourceType: 'Account',
+      params: [{ name: 'patient', value: patientResource.id }],
+    })
+  ).unbundle();
+
   // const selfPay = getPaymentVariantFromEncounter(encounterResource) === PaymentVariant.selfPay;
 
   return {
@@ -373,6 +436,10 @@ const complexValidation = async (input: Input, oystehr: Oystehr): Promise<Effect
     appointment,
     encounter: encounterResource,
     user,
+    workersCompAccount: accounts.find((account) => accountMatchesType(account, WORKERS_COMP_ACCOUNT_TYPE)),
+    occupationalMedicineAccount: accounts.find((account) =>
+      accountMatchesType(account, OCCUPATIONAL_MEDICINE_ACCOUNT_TYPE)
+    ),
   };
 };
 
@@ -418,11 +485,6 @@ const validateRequestParameters = (input: ZambdaInput): Input => {
 
   if (bookingDetails.reasonForVisit && typeof bookingDetails.reasonForVisit !== 'string') {
     throw INVALID_INPUT_ERROR('reasonForVisit must be a string');
-  } else if (
-    bookingDetails.reasonForVisit &&
-    !VALUE_SETS.reasonForVisitOptions.map((option) => option.value).includes(bookingDetails.reasonForVisit)
-  ) {
-    throw INVALID_INPUT_ERROR(`reasonForVisit, "${bookingDetails.reasonForVisit}", is not a valid option`);
   }
 
   if (bookingDetails.additionalDetails && typeof bookingDetails.additionalDetails !== 'string') {

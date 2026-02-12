@@ -4,11 +4,10 @@ import { QuestionnaireResponseItem } from 'fhir/r4b';
 import * as fs from 'fs';
 import { DateTime } from 'luxon';
 import * as path from 'path';
-import { BOOKING_CONFIG, getConsentFormsForLocation } from 'utils';
+import { BOOKING_CONFIG, getConsentFormsForLocation, QuestionnaireHelper } from 'utils';
 import { CommonLocatorsHelper } from '../../utils/CommonLocatorsHelper';
 import { Locators } from '../../utils/locators';
 import { Paperwork } from '../../utils/Paperwork';
-import { QuestionnaireHelper } from '../../utils/QuestionnaireHelper';
 import { UploadDocs } from '../../utils/UploadDocs';
 import { InPersonNoPwPatient } from '../0_paperworkSetup/types';
 
@@ -420,11 +419,11 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
       await expect(locator.dateOlder18YearsError).not.toBeVisible();
       await expect(locator.dateFutureError).not.toBeVisible();
       await locator.clickContinueButton();
-      // Check which page appears (employer information is conditional)
+      // Check which page appears (Workers compensation employer information is conditional)
       await expect(locator.flowHeading).not.toHaveText('Loading...', { timeout: 60000 });
       const currentPageTitle = await locator.flowHeading.textContent();
-      if (currentPageTitle === 'Employer information') {
-        // If employer information page is shown, we'll handle it in the PEI test
+      if (currentPageTitle === 'Workers compensation employer information') {
+        // If Workers compensation employer information page is shown, we'll handle it in the PEI test
       } else {
         await paperwork.checkCorrectPageOpens('Emergency Contact');
       }
@@ -447,7 +446,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
     });
   });
 
-  test('PEI. Employer information', async () => {
+  test('PEI. Workers compensation employer information', async () => {
     test.skip(
       (() => {
         // Get the appointment service category that would be selected during test flow
@@ -472,11 +471,11 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
         // Check if employer page would be visible for this service category
         return !QuestionnaireHelper.inPersonEmployerInformationPageIsVisible(responseItems);
       })(),
-      'Employer information page not visible for this appointment type'
+      'Workers compensation employer information page not visible for this appointment type'
     );
-    await test.step('PEI-1. Open employer information page directly', async () => {
+    await test.step('PEI-1. Open Workers compensation employer information page directly', async () => {
       await page.goto(`paperwork/${patient.appointmentId}/employer-information`);
-      await paperwork.checkCorrectPageOpens('Employer information');
+      await paperwork.checkCorrectPageOpens('Workers compensation Workers compensation employer information');
     });
 
     await test.step('PEI-2. Check patient name is displayed', async () => {
@@ -486,7 +485,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
     await test.step('PEI-3. Check required fields', async () => {
       await paperwork.checkRequiredFields(
         '"Employer Name","Employer Address","City","State","ZIP","First name","Last name","Mobile"',
-        'Employer information',
+        'Workers compensation employer information',
         true
       );
     });
@@ -500,7 +499,7 @@ test.describe.parallel('In-Person - No Paperwork Filled Yet', () => {
 
     await test.step('PEI-5. Click on [Back] - all values are saved', async () => {
       await locator.clickBackButton();
-      await paperwork.checkCorrectPageOpens('Employer information');
+      await paperwork.checkCorrectPageOpens('Workers compensation employer information');
       await expect(locator.employerName).toHaveValue(employerInformationData.employerName);
       await expect(locator.employerAddress1).toHaveValue(employerInformationData.address1);
       await expect(locator.employerAddress2).toHaveValue(employerInformationData.address2);

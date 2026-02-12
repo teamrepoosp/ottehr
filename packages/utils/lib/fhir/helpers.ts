@@ -57,6 +57,7 @@ import {
 } from 'utils';
 import {
   BookableResource,
+  CPTCodeDTO,
   EncounterVirtualServiceExtension,
   HealthcareServiceWithLocationContext,
   PractitionerLicense,
@@ -626,10 +627,11 @@ export const getAbbreviationFromLocation = (location: Location): string | undefi
   return location.address?.state;
 };
 
-export function getTaskResource(coding: TaskCoding, appointmentID: string, encounterId?: string): Task {
+export function getTaskResource(coding: TaskCoding, title: string, appointmentID: string, encounterId?: string): Task {
   return {
     resourceType: 'Task',
     status: 'requested',
+    description: title,
     intent: 'plan',
     focus: {
       type: 'Appointment',
@@ -1417,4 +1419,10 @@ export function getResponsiblePartyFromAccount(
   const responsiblePartyRef = getActiveAccountGuarantorReference(account);
   if (!responsiblePartyRef) return undefined;
   return takeContainedOrFind<RelatedPerson | Patient>(responsiblePartyRef, resources, account);
+}
+
+export function makeCptCodeDisplay(cptCode: CPTCodeDTO): string {
+  const modifiersString =
+    cptCode.modifier && cptCode.modifier.length > 0 ? `${cptCode.modifier.map((mod) => `-${mod}`).join('')}` : '';
+  return `${cptCode.code}${modifiersString} ${cptCode.display}`;
 }

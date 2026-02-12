@@ -34,6 +34,7 @@ import {
   getAppointmentDurationFromSlot,
   getCanonicalQuestionnaire,
   getCoding,
+  getFullestAvailableName,
   getSecret,
   getTaskResource,
   isValidUUID,
@@ -41,6 +42,7 @@ import {
   OTTEHR_MODULE,
   PATIENT_BILLING_ACCOUNT_TYPE,
   PatientInfo,
+  RETURNING_PATIENT_META_TAG,
   ScheduleOwnerFhirResource,
   Secrets,
   SecretsKeys,
@@ -118,7 +120,19 @@ export const index = wrapHandler('create-appointment', async (input: ZambdaInput
     console.log('effectInput', effectInput);
     console.timeEnd('performing-complex-validation');
 
-    const appointmentMetadata = injectMetadataIfNeeded(maybeMetadata);
+    let appointmentMetadata = injectMetadataIfNeeded(maybeMetadata);
+
+    if (patient.patientBeenSeenBefore) {
+      if (!appointmentMetadata) {
+        appointmentMetadata = {
+          tag: [RETURNING_PATIENT_META_TAG()],
+        };
+      } else if (!appointmentMetadata.tag) {
+        appointmentMetadata.tag = [RETURNING_PATIENT_META_TAG()];
+      } else {
+        appointmentMetadata.tag.push(RETURNING_PATIENT_META_TAG());
+      }
+    }
 
     console.log('creating appointment with metadata: ', JSON.stringify(appointmentMetadata));
 
@@ -602,7 +616,11 @@ export const performTransactionalFhirRequests = async (input: TransactionInput):
     patientRequests.push(createPatientRequest);
   }
 
-  const confirmationTextTask = getTaskResource(TaskIndicator.confirmationMessages, apptUrl);
+  const confirmationTextTask = getTaskResource(
+    TaskIndicator.confirmationMessages,
+    `Send confirmation text to ${getFullestAvailableName(patientToUse)}`,
+    apptUrl
+  );
   const taskRequest: BatchInputPostRequest<Task> = {
     method: 'POST',
     url: '/Task',

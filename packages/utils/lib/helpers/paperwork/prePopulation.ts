@@ -29,7 +29,12 @@ import {
   PREFERRED_PHARMACY_PLACES_ID_URL,
   PRIVATE_EXTENSION_BASE_URL,
 } from '../../fhir';
-import { DOES_NOT_HAVE_ATTORNEY_OPTION, HAS_ATTORNEY_OPTION, INSURANCE_PAY_OPTION } from '../../ottehr-config';
+import {
+  DOES_NOT_HAVE_ATTORNEY_OPTION,
+  HAS_ATTORNEY_OPTION,
+  INSURANCE_PAY_OPTION,
+  VALUE_SETS,
+} from '../../ottehr-config';
 import {
   COVERAGE_ADDITIONAL_INFORMATION_URL,
   PATIENT_GENDER_IDENTITY_URL,
@@ -39,6 +44,7 @@ import {
   PHARMACY_COLLECTION_LINK_IDS,
   PRACTICE_NAME_URL,
   PREFERRED_COMMUNICATION_METHOD_EXTENSION_URL,
+  REASON_FOR_VISIT_SEPARATOR,
 } from '../../types';
 import { formatPhoneNumberDisplay, getCandidPlanTypeCodeFromCoverage, getPayerId } from '../helpers';
 
@@ -151,6 +157,29 @@ export const makePrepopulatedItemsForPatient = (input: PrePopulationInput): Ques
   const patientFirstName = getFirstName(patient) ?? '';
   const patientLastName = getLastName(patient) ?? '';
 
+  // https://github.com/masslight/ottehr/issues/5984 - because the "additional info / tell us more" field gets appended
+  // to the selected reason for visit, before it is passed in here, we need to normalize it back to just the selected option
+  // or it could break any fields that depend on exact matching of the reason for visit logical field value.
+  let normalizedReasonForVisit = reasonForVisit;
+  if (reasonForVisit) {
+    const [reasonOption] = reasonForVisit.split(REASON_FOR_VISIT_SEPARATOR);
+    if (reasonOption && reasonOption !== normalizedReasonForVisit) {
+      if (
+        appointmentServiceCategory === 'occupational-medicine' &&
+        VALUE_SETS.reasonForVisitOptionsOccMed.map((opt) => opt.value).includes(reasonOption)
+      ) {
+        normalizedReasonForVisit = reasonOption;
+      } else if (
+        appointmentServiceCategory === 'workers-comp' &&
+        VALUE_SETS.reasonForVisitOptionsWorkersComp.map((opt) => opt.value).includes(reasonOption)
+      ) {
+        normalizedReasonForVisit = reasonOption;
+      } else if (VALUE_SETS.reasonForVisitOptions.map((opt) => opt.value).includes(reasonOption)) {
+        normalizedReasonForVisit = reasonOption;
+      }
+    }
+  }
+
   const item: QuestionnaireResponseItem[] = (questionnaire.item ?? []).map((item) => {
     const populatedItem: QuestionnaireResponseItem[] = (() => {
       const itemItems = (item.item ?? []).filter((i: QuestionnaireItem) => i.type !== 'display');
@@ -219,8 +248,8 @@ export const makePrepopulatedItemsForPatient = (input: PrePopulationInput): Ques
           if (linkId === 'appointment-service-category' && appointmentServiceCategory) {
             answer = makeAnswer(appointmentServiceCategory);
           }
-          if (linkId === 'reason-for-visit' && reasonForVisit) {
-            answer = makeAnswer(reasonForVisit);
+          if (linkId === 'reason-for-visit' && normalizedReasonForVisit) {
+            answer = makeAnswer(normalizedReasonForVisit);
           }
 
           return {
@@ -278,6 +307,7 @@ export const makePrepopulatedItemsForPatient = (input: PrePopulationInput): Ques
         return mapGuarantorToQuestionnaireResponseItems({
           items: itemItems,
           guarantorResource: accountInfo?.guarantorResource,
+          patient,
         });
       } else if (EMERGENCY_CONTACT_ITEMS.includes(item.linkId)) {
         return mapEmergencyContactToQuestionnaireResponseItems({
@@ -451,7 +481,7 @@ export const makePrepopulatedItemsFromPatientRecord = (
         });
       }
       if (GUARANTOR_ITEMS.includes(item.linkId)) {
-        return mapGuarantorToQuestionnaireResponseItems({ items: itemItems, guarantorResource });
+        return mapGuarantorToQuestionnaireResponseItems({ items: itemItems, guarantorResource, patient });
       }
       if (EMERGENCY_CONTACT_ITEMS.includes(item.linkId)) {
         return mapEmergencyContactToQuestionnaireResponseItems({
@@ -1257,10 +1287,11 @@ const GUARANTOR_ITEMS = ['responsible-party-section', 'responsible-party-page'];
 interface MapGuarantorItemsInput {
   items: QuestionnaireItem[];
   guarantorResource?: RelatedPerson | Patient;
+  patient?: Patient;
 }
 
 const mapGuarantorToQuestionnaireResponseItems = (input: MapGuarantorItemsInput): QuestionnaireResponseItem[] => {
-  const { guarantorResource, items } = input;
+  const { guarantorResource, patient, items } = input;
 
   const phone = formatPhoneNumberDisplay(
     guarantorResource?.telecom?.find((c) => c.system === 'phone' && c.period?.end === undefined)?.value ?? ''
@@ -1302,6 +1333,15 @@ const mapGuarantorToQuestionnaireResponseItems = (input: MapGuarantorItemsInput)
   const state = guarantorAddress?.state;
   const zip = guarantorAddress?.postalCode;
 
+  let addressSameAsPatient: boolean = false;
+
+  if (patient && guarantorResource) {
+    const patientAddress = patient.address?.[0];
+    if (patientAddress && guarantorAddress) {
+      addressSameAsPatient = areAddressesEqual(patientAddress, guarantorAddress);
+    }
+  }
+
   return items.map((item) => {
     let answer: QuestionnaireResponseItemAnswer[] | undefined;
     const { linkId } = item;
@@ -1341,6 +1381,9 @@ const mapGuarantorToQuestionnaireResponseItems = (input: MapGuarantorItemsInput)
     }
     if (linkId === 'responsible-party-zip' && zip) {
       answer = makeAnswer(zip);
+    }
+    if (linkId === 'responsible-party-address-as-patient') {
+      answer = makeAnswer(addressSameAsPatient, 'Boolean');
     }
     return {
       linkId,

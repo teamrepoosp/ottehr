@@ -41,7 +41,6 @@ export const RosField: FC = () => {
   const isUpdatingFromServer = useRef(false);
   const isInitialized = useRef(false);
   const lastContent = useRef<string>('');
-  const hadUserInput = useRef(false);
   const hadServerValue = useRef(false);
 
   const editor = useEditor({
@@ -56,37 +55,28 @@ export const RosField: FC = () => {
         placeholder: 'ROS (Optional) - Type [ ] for checklist items, or just type notes...',
       }),
     ],
-    content: chartDataFields?.ros?.text || '',
-    editable: !isRosChartDataLoading,
     editorProps: {
-      handlePaste: (view, event) => {
+      handlePaste(_, event) {
         const text = event.clipboardData?.getData('text/plain');
-        if (text) {
-          // Check if it looks like markdown
-          const hasMarkdownSyntax = /[#*\-[\]`]/.test(text);
-          if (hasMarkdownSyntax && editor) {
-            event.preventDefault();
-            editor.commands.setContent(text, { contentType: 'markdown' });
-            return true;
-          }
-        }
-        return false;
+        if (!text) return false;
+
+        event.preventDefault();
+
+        editor?.commands.insertContent(text, {
+          contentType: 'markdown',
+        });
+
+        return true;
       },
     },
+    content: chartDataFields?.ros?.text || '',
+    editable: !isRosChartDataLoading,
     onUpdate: ({ editor }) => {
       if (isUpdatingFromServer.current || !isInitialized.current) return;
 
       const { raw, normalized } = normalizeMarkdown(editor.getMarkdown());
 
-      if (raw !== '') {
-        hadUserInput.current = true;
-      }
-
       if (normalized === '' && raw !== '' && !hadServerValue.current) {
-        return;
-      }
-
-      if (normalized === '' && !hadServerValue.current) {
         return;
       }
 
