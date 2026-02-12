@@ -15,7 +15,6 @@ const isChunkLoadError = (error: any): boolean => {
     errorString.includes('Failed to fetch dynamically imported module') ||
     errorString.includes('Importing a module script failed') ||
     errorString.includes('error loading dynamically imported module') ||
-    errorString.includes('Failed to fetch') ||
     errorString.includes('Loading chunk') ||
     error?.name === 'ChunkLoadError'
   );
@@ -75,7 +74,8 @@ root.render(
               errorString.includes('Failed to fetch dynamically imported module') ||
               errorString.includes('Importing a module script failed') ||
               errorString.includes('error loading dynamically imported module') ||
-              errorString.includes('Failed to fetch')
+              errorString.includes('Loading chunk') ||
+              (error as any)?.name === 'ChunkLoadError'
             ) {
               console.log('Chunk loading error detected, reloading page...');
               location.reload();
