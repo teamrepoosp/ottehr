@@ -32,13 +32,15 @@ export interface FileUpload {
   };
 }
 
+export interface FileURLInfo {
+  localUrl?: string;
+  presignedUrl?: string;
+  z3Url?: string;
+  imgBase64?: string;
+  description?: string;
+}
 export interface FileURLs {
-  [key: string]: {
-    localUrl?: string;
-    presignedUrl?: string;
-    z3Url?: string;
-    imgBase64?: string;
-  };
+  [key: string]: FileURLInfo;
 }
 export interface AvailableLocationInformation {
   id: string | undefined;
@@ -103,6 +105,8 @@ export type FormItemType =
   | 'Credit Card'
   | 'Medical History'
   | 'Call Out'
+  | 'Link'
+  | 'Decimal'
   | undefined;
 
 export type PromiseReturnType<T> = T extends Promise<infer R> ? R : never;

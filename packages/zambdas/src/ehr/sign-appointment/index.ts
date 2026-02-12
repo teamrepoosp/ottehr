@@ -8,6 +8,7 @@ import {
   getAppointmentLockMetaTagOperations,
   getAppointmentMetaTagOpForStatusUpdate,
   getEncounterStatusHistoryUpdateOp,
+  getFullestAvailableName,
   getInPersonVisitStatus,
   getPatchBinary,
   getSecret,
@@ -100,8 +101,14 @@ export const performEffect = async (
     if (appointment.id === undefined) {
       throw new Error('Appointment ID is not defined');
     }
+    const patientName = getFullestAvailableName(patient);
 
-    const followupPDFTaskResource = getTaskResource(TaskIndicator.visitNotePDFAndEmail, appointment.id, encounterId);
+    const followupPDFTaskResource = getTaskResource(
+      TaskIndicator.visitNotePDFAndEmail,
+      `Create follow-up visit note for ${patientName}`,
+      appointment.id,
+      encounterId
+    );
     const visitNoteTaskPromise = oystehr.fhir.create(followupPDFTaskResource);
 
     const taskCreationResults = await Promise.all([visitNoteTaskPromise]);
@@ -117,9 +124,15 @@ export const performEffect = async (
       throw new Error('Appointment ID is not defined');
     }
 
+    const patientName = getFullestAvailableName(patient);
+
     const tasks: Promise<Task>[] = [];
     // Create Task that will kick off subscription to send the claim
-    const sendClaimTaskResource = getTaskResource(TaskIndicator.sendClaim, appointment.id);
+    const sendClaimTaskResource = getTaskResource(
+      TaskIndicator.sendClaim,
+      `Send claim to ${patientName}`,
+      appointment.id
+    );
     tasks.push(oystehr.fhir.create(sendClaimTaskResource));
 
     // Create Task that will kick off subscription to create visit-note PDF and send an email to the patient
@@ -138,7 +151,11 @@ export const performEffect = async (
       }
     }
     if (shouldCreateVisitNoteTask) {
-      const visitNoteTaskResource = getTaskResource(TaskIndicator.visitNotePDFAndEmail, appointment.id);
+      const visitNoteTaskResource = getTaskResource(
+        TaskIndicator.visitNotePDFAndEmail,
+        `Create visit note for ${patientName}`,
+        appointment.id
+      );
       tasks.push(oystehr.fhir.create(visitNoteTaskResource));
     }
 

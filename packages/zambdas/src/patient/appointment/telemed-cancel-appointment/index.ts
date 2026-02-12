@@ -167,8 +167,8 @@ async function performEffect(props: PerformEffectInput): Promise<APIGatewayProxy
       {
         // todo reassess codes and reasons, just using custom codes atm
         system: `${FHIR_ZAPEHR_URL}/CodeSystem/appointment-cancellation-reason`,
-        code: cancellationReason.value,
-        display: cancellationReasonAdditional || cancellationReason.label,
+        code: cancellationReason,
+        display: cancellationReasonAdditional || cancellationReason,
       },
     ],
     oystehr
@@ -180,7 +180,7 @@ async function performEffect(props: PerformEffectInput): Promise<APIGatewayProxy
   const locationId = getLocationIdFromAppointment(appointment);
   let location: Location | undefined;
   if (locationId) location = await getLocationResource(locationId, oystehr);
-  const locationName = location?.name as string;
+  const locationName = location?.name;
   try {
     const email = getPatientContactEmail(patient);
     if (email) {

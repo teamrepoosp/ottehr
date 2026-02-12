@@ -2,6 +2,7 @@ import { DeleteOutlined as DeleteIcon } from '@mui/icons-material';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { Box, IconButton, Typography, useTheme } from '@mui/material';
+import { DateTime } from 'luxon';
 import React, { JSX, useState } from 'react';
 import {
   celsiusToFahrenheit,
@@ -11,6 +12,7 @@ import {
   formatWeightKg,
   formatWeightLbs,
   getVisionExtraOptionsFormattedString,
+  roundTemperatureValue,
   vitalsConfig,
   VitalsObservationDTO,
 } from 'utils';
@@ -124,7 +126,10 @@ export const getObservationValueElements = (
   // todo: it would be cool if the units came from the Observation resource
   switch (historyEntry.field) {
     case 'vital-temperature':
-      return [`${historyEntry.value} C`, ` = ${celsiusToFahrenheit(historyEntry.value).toFixed(1)} F`];
+      return [
+        `${roundTemperatureValue(historyEntry.value)} C`,
+        ` = ${celsiusToFahrenheit(historyEntry.value).toFixed(1)} F`,
+      ];
     case 'vital-oxygen-sat':
       return [`${historyEntry.value}%`];
     case 'vital-heartbeat':
@@ -166,6 +171,13 @@ export const getObservationValueElements = (
           </Typography>
         </>,
       ];
+    case 'vital-last-menstrual-period': {
+      const date = DateTime.fromISO(historyEntry.value);
+      return [
+        date.isValid ? date.toFormat('MM/dd/yyyy') : historyEntry.value,
+        historyEntry.isUnsure ? ' (unsure)' : '',
+      ];
+    }
     default:
       return [];
   }

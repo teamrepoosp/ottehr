@@ -27,7 +27,6 @@ import {
   Organization,
   Patient,
   Practitioner,
-  QuestionnaireResponse,
   Reference,
   RelatedPerson,
   Resource,
@@ -57,6 +56,7 @@ import {
 } from 'utils';
 import {
   BookableResource,
+  CPTCodeDTO,
   EncounterVirtualServiceExtension,
   HealthcareServiceWithLocationContext,
   PractitionerLicense,
@@ -114,10 +114,12 @@ export function getNPI(resource: Practitioner | Organization | Location | Health
     return ident.system === FHIR_IDENTIFIER_NPI;
   })?.value;
 }
-export function getTaxID(resource: Practitioner | Organization | Location | HealthcareService): string | undefined {
+export function getTaxID(
+  resource: Practitioner | Organization | Location | HealthcareService | Patient
+): string | undefined {
   // https://docs.oystehr.com/services/rcm/eligibility/#provider-practitioner--practitionerrole--organization
   return resource.identifier?.find((ident) => {
-    if (resource.resourceType === 'Practitioner') {
+    if (resource.resourceType === 'Practitioner' || resource.resourceType === 'Patient') {
       return ident.type?.coding?.some(
         (tc) =>
           tc.system === FHIR_IDENTIFIER_SYSTEM &&
@@ -624,10 +626,11 @@ export const getAbbreviationFromLocation = (location: Location): string | undefi
   return location.address?.state;
 };
 
-export function getTaskResource(coding: TaskCoding, appointmentID: string, encounterId?: string): Task {
+export function getTaskResource(coding: TaskCoding, title: string, appointmentID: string, encounterId?: string): Task {
   return {
     resourceType: 'Task',
     status: 'requested',
+    description: title,
     intent: 'plan',
     focus: {
       type: 'Appointment',
@@ -824,13 +827,6 @@ export const getUnconfirmedDOBIdx = (appointment?: Appointment): number | undefi
   return appointment.extension?.findIndex((ext) => {
     return ext.url.replace('http:', 'https:') === FHIR_EXTENSION.Appointment.unconfirmedDateOfBirth.url;
   });
-};
-
-export const getIpAddress = (questionnaireResponse?: QuestionnaireResponse): string | undefined => {
-  if (!questionnaireResponse) return;
-  return questionnaireResponse.extension?.find((ext) => {
-    return ext.url.replace('http:', 'https:') === FHIR_EXTENSION.QuestionnaireResponse.ipAddress.url;
-  })?.valueString;
 };
 
 export function filterResources(allResources: Resource[], resourceType: string): Resource[] {
@@ -1415,4 +1411,10 @@ export function getResponsiblePartyFromAccount(
   const responsiblePartyRef = getActiveAccountGuarantorReference(account);
   if (!responsiblePartyRef) return undefined;
   return takeContainedOrFind<RelatedPerson | Patient>(responsiblePartyRef, resources, account);
+}
+
+export function makeCptCodeDisplay(cptCode: CPTCodeDTO): string {
+  const modifiersString =
+    cptCode.modifier && cptCode.modifier.length > 0 ? `${cptCode.modifier.map((mod) => `-${mod}`).join('')}` : '';
+  return `${cptCode.code}${modifiersString} ${cptCode.display}`;
 }

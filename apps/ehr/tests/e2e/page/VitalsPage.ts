@@ -1,5 +1,8 @@
 import { expect, Page } from '@playwright/test';
 import { dataTestIds } from 'src/constants/data-test-ids';
+import { waitForChartDataDeletion, waitForSaveChartDataResponse } from 'test-utils';
+import { EditNoteDialog, expectEditNoteDialog } from './in-person/EditNoteDialog';
+import { Dialog, expectDialog } from './patient-information/Dialog';
 
 export class VitalsPage {
   #page: Page;
@@ -8,19 +11,18 @@ export class VitalsPage {
     this.#page = page;
   }
 
-  async addTemperatureObservation(temperature: string): Promise<void> {
+  async addTemperatureObservation(temperature: string, abnormal = false): Promise<void> {
     const input = this.#page.getByTestId(dataTestIds.vitalsPage.temperatureInput).locator('input');
     await input.fill(temperature);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.temperatureAddButton);
     await addButton.click();
-  }
-
-  async checkAddedTemperatureObservationInHistory(temperature: string): Promise<void> {
-    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.temperatureItem)).toContainText(temperature);
-  }
-
-  async checkAddedTemperatureIsShownInHeader(temperature: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.temperatureHeader)).toContainText(temperature);
+    const itemLocator = this.#page.getByTestId(dataTestIds.vitalsPage.temperatureItem).filter({ hasText: temperature });
+    await expect(itemLocator).toBeVisible();
+    if (abnormal) {
+      await expect(itemLocator.getByTestId(dataTestIds.vitalsPage.abnormalVitalIcon)).toBeVisible();
+    }
   }
 
   async removeTemperatureObservationFromHistory(temperature: string): Promise<void> {
@@ -33,6 +35,8 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${temperature}.*C`))).not.toBeVisible();
   }
 
   async addHeartbeatObservation(heartbeat: string): Promise<void> {
@@ -40,13 +44,8 @@ export class VitalsPage {
     await input.fill(heartbeat);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.heartbeatAddButton);
     await addButton.click();
-  }
-
-  async checkAddedHeartbeatObservationInHistory(heartbeat: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.heartbeatItem).first()).toContainText(heartbeat);
-  }
-
-  async checkAddedHeartbeatIsShownInHeader(heartbeat: string): Promise<void> {
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.heartbeatHeader)).toContainText(heartbeat);
   }
 
@@ -60,6 +59,8 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${heartbeat}.*bpm`))).not.toBeVisible();
   }
 
   async addRespirationRateObservation(respirationRate: string): Promise<void> {
@@ -67,15 +68,10 @@ export class VitalsPage {
     await input.fill(respirationRate);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.respirationRateAddButton);
     await addButton.click();
-  }
-
-  async checkAddedRespirationRateObservationInHistory(respirationRate: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.respirationRateItem).first()).toContainText(
       respirationRate
     );
-  }
-
-  async checkAddedRespirationRateIsShownInHeader(respirationRate: string): Promise<void> {
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.respirationRateHeader)).toContainText(respirationRate);
   }
 
@@ -89,6 +85,9 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+
+    await expect(this.#page.getByText(new RegExp(`${respirationRate}.*breaths/min`))).not.toBeVisible();
   }
 
   async addBloodPressureObservation(systolic: string, diastolic: string): Promise<void> {
@@ -100,15 +99,11 @@ export class VitalsPage {
 
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.bloodPressureAddButton);
     await addButton.click();
-  }
+    await waitForSaveChartDataResponse(this.#page);
 
-  async checkAddedBloodPressureObservationInHistory(systolic: string, diastolic: string): Promise<void> {
     const item = this.#page.getByTestId(dataTestIds.vitalsPage.bloodPressureItem).first();
     await expect(item).toContainText(systolic);
     await expect(item).toContainText(diastolic);
-  }
-
-  async checkAddedBloodPressureIsShownInHeader(systolic: string, diastolic: string): Promise<void> {
     const header = this.#page.getByTestId(dataTestIds.vitalsPage.bloodPressureHeader);
     await expect(header).toContainText(systolic);
     await expect(header).toContainText(diastolic);
@@ -124,6 +119,8 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${systolic}/${diastolic}.*mmHg`))).not.toBeVisible();
   }
 
   async addOxygenSaturationObservation(oxygenSat: string): Promise<void> {
@@ -131,14 +128,9 @@ export class VitalsPage {
     await input.fill(oxygenSat);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.oxygenSaturationAddButton);
     await addButton.click();
-  }
-
-  async checkAddedOxygenSaturationObservationInHistory(oxygenSat: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.oxygenSaturationItem).first()).toContainText(oxygenSat);
-  }
-
-  async checkAddedOxygenSaturationIsShownInHeader(oxygenSaturation: string): Promise<void> {
-    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.oxygenSaturationHeader)).toContainText(oxygenSaturation);
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.oxygenSaturationHeader)).toContainText(oxygenSat);
   }
 
   async removeOxygenSaturationObservationFromHistory(oxygenSaturation: string): Promise<void> {
@@ -151,6 +143,8 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${oxygenSaturation}.*%`))).not.toBeVisible();
   }
 
   async addWeightObservation(weight: string): Promise<void> {
@@ -158,13 +152,8 @@ export class VitalsPage {
     await input.fill(weight);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.weightAddButton);
     await addButton.click();
-  }
-
-  async checkAddedWeightObservationInHistory(weight: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.weightItem).first()).toContainText(weight);
-  }
-
-  async checkAddedWeightIsShownInHeader(weight: string): Promise<void> {
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.weightHeader)).toContainText(weight);
   }
 
@@ -178,18 +167,32 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${weight}.*kg`))).not.toBeVisible();
+  }
+
+  async removePatientRefusedWeightObservationFromHistory(weight: string): Promise<void> {
+    await this.#page
+      .getByTestId(dataTestIds.vitalsPage.weightItem)
+      .filter({ hasText: weight })
+      .getByTestId(dataTestIds.deleteOutlinedIcon)
+      .click();
+    await this.#page
+      .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
+      .getByTestId(dataTestIds.dialog.proceedButton)
+      .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(
+      this.#page.getByTestId(dataTestIds.vitalsPage.weightItem).first().getByText('Patient Refused')
+    ).not.toBeVisible();
   }
 
   async addWeightObservationPatientRefused(): Promise<void> {
     const patientRefusedCheckbox = this.#page.getByTestId(dataTestIds.vitalsPage.weightPatientRefusedCheckbox);
     await patientRefusedCheckbox.check();
-
-    const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.weightAddButton);
-    await addButton.click();
-  }
-
-  async checkPatientRefusedInHistory(): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.weightItem).first()).toContainText('Patient Refused');
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.weightHeader)).toContainText('Patient Refused');
   }
 
   async addHeightObservation(height: string): Promise<void> {
@@ -197,13 +200,8 @@ export class VitalsPage {
     await input.fill(height);
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.heightAddButton);
     await addButton.click();
-  }
-
-  async checkAddedHeightObservationInHistory(height: string): Promise<void> {
+    await waitForSaveChartDataResponse(this.#page);
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.heightItem).first()).toContainText(height);
-  }
-
-  async checkAddedHeightIsShownInHeader(height: string): Promise<void> {
     await expect(this.#page.getByTestId(dataTestIds.vitalsPage.heightHeader)).toContainText(height);
   }
 
@@ -217,6 +215,8 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(this.#page.getByText(new RegExp(`${height}.*cm`))).not.toBeVisible();
   }
 
   async addVisionObservation(leftEye: string, rightEye: string): Promise<void> {
@@ -228,15 +228,11 @@ export class VitalsPage {
 
     const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.visionAddButton);
     await addButton.click();
-  }
+    await waitForSaveChartDataResponse(this.#page);
 
-  async checkAddedVisionObservationInHistory(leftEye: string, rightEye: string): Promise<void> {
     const item = this.#page.getByTestId(dataTestIds.vitalsPage.visionItem).first();
     await expect(item).toContainText(leftEye);
     await expect(item).toContainText(rightEye);
-  }
-
-  async checkAddedVisionIsShownInHeader(leftEye: string, rightEye: string): Promise<void> {
     const header = this.#page.getByTestId(dataTestIds.vitalsPage.visionHeader);
     await expect(header).toContainText(leftEye);
     await expect(header).toContainText(rightEye);
@@ -253,6 +249,118 @@ export class VitalsPage {
       .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
       .getByTestId(dataTestIds.dialog.proceedButton)
       .click();
+    await waitForChartDataDeletion(this.#page);
+
+    await expect(
+      this.#page.getByText(new RegExp(`Vision Left eye: ${leftEye}; Right eye: ${rightEye}`))
+    ).not.toBeVisible();
+  }
+
+  async addLastMenstrualPeriodObservation(date: string): Promise<void> {
+    const dateInput = this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodDateInput);
+    await dateInput.click();
+    await dateInput.pressSequentially(date);
+    const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodAddButton);
+    await addButton.click();
+    await waitForSaveChartDataResponse(this.#page);
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodItem).first()).toContainText(date);
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodHeader)).toContainText(date);
+  }
+
+  async addLastMenstrualPeriodObservationUnsure(date: string): Promise<void> {
+    const unsureCheckbox = this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodUnsureCheckbox);
+    await unsureCheckbox.check();
+
+    const dateInput = this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodDateInput);
+    await dateInput.click();
+    await dateInput.pressSequentially(date);
+
+    const addButton = this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodAddButton);
+    await addButton.click();
+    await waitForSaveChartDataResponse(this.#page);
+  }
+
+  async checkUnsureInHistory(date: string): Promise<void> {
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodItem).first()).toContainText(
+      `${date} (unsure)`
+    );
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodHeader)).toContainText('Unsure');
+  }
+
+  async checkAddedLastMenstrualPeriodUnsureIsShownInHeader(date: string): Promise<void> {
+    await expect(this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodHeader)).toContainText(
+      `${date} (unsure)`
+    );
+  }
+
+  async removeLastMenstrualPeriodObservationFromHistory(text: string): Promise<void> {
+    await this.#page
+      .getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodItem)
+      .filter({ hasText: text })
+      .getByTestId(dataTestIds.deleteOutlinedIcon)
+      .click();
+    await this.#page
+      .getByTestId(dataTestIds.vitalsPage.deleteVitalModal)
+      .getByTestId(dataTestIds.dialog.proceedButton)
+      .click();
+    await waitForChartDataDeletion(this.#page);
+    await expect(
+      this.#page.getByTestId(dataTestIds.vitalsPage.lastMenstrualPeriodItem).first().getByText('Unsure')
+    ).not.toBeVisible();
+  }
+
+  async addVitalsNote(note: string): Promise<void> {
+    await this.#page
+      .getByTestId(dataTestIds.screeningPage.screeningNoteField)
+      .locator('input')
+      .locator('visible=true')
+      .fill(note);
+    await this.#page.getByTestId(dataTestIds.vitalsPage.addNoteButton).click();
+    await this.#verifyVitalsNote(note);
+  }
+
+  async editVitalsNote(originalNote: string, editedNote: string): Promise<void> {
+    const editDialog = await this.#clickEditNoteButton(originalNote);
+    await editDialog.verifyTitle('Edit Vitals Note');
+    await editDialog.clearNote();
+    await editDialog.enterNote(editedNote);
+    await editDialog.clickProceedButton();
+    await this.#verifyVitalsNote(editedNote);
+  }
+
+  async deleteVitalsNote(originalNote: string): Promise<void> {
+    const deleteDialog = await this.#clickDeleteNoteButton(originalNote);
+    await deleteDialog.verifyTitle('Delete vitals note');
+    await deleteDialog.verifyModalContent('Are you sure you want to permanently delete this vitals note?');
+    await deleteDialog.verifyModalContent(originalNote);
+    await deleteDialog.clickProceedButton();
+    await expect(
+      this.#page.getByTestId(dataTestIds.screeningPage.screeningNoteItem).filter({ hasText: originalNote })
+    ).toHaveCount(0);
+  }
+
+  async #clickEditNoteButton(note: string): Promise<EditNoteDialog> {
+    await this.#page
+      .getByTestId(dataTestIds.screeningPage.screeningNoteItem)
+      .filter({ hasText: note })
+      .getByTestId(dataTestIds.vitalsPage.pencilIconButton)
+      .click();
+    return expectEditNoteDialog(this.#page);
+  }
+
+  async #verifyVitalsNote(note: string): Promise<void> {
+    await expect(
+      this.#page.getByTestId(dataTestIds.screeningPage.screeningNoteItem).filter({ hasText: note })
+    ).toBeVisible();
+  }
+
+  async #clickDeleteNoteButton(note: string): Promise<Dialog> {
+    await this.#page
+      .getByTestId(dataTestIds.screeningPage.screeningNoteItem)
+      .filter({ hasText: note })
+      .getByTestId(dataTestIds.vitalsPage.deleteIcon)
+      .click();
+    return expectDialog(this.#page);
   }
 }
 

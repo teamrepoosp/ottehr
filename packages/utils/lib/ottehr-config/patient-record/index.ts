@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { z } from 'zod';
 import { PATIENT_RECORD_OVERRIDES as OVERRIDES } from '../../../ottehr-config-overrides';
 import {
+  getTaxID,
   makeAnswer,
   makePrepopulatedItemsFromPatientRecord,
   PrePopulationFromPatientRecordInput,
@@ -517,7 +518,6 @@ const FormFields = {
     hiddenFields: [],
     requiredFields: [
       'insurance-carrier',
-      'insurance-plan-type',
       'insurance-member-id',
       'policy-holder-first-name',
       'policy-holder-last-name',
@@ -532,7 +532,6 @@ const FormFields = {
       // assuming it won't be a problem to have the fields from both insurance sections in the same array here since the two fields behave
       // identically when they're included
       'insurance-carrier-2',
-      'insurance-plan-type-2',
       'insurance-member-id-2',
       'policy-holder-first-name-2',
       'policy-holder-last-name-2',
@@ -771,13 +770,13 @@ const FormFields = {
     title: "Worker's Compensation Information",
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: '=',
-        answerString: 'workers-compensation',
+        answerString: 'workers-comp',
       },
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
@@ -805,7 +804,19 @@ const FormFields = {
           },
         ],
       },
-      workersCompMemberId: { key: 'workers-comp-insurance-member-id', type: 'string', label: 'Member ID' },
+      workersCompMemberId: {
+        key: 'workers-comp-insurance-member-id',
+        type: 'string',
+        label: 'Member ID',
+        triggers: [
+          {
+            targetQuestionLinkId: 'workers-comp-insurance-name',
+            effect: ['require'],
+            operator: 'exists',
+            answerBoolean: true,
+          },
+        ],
+      },
       employerName: { key: 'employer-name', type: 'string', label: 'Employer name' },
       addressLine1: { key: 'employer-address', type: 'string', label: 'Address line 1' },
       addressLine2: { key: 'employer-address-2', type: 'string', label: 'Address line 2' },
@@ -841,13 +852,13 @@ const FormFields = {
     },
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: '=',
         answerString: 'occupational-medicine',
       },
       {
-        targetQuestionLinkId: 'patient-summary.appointment-service-category',
+        targetQuestionLinkId: 'appointment-service-category',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
@@ -870,13 +881,13 @@ const FormFields = {
     },
     triggers: [
       {
-        targetQuestionLinkId: 'patient-summary.reason-for-visit',
+        targetQuestionLinkId: 'reason-for-visit',
         effect: ['enable'],
         operator: '=',
         answerString: 'Auto accident',
       },
       {
-        targetQuestionLinkId: 'patient-summary.reason-for-visit',
+        targetQuestionLinkId: 'reason-for-visit',
         effect: ['enable'],
         operator: 'exists',
         answerBoolean: false,
@@ -919,7 +930,7 @@ const PATIENT_RECORD_DEFAULTS = {
   FormFields,
 };
 
-const mergedPatientRecordConfig = mergeAndFreezeConfigObjects(OVERRIDES, PATIENT_RECORD_DEFAULTS);
+const mergedPatientRecordConfig = mergeAndFreezeConfigObjects(PATIENT_RECORD_DEFAULTS, OVERRIDES);
 
 const PatientRecordConfigSchema = QuestionnaireConfigSchema.extend({
   FormFields: FormFieldsSchema,
@@ -978,6 +989,7 @@ export interface AppointmentContext {
   appointmentServiceCategory?: string;
   appointmentServiceMode?: ServiceMode;
   reasonForVisit?: string;
+  encounterId?: string;
 }
 
 interface PrePopulationFromPatientRecordInputWithContext extends PrePopulationFromPatientRecordInput {
@@ -992,11 +1004,20 @@ export const prepopulatePatientRecordItems = (
   }
 
   const q = input.questionnaire;
-  const { appointmentContext } = input;
-  const logicalFieldItems = prepopulateLogicalFields(q, appointmentContext);
+  const { appointmentContext, patient } = input;
+  const prepopOverrides = prepopulateLogicalFields(q, appointmentContext);
   // todo: this is exported from another util file, but only used here. probably want to move it and
   // consolidate the interface exposed to the rest of the system.
-  const patientRecordItems = makePrepopulatedItemsFromPatientRecord({ ...input, overriddenItems: logicalFieldItems });
+  if (prepopOverrides.some((item) => item.linkId === 'should-display-ssn-field' && item.answer?.[0]?.valueBoolean)) {
+    const ssn = getTaxID(patient);
+    if (ssn) {
+      prepopOverrides.push({
+        linkId: 'patient-ssn',
+        answer: makeAnswer(ssn),
+      });
+    }
+  }
+  const patientRecordItems = makePrepopulatedItemsFromPatientRecord({ ...input, overriddenItems: prepopOverrides });
 
   return patientRecordItems;
 };

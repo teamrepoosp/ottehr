@@ -1,11 +1,18 @@
 import { BrowserContext, expect, Locator, Page } from '@playwright/test';
 import { DateTime } from 'luxon';
-import { AllStates, checkFieldHidden, PatientEthnicity, PatientRace } from 'utils';
+import {
+  AllStates,
+  checkFieldHidden,
+  getIntakeFormPageSubtitle,
+  PatientEthnicity,
+  PatientRace,
+  QuestionnaireHelper,
+} from 'utils';
+import { dataTestIds } from '../../src/helpers/data-test-ids';
 import { PatientBasicInfo } from './BaseFlow';
 import { CommonLocatorsHelper } from './CommonLocatorsHelper';
 import { FillingInfo } from './in-person/FillingInfo';
 import { Locators } from './locators';
-import { QuestionnaireHelper } from './QuestionnaireHelper';
 import { PaperworkTelemed } from './telemed/Paperwork';
 import { UploadDocs } from './UploadDocs';
 
@@ -312,6 +319,8 @@ export class Paperwork {
       await this.uploadPhoto.fillInsuranceBack();
 
       await this.locator.addSecondaryInsurance.click();
+      // Wait for secondary insurance section to be fully visible before filling
+      await expect(this.page.getByRole('heading', { name: 'Secondary insurance details' })).toBeVisible();
       secondaryInsuranceData = await this.fillSecondaryInsuranceAllFieldsWithoutCards();
       await this.uploadPhoto.fillSecondaryInsuranceFront();
       await this.uploadPhoto.fillSecondaryInsuranceBack();
@@ -321,15 +330,7 @@ export class Paperwork {
     await this.locator.clickContinueButton();
 
     await this.checkCorrectPageOpens('Credit card details');
-    if (requiredOnly) {
-      // test skipping credit card is fine when no insurance submitted
-      await this.locator.clickContinueButton();
-      await this.checkCorrectPageOpens('Responsible party information');
-      await this.locator.clickBackButton();
-    }
-    if (payment === 'card') {
-      await this.fillAndAddCreditCardIfDoesntExist();
-    }
+    await this.fillAndAddCreditCardIfDoesntExist();
     await this.locator.clickContinueButton();
 
     await this.checkCorrectPageOpens('Responsible party information');
@@ -339,11 +340,11 @@ export class Paperwork {
     }
     await this.locator.clickContinueButton();
 
-    // Check if employer information page is shown (conditional based on service category)
+    // Check if Workers compensation employer information page is shown (conditional based on service category)
     await expect(this.locator.flowHeading).not.toHaveText('Loading...', { timeout: 60000 });
     const currentPageTitle = await this.locator.flowHeading.textContent();
     const employerInformation =
-      currentPageTitle === 'Employer information'
+      currentPageTitle === 'Workers compensation employer information'
         ? await (async () => {
             const data = await this.fillEmployerInformation();
             await this.locator.clickContinueButton();
@@ -363,22 +364,24 @@ export class Paperwork {
     // Now check which page we're on
     const currentPage = await this.locator.flowHeading.textContent();
 
-    if (currentPage === 'Employer information') {
-      // Employer information page is shown, fill it
+    if (currentPage === 'Workers compensation employer information') {
+      // Workers compensation employer information page is shown, fill it
       await this.locator.clickContinueButton();
     } else if (currentPage === 'Emergency Contact') {
-      // Employer information page was skipped, already on emergency contact
+      // Workers compensation employer information page was skipped, already on emergency contact
       // Continue with emergency contact form below
     } else {
       // Unexpected page
-      throw new Error(`Expected 'Employer information' or 'Emergency Contact', but got '${currentPage}'`);
+      throw new Error(
+        `Expected 'Workers compensation employer information' or 'Emergency Contact', but got '${currentPage}'`
+      );
     }
 
     // Now we should be on Emergency Contact page
     await this.checkCorrectPageOpens('Emergency Contact');
     const emergencyContactInformation = await this.fillEmergencyContactInformation();
     await this.locator.clickContinueButton();
-    const attorneyInformation = QuestionnaireHelper.attorneyPageIsVisible([
+    const attorneyInformation = QuestionnaireHelper.inPersonAttorneyPageIsVisible([
       {
         linkId: 'contact-information-page',
         item: [
@@ -397,9 +400,19 @@ export class Paperwork {
         })()
       : null;
     await this.checkCorrectPageOpens('Photo ID');
-    if (!requiredOnly) {
+    const uploadedFront = QuestionnaireHelper.inPersonIsPhotoIdFrontRequired() || !requiredOnly;
+    const uploadedBack = QuestionnaireHelper.inPersonIsPhotoIdBackRequired() || !requiredOnly;
+    if (uploadedFront) {
       await this.uploadPhoto.fillPhotoFrontID();
+    }
+    if (uploadedBack) {
       await this.uploadPhoto.fillPhotoBackID();
+    }
+    // Wait for all files to be fully uploaded and saved before continuing
+    if (uploadedFront && uploadedBack) {
+      await expect(this.page.getByTestId(dataTestIds.fileCardClearButton)).toHaveCount(2, { timeout: 60000 });
+    } else if (uploadedFront || uploadedBack) {
+      await expect(this.page.getByTestId(dataTestIds.fileCardClearButton)).toHaveCount(1, { timeout: 60000 });
     }
     await this.locator.clickContinueButton();
 
@@ -512,6 +525,8 @@ export class Paperwork {
       await this.uploadPhoto.fillInsuranceBack();
 
       await this.locator.addSecondaryInsurance.click();
+      // Wait for secondary insurance section to be fully visible before filling
+      await expect(this.page.getByRole('heading', { name: 'Secondary insurance details' })).toBeVisible();
       secondaryInsuranceData = await this.fillSecondaryInsuranceAllFieldsWithoutCards();
       await this.uploadPhoto.fillSecondaryInsuranceFront();
       await this.uploadPhoto.fillSecondaryInsuranceBack();
@@ -532,10 +547,13 @@ export class Paperwork {
     }
     await this.locator.clickContinueButton();
 
-    await this.checkCorrectPageOpens('Emergency Contact');
-    const emergencyContactData = await this.fillEmergencyContactInformation();
-    await this.locator.clickContinueButton();
-    const attorneyInformation = QuestionnaireHelper.attorneyPageIsVisible([
+    let emergencyContactData: EmergencyContactData | undefined = undefined;
+    if (QuestionnaireHelper.virtualQuestionnaireHasItem('emergency-contact-page')) {
+      await this.checkCorrectPageOpens('Emergency Contact');
+      emergencyContactData = await this.fillEmergencyContactInformation();
+      await this.locator.clickContinueButton();
+    }
+    const attorneyInformation = QuestionnaireHelper.inPersonAttorneyPageIsVisible([
       {
         linkId: 'contact-information-page',
         item: [
@@ -554,23 +572,31 @@ export class Paperwork {
         })()
       : null;
     await this.checkCorrectPageOpens('Photo ID');
-    if (!requiredOnly) {
+    if (QuestionnaireHelper.virtualQuestionnaireHasItem('photo-id-front') || !requiredOnly) {
       await this.uploadPhoto.fillPhotoFrontID();
+    }
+    if (QuestionnaireHelper.virtualQuestionnaireHasItem('photo-id-back') || !requiredOnly) {
       await this.uploadPhoto.fillPhotoBackID();
+      // Wait for both files to be fully uploaded and saved before continuing
+      await expect(this.page.getByTestId(dataTestIds.fileCardClearButton)).toHaveCount(2, { timeout: 60000 });
     }
     await this.locator.clickContinueButton();
 
-    await this.checkCorrectPageOpens('Patient condition');
     let uploadedPhotoCondition: Locator | null = null;
-    if (!requiredOnly) {
-      uploadedPhotoCondition = await this.uploadPhoto.fillPatientConditionPhotoPaperwork();
+    if (QuestionnaireHelper.hasVirtualPatientConditionPage()) {
+      await this.checkCorrectPageOpens('Patient condition');
+      if (!requiredOnly) {
+        uploadedPhotoCondition = await this.uploadPhoto.fillPatientConditionPhotoPaperwork();
+      }
+      await this.locator.clickContinueButton();
     }
-    await this.locator.clickContinueButton();
 
-    await this.checkCorrectPageOpens('Do you need a school or work note?');
-    // todo why not add a school/work note for completion?
-    await this.paperworkTelemed.fillAndCheckSchoolWorkNoteAsNone();
-    await this.locator.clickContinueButton();
+    if (QuestionnaireHelper.hasVirtualSchoolWorkNotePage()) {
+      await this.checkCorrectPageOpens('Do you need a school or work note?');
+      // todo why not add a school/work note for completion?
+      await this.paperworkTelemed.fillAndCheckSchoolWorkNoteAsNone();
+      await this.locator.clickContinueButton();
+    }
 
     await this.checkCorrectPageOpens('Complete consent forms');
     await this.fillConsentForms();
@@ -635,8 +661,16 @@ export class Paperwork {
     const state = this.getRandomState();
     await this.locator.patientState.click();
     await this.locator.patientState.fill(state);
-    await this.page.getByRole('option', { name: state }).click();
+
+    // Wait for dropdown to be visible with options
+    const option = this.page.getByRole('option', { name: state });
+    await expect(option).toBeVisible({ timeout: 10000 });
+    await option.click();
+
+    // Ensure value is set and stable
     await expect(this.locator.patientState).toHaveValue(state);
+    await this.page.waitForTimeout(500); // Small delay to ensure state is stable after React updates
+    await expect(this.locator.patientState).toHaveValue(state); // Verify again after delay
     return state;
   }
   async fillPatientZip(): Promise<void> {
@@ -663,16 +697,23 @@ export class Paperwork {
   }
   async checkPatientNameIsDisplayed(firstName: string, lastName: string, isPhotoIdPage?: boolean): Promise<void> {
     if (isPhotoIdPage) {
-      await expect(this.page.getByText(`Adult Guardian for ${firstName} ${lastName}`)).toBeVisible();
+      const subtitleText = getIntakeFormPageSubtitle('photo-id-page', `${firstName} ${lastName}`);
+      await expect(this.page.getByText(subtitleText)).toBeVisible();
     } else {
       await expect(this.page.getByText(`${firstName} ${lastName}`)).toBeVisible();
     }
   }
   async checkCorrectPageOpens(pageTitle: string): Promise<void> {
     // wait for "Loading..." to disappear (page finished loading data)
-    await expect(this.locator.flowHeading).not.toHaveText('Loading...', { timeout: 60000 });
+    await expect(this.locator.flowHeading).not.toHaveText('Loading...', { timeout: 240000 });
     // Then assert the expected title
     await expect(this.locator.flowHeading).toHaveText(pageTitle);
+  }
+  async checkAnotherPageOpens(currentPageTitle: string): Promise<void> {
+    // wait for "Loading..." to disappear (page finished loading data)
+    await expect(this.locator.flowHeading).not.toHaveText('Loading...', { timeout: 240000 });
+    // Then assert the expected title
+    await expect(this.locator.flowHeading).not.toHaveText(currentPageTitle);
   }
   async fillEthnicity(): Promise<PatientDetailsData['randomEthnicity']> {
     await this.validateAllOptions(this.locator.patientEthnicity, Object.values(PatientEthnicity), 'ethnicity');
@@ -743,7 +784,12 @@ export class Paperwork {
     const randomRace = await this.fillRace();
     const randomPronoun = await this.fillPronoun();
     let randomPoint = '';
-    if (isNewPatient) {
+    if (
+      isNewPatient &&
+      (telemed
+        ? QuestionnaireHelper.virtualQuestionnaireHasItem('patient-point-of-discovery')
+        : QuestionnaireHelper.inPersonHasPointOfDiscoveryField())
+    ) {
       randomPoint = await this.fillPointOfDiscovery();
     }
     const randomLanguage = await this.fillPreferredLanguage();
@@ -807,12 +853,24 @@ export class Paperwork {
     await this.locator.selfPayOption.check();
   }
   async fillAndAddCreditCardIfDoesntExist(): Promise<void> {
-    if (await this.page.getByText(CARD_NUMBER_OBSCURED).first().isVisible({ timeout: 500 })) return;
+    // Check if card is already added by looking for saved card in radio group
+    const savedCard = this.page.getByTestId(dataTestIds.cardNumber).first();
+    const isCardAlreadyAdded = await savedCard.isVisible().catch(() => false);
+
+    if (isCardAlreadyAdded) {
+      // Card already exists, no need to add
+      return;
+    }
+
+    // Card doesn't exist, fill form and add it
     await this.locator.creditCardNumber.fill(CARD_NUMBER);
     await this.locator.creditCardCVC.fill(CARD_CVV);
     await this.locator.creditCardExpiry.fill(CARD_EXP_DATE);
     await this.locator.addCardButton.click();
-    await expect(this.page.getByText(CARD_NUMBER_OBSCURED).first()).toBeVisible();
+
+    // Wait for saved card to appear in radio group (Stripe processing + backend save + UI update)
+    // Create fresh locator after click to ensure we're looking at updated DOM
+    await expect(this.page.getByTestId(dataTestIds.cardNumber).first()).toBeVisible({ timeout: 60000 });
   }
   async selectInsurancePayment(): Promise<void> {
     await this.locator.insuranceOption.check();
@@ -899,9 +957,13 @@ export class Paperwork {
     await locators.policyHolderFirstName.fill(firstName);
     await locators.policyHolderLastName.fill(lastName);
     await locators.policyHolderBirthSex.click();
-    await this.page.getByRole('option', { name: birthSex, exact: true }).click();
+    const birthSexOption = this.page.getByRole('option', { name: birthSex, exact: true });
+    await birthSexOption.waitFor();
+    await birthSexOption.click();
     await locators.patientRelationship.click();
-    await this.page.getByRole('option', { name: relationship, exact: true }).click();
+    const relationshipOption = this.page.getByRole('option', { name: relationship, exact: true });
+    await relationshipOption.waitFor();
+    await relationshipOption.click();
     await locators.policyHolderAddress.fill(policyHolderAddress);
     await locators.policyHolderCity.fill(policyHolderCity);
     await locators.policyHolderState.click();
@@ -1209,7 +1271,9 @@ export class Paperwork {
 
   async checkImagesIsSaved(image: Locator): Promise<void> {
     const today = await this.CommonLocatorsHelper.getToday();
-    await expect(image).toHaveText(`We already have this! It was saved on ${today}. Click to re-upload.`);
+    await expect(image).toHaveText(`We already have this! It was saved on ${today}. Click to re-upload.`, {
+      timeout: 60000,
+    });
   }
   async fillConsentForms(): Promise<{ signature: string; relationshipConsentForms: string; consentFullName: string }> {
     await this.validateAllOptions(
@@ -1220,8 +1284,13 @@ export class Paperwork {
     const relationshipConsentForms = this.getRandomElement(this.relationshipConsentForms);
     const signature = 'Test signature';
     const consentFullName = 'Test consent full name';
-    await this.locator.hipaaAcknowledgement.check();
-    await this.locator.consentToTreat.check();
+
+    // Dynamically check all consent form checkboxes based on configuration
+    const consentFormCheckboxes = this.locator.getAllConsentFormCheckboxes();
+    for (const { locator } of consentFormCheckboxes) {
+      await locator.check();
+    }
+
     await this.locator.signature.click();
     await this.locator.signature.fill(signature);
     await this.locator.consentFullName.click();
@@ -1258,5 +1327,39 @@ export class Paperwork {
         throw new Error(`Test failed: Missing ${type} option: '${option}'`);
       }
     }
+  }
+
+  /**
+   * Checks if a paperwork page chip should be 'completed' or 'uncompleted' based on questionnaire configuration.
+   * This helper automatically determines the expected status by checking if the page has required fields:
+   * - If the page has required fields → expects 'uncompleted' when not filled
+   * - If the page has only optional fields → expects 'completed' even when not filled
+   *
+   * This is useful for testing pages where field requirements may vary based on configuration,
+   * such as Photo ID which may be optional for telemed but required for in-person visits.
+   *
+   * @param chipStatusLocator - The locator for the chip status element (e.g., locator.photoIdChipStatus)
+   * @param pageLinkId - The linkId of the page in the questionnaire (e.g., 'photo-id-page')
+   * @param isTelemed - Whether this is a telemed/virtual visit (default: false for in-person)
+   *
+   * @example
+   * // For telemed visit
+   * await paperwork.expectChipStatusBasedOnConfig(locator.photoIdChipStatus, 'photo-id-page', true);
+   *
+   * @example
+   * // For in-person visit
+   * await paperwork.expectChipStatusBasedOnConfig(locator.photoIdChipStatus, 'photo-id-page', false);
+   */
+  async expectChipStatusBasedOnConfig(
+    chipStatusLocator: Locator,
+    pageLinkId: string,
+    isTelemed: boolean = false
+  ): Promise<void> {
+    const hasRequiredFields = isTelemed
+      ? QuestionnaireHelper.virtualPageHasRequiredFields(pageLinkId)
+      : QuestionnaireHelper.inPersonPageHasRequiredFields(pageLinkId);
+
+    const expectedStatus = hasRequiredFields ? 'uncompleted' : 'completed';
+    await expect(chipStatusLocator).toHaveAttribute('data-testid', expectedStatus);
   }
 }

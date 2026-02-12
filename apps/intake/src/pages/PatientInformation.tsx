@@ -9,10 +9,11 @@ import { PaperworkContext, usePaperworkContext } from 'src/features/paperwork/co
 import PagedQuestionnaire from 'src/features/paperwork/PagedQuestionnaire';
 import { useUCZambdaClient } from 'src/hooks/useUCZambdaClient';
 import {
-  BOOKING_CONFIG,
   convertQRItemToLinkIdMap,
   convertQuestionnaireItemToQRLinkIdMap,
+  mapBookingQRItemToPatientInfo,
   mdyStringFromISOString,
+  normalizeFormDataToQRItems,
   PatientInfo,
   QuestionnaireFormFields,
 } from 'utils';
@@ -171,8 +172,8 @@ const PatientInformation = (): JSX.Element => {
 
   const onSubmit = useCallback(
     async (data: QuestionnaireFormFields): Promise<void> => {
-      // console.log('Submitting Patient Information data:', data);
-      const postedPatientInfo: PatientInfo = BOOKING_CONFIG.mapBookingQRItemToPatientInfo(Object.values(data));
+      const formValues = normalizeFormDataToQRItems(data);
+      const postedPatientInfo: PatientInfo = mapBookingQRItemToPatientInfo(formValues);
       let foundDuplicate: PatientInfo | undefined;
       // check if a patient with the same data already exists for this user
       let idx = patients?.length ? patients.length - 1 : -1;

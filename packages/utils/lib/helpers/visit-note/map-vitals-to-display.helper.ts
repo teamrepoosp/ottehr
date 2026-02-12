@@ -1,9 +1,11 @@
+import { DateTime } from 'luxon';
 import { vitalsConfig } from '../../ottehr-config';
 import {
   VitalFieldNames,
   VitalsBloodPressureObservationDTO,
   VitalsHeartbeatObservationDTO,
   VitalsHeightObservationDTO,
+  VitalsLastMenstrualPeriodObservationDTO,
   VitalsObservationDTO,
   VitalsOxygenSatObservationDTO,
   VitalsRespirationRateObservationDTO,
@@ -87,6 +89,15 @@ export const mapVitalsToDisplay = (
             : ''
         }`;
         break;
+      case VitalFieldNames.VitalLastMenstrualPeriod: {
+        parsed = observation as VitalsLastMenstrualPeriodObservationDTO;
+        if (parsed.value) {
+          const date = DateTime.fromISO(parsed.value);
+          const formattedDate = date.isValid ? date.toFormat('MM/dd/yyyy') : parsed.value;
+          text = `${formattedDate}${parsed.isUnsure ? ' (unsure)' : ''}`;
+        }
+        break;
+      }
       default:
         break;
     }

@@ -18,6 +18,7 @@ import {
   isValidUUID,
   LOINC_SYSTEM,
   MISSING_REQUIRED_PARAMETERS,
+  parseLastMenstrualPeriodObservation,
   PATIENT_VITALS_META_SYSTEM,
   PRIVATE_EXTENSION_BASE_URL,
   SecretsKeys,
@@ -185,6 +186,8 @@ const parseResourcesToDTOs = (observations: Observation[], practitioners: Practi
         vitalObservation = parseVisionObservation(observation, performer);
       } else if (field === VitalFieldNames.VitalWeight) {
         vitalObservation = parseWeightObservation(observation, performer);
+      } else if (field === VitalFieldNames.VitalLastMenstrualPeriod) {
+        vitalObservation = parseLastMenstrualPeriodObservation(observation, performer);
       } else {
         vitalObservation = parseNumericValueObservation(observation, performer, field);
       }
@@ -277,7 +280,7 @@ const parseWeightObservation = (
     resourceId: observation.id,
     field: VitalFieldNames.VitalWeight,
     value,
-    extraWeightOptions: weightOptions as Omit<VitalsWeightOption, 'patient_refused'>[],
+    extraWeightOptions: weightOptions,
     authorId: performer.id,
     authorName: getFullName(performer),
     lastUpdated: observation.effectiveDateTime || '',

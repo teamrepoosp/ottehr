@@ -1,7 +1,7 @@
 import { Box, FormControl, InputLabel, MenuItem, Select, Skeleton, Typography, useTheme } from '@mui/material';
 import { FC, useEffect, useState } from 'react';
 import { dataTestIds } from 'src/constants/data-test-ids';
-import { VALUE_SETS } from 'utils';
+import { getCoding, getReasonForVisitOptionsForServiceCategory, SERVICE_CATEGORY_SYSTEM } from 'utils';
 import { useChartFields } from './shared/hooks/useChartFields';
 import { useAppointmentData, useSaveChartData } from './shared/stores/appointment/appointment.store';
 
@@ -18,6 +18,9 @@ export const ReasonForVisitField: FC = () => {
     }
   }, [chartFields]);
 
+  const { appointment } = useAppointmentData();
+  const serviceCategory = getCoding(appointment?.serviceCategory, SERVICE_CATEGORY_SYSTEM)?.code;
+  const rfvOptions = getReasonForVisitOptionsForServiceCategory(serviceCategory || 'urgent-care');
   return (
     <FormControl fullWidth>
       <InputLabel id="reason-for-visit-label">Reason for visit</InputLabel>
@@ -38,7 +41,7 @@ export const ReasonForVisitField: FC = () => {
           });
         }}
       >
-        {VALUE_SETS.reasonForVisitOptions.map((reason) => (
+        {rfvOptions.map((reason) => (
           <MenuItem key={reason.value} value={reason.value}>
             {reason.label}
           </MenuItem>
