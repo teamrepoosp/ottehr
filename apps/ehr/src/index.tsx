@@ -6,6 +6,37 @@ import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Handle chunk loading failures from deployments (global error handler)
+// This catches errors that might not be caught by ErrorBoundary
+let hasReloaded = false;
+const isChunkLoadError = (error: any): boolean => {
+  const errorString = String(error);
+  return (
+    errorString.includes('Failed to fetch dynamically imported module') ||
+    errorString.includes('Importing a module script failed') ||
+    errorString.includes('error loading dynamically imported module') ||
+    errorString.includes('Failed to fetch') ||
+    errorString.includes('Loading chunk') ||
+    error?.name === 'ChunkLoadError'
+  );
+};
+
+window.addEventListener('error', (event) => {
+  if (!hasReloaded && isChunkLoadError(event.error || event.message)) {
+    console.log('Chunk loading error detected, reloading page...');
+    hasReloaded = true;
+    window.location.reload();
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (!hasReloaded && isChunkLoadError(event.reason)) {
+    console.log('Chunk loading error detected (unhandled rejection), reloading page...');
+    hasReloaded = true;
+    window.location.reload();
+  }
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
 export const AUTH0_REDIRECT_URI =
@@ -38,7 +69,15 @@ root.render(
         <ErrorBoundary
           onError={(error, errorInfo) => {
             console.log(String(error), errorInfo);
-            if (String(error).includes('TypeError: Failed to fetch dynamically imported module')) {
+            // Handle chunk loading failures from deployments
+            const errorString = String(error);
+            if (
+              errorString.includes('Failed to fetch dynamically imported module') ||
+              errorString.includes('Importing a module script failed') ||
+              errorString.includes('error loading dynamically imported module') ||
+              errorString.includes('Failed to fetch')
+            ) {
+              console.log('Chunk loading error detected, reloading page...');
               location.reload();
             }
           }}
