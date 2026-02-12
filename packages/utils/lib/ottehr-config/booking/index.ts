@@ -171,7 +171,7 @@ const FormFields = {
         key: 'reason-for-visit-om',
         label: 'Reason for visit',
         type: 'choice',
-        options: VALUE_SETS.reasonForVisitVirtualOptionsOccMed,
+        options: VALUE_SETS.reasonForVisitOptionsOccMed,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -186,7 +186,7 @@ const FormFields = {
         key: 'reason-for-visit-wc',
         label: 'Reason for visit',
         type: 'choice',
-        options: VALUE_SETS.reasonForVisitVirtualOptionsWorkersComp,
+        options: VALUE_SETS.reasonForVisitOptionsWorkersComp,
         triggers: [
           {
             targetQuestionLinkId: 'appointment-service-category',
@@ -262,7 +262,7 @@ const SERVICE_CATEGORIES_AVAILABLE: StrongCoding[] = [
     code: 'occupational-medicine',
     system: SERVICE_CATEGORY_SYSTEM,
   },
-  { display: 'Workmans Comp', code: 'workers-comp', system: SERVICE_CATEGORY_SYSTEM },
+  { display: 'Workers Comp', code: 'workers-comp', system: SERVICE_CATEGORY_SYSTEM },
 ];
 
 interface BookingContext {
@@ -387,16 +387,23 @@ export interface BookingConfig {
   hiddenFormSections?: string[];
 }
 
+export enum HomepageOptions {
+  StartInPersonVisit = 'start-in-person-visit',
+  ScheduleInPersonVisit = 'schedule-in-person-visit',
+  StartVirtualVisit = 'start-virtual-visit',
+  ScheduleVirtualVisit = 'schedule-virtual-visit',
+}
+
 const BOOKING_DEFAULTS: BookingConfig = {
   serviceCategoriesEnabled: {
     serviceModes: ['in-person', 'virtual'],
     visitType: ['prebook', 'walk-in'],
   },
   homepageOptions: [
-    'start-in-person-visit',
-    'schedule-in-person-visit',
-    'start-virtual-visit',
-    'schedule-virtual-visit',
+    HomepageOptions.StartInPersonVisit,
+    HomepageOptions.ScheduleInPersonVisit,
+    HomepageOptions.StartVirtualVisit,
+    HomepageOptions.ScheduleVirtualVisit,
   ],
   serviceCategories: SERVICE_CATEGORIES_AVAILABLE,
   formConfig,
@@ -538,4 +545,19 @@ export const prepopulateBookingForm = (input: BookingFormPrePopulationInput): Qu
   });
 
   return item;
+};
+
+export const getReasonForVisitOptionsForServiceCategory = (
+  serviceCategory: string
+): { value: string; label: string }[] => {
+  if (serviceCategory === 'occupational-medicine') {
+    return VALUE_SETS.reasonForVisitOptionsOccMed;
+  }
+  if (serviceCategory === 'workers-comp') {
+    return VALUE_SETS.reasonForVisitOptionsWorkersComp;
+  }
+  if (serviceCategory === 'urgent-care') {
+    return VALUE_SETS.reasonForVisitOptions;
+  }
+  return [];
 };

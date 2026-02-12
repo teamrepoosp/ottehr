@@ -32,7 +32,7 @@ const CancelVisitDialog = ({ onClose }: CancelVisitDialogProps): ReactElement =>
   const { id: appointmentID } = useParams();
   const navigate = useNavigate();
 
-  const cancellationReasons = VALUE_SETS.cancelReasonOptionsVirtualProviderSide;
+  const cancellationReasons = VALUE_SETS.cancelReasonOptionsVirtualProvider;
 
   const handleReasonChange = (event: SelectChangeEvent<string>): void => {
     setReason(event.target.value);
@@ -64,7 +64,7 @@ const CancelVisitDialog = ({ onClose }: CancelVisitDialogProps): ReactElement =>
     try {
       const response = await cancelTelemedAppointment(oystehrZambda, {
         appointmentID: appointmentID || '',
-        cancellationReason: typedReason,
+        cancellationReason: typedReason.value,
         cancellationReasonAdditional: otherReason,
       });
       console.log('Appointment cancelled successfully', response);

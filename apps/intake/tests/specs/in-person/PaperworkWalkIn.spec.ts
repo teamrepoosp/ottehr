@@ -4,13 +4,13 @@ import { BrowserContext, expect, Page, test } from '@playwright/test';
 import { Appointment, QuestionnaireResponseItem } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import { addProcessIdMetaTagToAppointment } from 'test-utils';
-import { QuestionnaireHelper } from 'tests/utils/QuestionnaireHelper';
 import { ResourceHandler } from 'tests/utils/resource-handler';
 import {
   chooseJson,
   cleanAppointmentGraph,
   CreateAppointmentResponse,
   E2E_TEST_RESOURCE_PROCESS_ID_SYSTEM,
+  QuestionnaireHelper,
 } from 'utils';
 import { CommonLocatorsHelper } from '../../utils/CommonLocatorsHelper';
 import { Locators } from '../../utils/locators';
@@ -103,10 +103,10 @@ test.describe.serial('Start now In person visit - Paperwork submission flow with
   test('SNPRF-5 Fill responsible party details', async () => {
     await paperwork.fillResponsiblePartyDataSelf();
     await commonLocatorsHelper.clickContinue();
-    // Check which page appears (employer information is conditional)
+    // Check which page appears (Workers compensation employer information is conditional)
     await expect(locator.flowHeading).not.toHaveText('Loading...', { timeout: 60000 });
     const currentPageTitle = await locator.flowHeading.textContent();
-    if (currentPageTitle === 'Employer information') {
+    if (currentPageTitle === 'Workers compensation employer information') {
       await paperwork.fillEmployerInformation();
       await commonLocatorsHelper.clickContinue();
     }
