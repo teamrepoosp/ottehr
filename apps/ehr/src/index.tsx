@@ -68,18 +68,6 @@ root.render(
         <ErrorBoundary
           onError={(error, errorInfo) => {
             console.log(String(error), errorInfo);
-            // Handle chunk loading failures from deployments
-            const errorString = String(error);
-            if (
-              errorString.includes('Failed to fetch dynamically imported module') ||
-              errorString.includes('Importing a module script failed') ||
-              errorString.includes('error loading dynamically imported module') ||
-              errorString.includes('Loading chunk') ||
-              (error as any)?.name === 'ChunkLoadError'
-            ) {
-              console.log('Chunk loading error detected, reloading page...');
-              location.reload();
-            }
           }}
           fallback={<p>An error has occurred</p>}
         >
