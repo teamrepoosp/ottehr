@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { dataTestIds } from 'src/constants/data-test-ids';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
@@ -6,30 +6,23 @@ import { PharmacyDisplay, PharmacySearch } from 'ui-components';
 import {
   PHARMACY_COLLECTION_LINK_IDS,
   PharmacyCollectionAnswerSetInput,
-  PlacesResult,
   SearchPlacesInput,
   SearchPlacesOutput,
 } from 'utils';
 
 export const FormGroupPharmacyCollection: FC = () => {
-  const [selectedPlace, setSelectedPlace] = useState<PlacesResult | null>(null);
-  const { getValues, setValue } = useFormContext();
+  const { setValue, watch } = useFormContext();
   const apiClient = useOystehrAPIClient();
 
-  const values = getValues();
-  const placesName = values[PHARMACY_COLLECTION_LINK_IDS.placesName];
-  const placesAddress = values[PHARMACY_COLLECTION_LINK_IDS.placesAddress];
-  const placesId = values[PHARMACY_COLLECTION_LINK_IDS.placesId];
+  const values = watch([
+    PHARMACY_COLLECTION_LINK_IDS.placesName,
+    PHARMACY_COLLECTION_LINK_IDS.placesAddress,
+    PHARMACY_COLLECTION_LINK_IDS.placesId,
+  ]);
 
-  useEffect(() => {
-    if (!placesName && !placesAddress && !placesId) return;
+  const [placesName, placesAddress, placesId] = values;
 
-    setSelectedPlace({
-      name: placesName ?? '',
-      address: placesAddress ?? '',
-      placesId: placesId ?? '',
-    });
-  }, [placesName, placesAddress, placesId]);
+  const hasSelectedPlace = !!placesName && !!placesAddress && !!placesId;
 
   const handleSearchPlaces = async (input: SearchPlacesInput): Promise<SearchPlacesOutput> => {
     if (!apiClient) throw new Error('error searching, api client is undefined');
@@ -54,17 +47,15 @@ export const FormGroupPharmacyCollection: FC = () => {
     setValue(PHARMACY_COLLECTION_LINK_IDS.placesDataSaved, true, { shouldDirty: true });
   };
 
-  return selectedPlace ? (
+  return hasSelectedPlace ? (
     <PharmacyDisplay
-      selectedPlace={selectedPlace}
-      setSelectedPlace={setSelectedPlace}
+      selectedPlace={{ name: placesName!, address: placesAddress!, placesId: placesId! }}
       clearPharmacyData={clearPharmacyData}
       dataTestIds={dataTestIds.patientInformationPage.pharmacySearchDisplay}
     ></PharmacyDisplay>
   ) : (
     <PharmacySearch
       handlePharmacySelection={handlePlacesPharmacySelection}
-      setSelectedPlace={setSelectedPlace}
       searchPlaces={handleSearchPlaces}
       dataTestId={dataTestIds.patientInformationPage.pharmacySearch}
     ></PharmacySearch>

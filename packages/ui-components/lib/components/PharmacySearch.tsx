@@ -5,17 +5,11 @@ import { PharmacyCollectionAnswerSetInput, PlacesResult, SearchPlacesInput, Sear
 
 interface PharmacySearchProps {
   handlePharmacySelection: (input: PharmacyCollectionAnswerSetInput) => void;
-  setSelectedPlace: (place: PlacesResult | null) => void;
   searchPlaces: (input: SearchPlacesInput) => Promise<SearchPlacesOutput>;
   dataTestId: string;
 }
 
-export const PharmacySearch: FC<PharmacySearchProps> = ({
-  handlePharmacySelection,
-  setSelectedPlace,
-  searchPlaces,
-  dataTestId,
-}) => {
+export const PharmacySearch: FC<PharmacySearchProps> = ({ handlePharmacySelection, searchPlaces, dataTestId }) => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [results, setResults] = useState<PlacesResult[]>([]);
@@ -78,7 +72,6 @@ export const PharmacySearch: FC<PharmacySearchProps> = ({
       };
 
       handlePharmacySelection(pharmacyInput);
-      setSelectedPlace(place);
     } catch (e) {
       console.log('error calling searchPlaces with placesId', e);
       setError('There was an error selecting the location');

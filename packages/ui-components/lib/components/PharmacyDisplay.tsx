@@ -5,17 +5,15 @@ import { PlacesResult } from 'utils';
 
 export interface PharmacyDisplayProps {
   selectedPlace: PlacesResult;
-  setSelectedPlace: (place: PlacesResult | null) => void;
   clearPharmacyData: () => void;
   dataTestIds: { text: string; button: string };
 }
 
 export const PharmacyDisplay: FC<PharmacyDisplayProps> = (props: PharmacyDisplayProps) => {
-  const { selectedPlace, setSelectedPlace, clearPharmacyData, dataTestIds } = props;
+  const { selectedPlace, clearPharmacyData, dataTestIds } = props;
 
   const handleResetPharmacySelection = (): void => {
     clearPharmacyData();
-    setSelectedPlace(null);
   };
 
   return (

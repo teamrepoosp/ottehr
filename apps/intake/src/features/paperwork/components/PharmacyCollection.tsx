@@ -1,5 +1,5 @@
 import { QuestionnaireResponseItem } from 'fhir/r4b';
-import { FC, useEffect, useState } from 'react';
+import { FC, useMemo } from 'react';
 import api from 'src/api/ottehrApi';
 import { dataTestIds } from 'src/helpers/data-test-ids';
 import { useUCZambdaClient } from 'src/hooks/useUCZambdaClient';
@@ -9,7 +9,6 @@ import {
   makePharmacyCollectionAnswerSetForQR,
   PHARMACY_COLLECTION_LINK_IDS,
   PharmacyCollectionAnswerSetInput,
-  PlacesResult,
   SearchPlacesInput,
   SearchPlacesOutput,
 } from 'utils';
@@ -21,26 +20,20 @@ export interface PharmacyCollectionProps {
 
 export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyCollectionProps) => {
   const { onChange } = props;
-  const [selectedPlace, setSelectedPlace] = useState<PlacesResult | null>(null);
   const { formValues } = useQRState();
 
   const zambdaClient = useUCZambdaClient({ tokenless: false });
 
   const pharmacyCollectionItemValues = formValues[PHARMACY_COLLECTION_LINK_IDS.pharmacyCollection]?.item;
 
-  useEffect(() => {
-    if (!pharmacyCollectionItemValues?.length) return;
+  const selectedPlace = useMemo(() => {
+    if (!pharmacyCollectionItemValues?.length) return null;
 
-    type PreviousPharmData = {
-      pharmName?: string;
-      pharmAddress?: string;
-      pharmPlacesId?: string;
-      pharmDsId?: string;
-      hasAnyData: boolean;
-    };
-
-    const existing = pharmacyCollectionItemValues?.reduce(
-      (acc: PreviousPharmData, item: QuestionnaireResponseItem) => {
+    const existing = pharmacyCollectionItemValues.reduce(
+      (
+        acc: { name?: string; address?: string; placesId?: string; hasAnyData: boolean },
+        item: QuestionnaireResponseItem
+      ) => {
         const answer = item.answer?.[0]?.valueString;
         if (!answer) return acc;
 
@@ -48,16 +41,13 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
 
         switch (item.linkId) {
           case PHARMACY_COLLECTION_LINK_IDS.placesId:
-            acc.pharmPlacesId = answer;
+            acc.placesId = answer;
             break;
           case PHARMACY_COLLECTION_LINK_IDS.placesName:
-            acc.pharmName = answer;
+            acc.name = answer;
             break;
           case PHARMACY_COLLECTION_LINK_IDS.placesAddress:
-            acc.pharmAddress = answer;
-            break;
-          case PHARMACY_COLLECTION_LINK_IDS.erxPharmacyId:
-            acc.pharmDsId = answer;
+            acc.address = answer;
             break;
         }
 
@@ -66,13 +56,13 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
       { hasAnyData: false }
     );
 
-    if (existing.hasAnyData) {
-      setSelectedPlace({
-        name: existing.pharmName ?? '',
-        address: existing.pharmAddress ?? '',
-        placesId: existing.pharmPlacesId ?? '',
-      });
-    }
+    return existing.hasAnyData
+      ? {
+          name: existing.name ?? '',
+          address: existing.address ?? '',
+          placesId: existing.placesId ?? '',
+        }
+      : null;
   }, [pharmacyCollectionItemValues]);
 
   const handleSearchPlaces = async (input: SearchPlacesInput): Promise<SearchPlacesOutput> => {
@@ -93,14 +83,12 @@ export const PharmacyCollection: FC<PharmacyCollectionProps> = (props: PharmacyC
   return selectedPlace ? (
     <PharmacyDisplay
       selectedPlace={selectedPlace}
-      setSelectedPlace={setSelectedPlace}
       clearPharmacyData={clearPharmacyData}
       dataTestIds={dataTestIds.preferredPharmacy.pharmacySearchDisplay}
     ></PharmacyDisplay>
   ) : (
     <PharmacySearch
       handlePharmacySelection={handlePharmacySelection}
-      setSelectedPlace={setSelectedPlace}
       searchPlaces={handleSearchPlaces}
       dataTestId={dataTestIds.preferredPharmacy.pharmacySearch}
     ></PharmacySearch>
