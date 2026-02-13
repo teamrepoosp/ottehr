@@ -3,7 +3,7 @@ import { CandidApiClient, CandidApiEnvironment } from 'candidhealth';
 import { InventoryRecord } from 'candidhealth/api/resources/patientAr/resources/v1';
 import fs from 'fs';
 import { DateTime } from 'luxon';
-import { getCandidInventoryPagesRecursive } from 'utils';
+import { getCandidInventoryPages } from 'utils';
 import { createTaskForEncounter, getEncountersWithoutTaskFhir } from 'zambdas/src/cron/create-invoices-tasks';
 
 async function createOyst(zambdaEnv: Record<string, string>, token: string): Promise<Oystehr> {
@@ -80,11 +80,9 @@ async function getAllCandidClaims(
   sinceDate: DateTime,
   maxPages?: number
 ): Promise<InventoryRecord[]> {
-  const inventoryPages = await getCandidInventoryPagesRecursive({
+  const inventoryPages = await getCandidInventoryPages({
     candid,
-    claims: [],
     limitPerPage: 100,
-    pageCount: 0,
     maxPages,
     onlyInvoiceable: true,
     since: sinceDate,

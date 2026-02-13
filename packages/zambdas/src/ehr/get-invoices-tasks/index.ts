@@ -4,9 +4,11 @@ import {
   Account,
   Appointment,
   Encounter as FhirEncounter,
+  Location,
   Patient,
   RelatedPerson,
   Resource,
+  Slot,
   Task as FhirTask,
 } from 'fhir/r4b';
 import { DateTime } from 'luxon';
@@ -29,6 +31,7 @@ import {
   RCM_TASK_SYSTEM,
   RcmTaskCode,
   SecretsKeys,
+  TIMEZONES,
 } from 'utils';
 import {
   checkOrCreateM2MClientToken,
@@ -50,22 +53,37 @@ interface TaskGroup {
   patient: Patient;
   account?: Account;
   appointment?: Appointment;
+  location?: Location;
+  slot?: Slot;
   responsibleParty?: Patient | RelatedPerson;
   relatedPerson?: RelatedPerson;
+  candidData?: {
+    finalizationDate?: string;
+    claimId?: string;
+  };
 }
 
 export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promise<APIGatewayProxyResult> => {
   try {
     const validatedParams = validateRequestParameters(input);
     const { secrets } = validatedParams;
+    const start = performance.now();
 
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
-    // const candid = createCandidApiClient(secrets);
 
-    const taskGroups = await getFhirResourcesGroupped(oystehr, validatedParams);
+    const fhirSearchStart = performance.now();
+    const fhirResources = await getFhirResourcesGroupped(oystehr, validatedParams);
+    const fhirSearchEnd = performance.now();
+    // const taskGroups = await fillGroupsWithCandidData(candid, fhirResources.taskGroups);
+    const taskGroups = fhirResources.taskGroups;
+    // const candidSearchEnd = performance.now();
 
-    const response = performEffect(taskGroups);
+    const response = performEffect(taskGroups, fhirResources.bundleTotal);
+    const end = performance.now();
+    console.log('Whole zambda execution time:', Math.round((end - start) / 1000), 'seconds.');
+    console.log('FHIR search execution time: ', Math.round((fhirSearchEnd - fhirSearchStart) / 1000), 'seconds.');
+    // console.log('Candid search execution time: ', Math.round((candidSearchEnd - fhirSearchEnd) / 1000), 'seconds.');
     return {
       statusCode: 200,
       body: JSON.stringify(response),
@@ -77,38 +95,44 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   }
 });
 
-function performEffect(taskGroups: TaskGroup[]): GetInvoicesTasksResponse {
+function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasksResponse {
   const reports: InvoiceablePatientReport[] = [];
 
   taskGroups.forEach((group) => {
-    const { task, patient, appointment, responsibleParty } = group;
+    const { task, patient, appointment, responsibleParty, slot } = group;
     const input = parseInvoiceTaskInput(task);
 
     const patientName = getFullName(patient);
-    const patientDob = patient?.birthDate
-      ? DateTime.fromISO(patient.birthDate)?.toFormat('MM/dd/yyyy')?.toString()
-      : undefined;
+    const patientDob = formatDate({ isoDate: patient.birthDate });
     const patientGenderLabel = patient?.gender && mapGenderToLabel[patient.gender];
 
     const responsiblePartyName = responsibleParty && getFullName(responsibleParty);
     const responsiblePartyPhoneNumber = responsibleParty && getPhoneNumberForIndividual(responsibleParty);
     const responsiblePartyEmail = responsibleParty && getEmailForIndividual(responsibleParty);
 
+    let timezone = TIMEZONES[0]; // default timezone
+    if (slot && slot.start) {
+      // we can just grab the tz from the slot rather than getting the schedule resource
+      const slotDateTime = DateTime.fromISO(slot.start, { setZone: true });
+      if (slotDateTime.isValid) {
+        timezone = slotDateTime.zoneName;
+      }
+    }
+    const visitDate = formatDate({ isoDate: appointment?.start, timezone });
+
     reports.push({
-      claimId: '---',
-      appointmentDate: appointment?.start ? isoToFormat(appointment.start) : undefined,
-      // finalizationDate: isoToFormat(claim.timestamp, 'MM/dd/yyyy HH:mm'), todo fix this
-      finalizationDate: '---',
-      amountInvoiceable: `${input.amountCents / 100}`,
-      visitDate: '---',
-      location: '---',
+      claimId: group.candidData?.claimId ?? '---',
+      finalizationDate: group.candidData?.finalizationDate ?? '---',
+      amountInvoiceable: `${input.amountCents ?? 0 / 100}`,
+      visitDate: visitDate ?? '---',
+      location: group.location?.name ?? '---',
       task: task,
       patient: {
         patientId: patient.id!,
         fullName: patientName,
         dob: patientDob,
         gender: patientGenderLabel,
-        phoneNumber: 'll',
+        phoneNumber: 'll', // todo this
       },
       responsibleParty: {
         fullName: responsiblePartyName,
@@ -119,13 +143,13 @@ function performEffect(taskGroups: TaskGroup[]): GetInvoicesTasksResponse {
     });
   });
 
-  return { reports };
+  return { reports, totalCount: total };
 }
 
 async function getFhirResourcesGroupped(
   oystehr: Oystehr,
   complexValidatedInput: GetInvoicesTasksInput
-): Promise<TaskGroup[]> {
+): Promise<{ taskGroups: TaskGroup[]; bundleTotal: number }> {
   const { page, status } = complexValidatedInput;
   // todo: add here filter by patient for example
   const params: SearchParam[] = [
@@ -133,6 +157,10 @@ async function getFhirResourcesGroupped(
       name: '_sort',
       value: '-authored-on',
     },
+    // {
+    //   name: '_sort',
+    //   value: '-Appointment.start',
+    // },
     {
       name: '_total',
       value: 'accurate',
@@ -160,6 +188,14 @@ async function getFhirResourcesGroupped(
     {
       name: '_include:iterate',
       value: 'Encounter:appointment',
+    },
+    {
+      name: '_include:iterate',
+      value: 'Appointment:location',
+    },
+    {
+      name: '_include:iterate',
+      value: 'Appointment:slot',
     },
     {
       name: '_revinclude:iterate',
@@ -215,6 +251,14 @@ async function getFhirResourcesGroupped(
       ?.reference?.replace('Appointment/', '');
     const appointment = findResourceById<Appointment>('Appointment', appointmentId, resources);
 
+    const locationId = appointment?.participant
+      ?.find((p) => p.actor?.reference?.includes('Location/'))
+      ?.actor?.reference?.replace('Location/', '');
+    const location = findResourceById<Location>('Location', locationId, resources);
+
+    const slotId = appointment?.slot?.find((s) => s.reference?.includes('Slot/'))?.reference?.replace('Slot/', '');
+    const slot = findResourceById<Slot>('Slot', slotId, resources);
+
     const account = resources.find(
       (res) =>
         res.resourceType === 'Account' &&
@@ -232,11 +276,21 @@ async function getFhirResourcesGroupped(
         )
     ) as RelatedPerson;
 
-    resultGroups.push({ task, encounter, patient, account, appointment, responsibleParty, relatedPerson });
+    resultGroups.push({
+      task,
+      encounter,
+      patient,
+      account,
+      appointment,
+      responsibleParty,
+      relatedPerson,
+      location,
+      slot,
+    });
   });
 
   console.log('Tasks groups created: ', resultGroups.length);
-  return resultGroups;
+  return { taskGroups: resultGroups, bundleTotal: bundle.total ?? resultGroups.length };
 }
 
 function findResourceById<T extends Resource>(
@@ -248,8 +302,19 @@ function findResourceById<T extends Resource>(
   return resources.find((res) => res.resourceType === resourceType && res.id === id) as T;
 }
 
-function isoToFormat(isoDate: string, format: string = 'MM/dd/yyyy'): string {
-  return DateTime.fromISO(isoDate).toFormat(format);
+export function formatDate(input: {
+  isoDate?: string;
+  date?: DateTime;
+  format?: string;
+  timezone?: string;
+}): string | undefined {
+  const { isoDate, date, format = 'MM/dd/yyyy', timezone } = input;
+  let targetDate = date || (isoDate ? DateTime.fromISO(isoDate) : null);
+
+  if (!targetDate || !targetDate.isValid) return undefined;
+  if (timezone) targetDate = targetDate.setZone(timezone);
+
+  return targetDate.toFormat(format);
 }
 
 export function getResponsiblePartyRelationship(

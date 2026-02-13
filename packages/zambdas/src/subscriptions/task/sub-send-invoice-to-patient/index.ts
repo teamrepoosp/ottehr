@@ -41,8 +41,8 @@ const ZAMBDA_NAME = 'sub-send-invoice-to-patient';
 export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promise<APIGatewayProxyResult> => {
   try {
     const validatedParams = validateRequestParameters(input);
-    const { secrets, encounterId, prefilledInfo, task } = validatedParams;
-    const { amountCents, dueDate, memo, smsTextMessage } = prefilledInfo;
+    const { secrets, encounterId, invoiceTaskInput, task } = validatedParams;
+    const { amountCents, dueDate, memo, smsTextMessage } = invoiceTaskInput;
     console.log('Input task id: ', task.id);
 
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);

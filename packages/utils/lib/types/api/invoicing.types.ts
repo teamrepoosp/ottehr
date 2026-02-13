@@ -2,18 +2,23 @@ import { Task } from 'fhir/r4b';
 import z from 'zod';
 import { Secrets } from '../../secrets';
 
-export const INVOICEABLE_PATIENTS_PAGE_SIZE = 40;
+export const INVOICEABLE_PATIENTS_PAGE_SIZE = 20;
 export const GET_INVOICES_TASKS_ZAMBDA_KEY = 'get-invoices-tasks';
 
-export const InvoiceTaskInputSchema = z.object({
-  dueDate: z.string().optional(),
-  memo: z.string().optional(),
-  smsTextMessage: z.string().optional(),
-  amountCents: z.number(),
+export const InvoiceTaskInputSchemaBase = z.object({
+  dueDate: z.string(),
+  memo: z.string(),
+  smsTextMessage: z.string(),
+  amountCents: z.number().gt(0),
   claimId: z.string().optional(),
   finalizationDate: z.string().optional(),
 });
+export const InvoiceTaskInputSchema = InvoiceTaskInputSchemaBase.partial();
 export type InvoiceTaskInput = z.infer<typeof InvoiceTaskInputSchema>;
+export const SubSendInvoiceToPatientTaskInputSchema = InvoiceTaskInputSchemaBase.extend({
+  memo: z.string().optional(),
+});
+export type SubSendInvoiceToPatientTaskInput = z.infer<typeof SubSendInvoiceToPatientTaskInputSchema>;
 
 export const UpdateInvoiceTaskZambdaInputSchema = z.object({
   taskId: z.string().uuid(),
@@ -58,7 +63,6 @@ export const GetInvoicesTasksZambdaValidatedInputSchema = GetInvoicesTasksZambda
 });
 export const InvoiceablePatientReportSchema = z.object({
   claimId: z.string(),
-  appointmentDate: z.string().optional(),
   finalizationDate: z.string(),
   amountInvoiceable: z.string(),
   task: z.custom<Task>(),
@@ -80,6 +84,7 @@ export const InvoiceablePatientReportSchema = z.object({
 });
 export const GetInvoicesTasksZambdaResponseSchema = z.object({
   reports: z.array(InvoiceablePatientReportSchema),
+  totalCount: z.number(),
 });
 
 export type GetInvoicesTasksValidatedInput = z.infer<typeof GetInvoicesTasksZambdaValidatedInputSchema>;

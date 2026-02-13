@@ -1,6 +1,6 @@
 import { Task, TaskInput } from 'fhir/r4b';
 import { ottehrCodeSystemUrl } from '../../fhir/systemUrls';
-import { InvoiceTaskInput } from '../../types';
+import { InvoiceTaskInput, InvoiceTaskInputSchema } from '../../types';
 
 export function createInvoiceTaskInput(input: InvoiceTaskInput): TaskInput[] {
   const fieldsNames = Object.keys(input);
@@ -26,18 +26,18 @@ export function parseInvoiceTaskInput(invoiceTask: Task): InvoiceTaskInput {
   const dueDate = getInvoiceTaskInputFieldByCode('dueDate', invoiceTask);
   const memo = getInvoiceTaskInputFieldByCode('memo', invoiceTask);
   const smsTextMessage = getInvoiceTaskInputFieldByCode('smsTextMessage', invoiceTask);
-  const amount = getInvoiceTaskInputFieldByCode('amountCents', invoiceTask) ?? '0';
+  const amount = getInvoiceTaskInputFieldByCode('amountCents', invoiceTask);
   const claimId = getInvoiceTaskInputFieldByCode('claimId', invoiceTask);
   const finalizationDate = getInvoiceTaskInputFieldByCode('finalizationDate', invoiceTask);
-  if (isNaN(parseInt(amount))) throw new Error('Invalid amountCents value');
-  return {
+
+  return InvoiceTaskInputSchema.parse({
     dueDate,
     memo,
     smsTextMessage,
-    amountCents: parseInt(amount),
+    amount,
     claimId,
     finalizationDate,
-  };
+  });
 }
 
 function getInvoiceTaskInputFieldByCode(code: keyof InvoiceTaskInput, task: Task): string | undefined {

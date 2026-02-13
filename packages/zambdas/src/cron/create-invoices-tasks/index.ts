@@ -8,7 +8,7 @@ import { DateTime } from 'luxon';
 import {
   createCandidApiClient,
   createReference,
-  getCandidInventoryPagesRecursive,
+  getCandidInventoryPages,
   getResourcesFromBatchInlineRequests,
   getSecret,
   InvoiceTaskInput,
@@ -289,11 +289,9 @@ export async function populateAmountInPackagesAndFilterZeroAmount(
 }
 
 async function getAllCandidClaims(candid: CandidApiClient, sinceDate: DateTime): Promise<InventoryRecord[]> {
-  const inventoryPages = await getCandidInventoryPagesRecursive({
+  const inventoryPages = await getCandidInventoryPages({
     candid,
-    claims: [],
     limitPerPage: 100,
-    pageCount: 0,
     onlyInvoiceable: true,
     since: sinceDate,
   });

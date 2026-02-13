@@ -76,6 +76,10 @@ export default function InvoiceablePatients(): React.ReactElement {
     }
   };
 
+  // const updateInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
+  //
+  // }
+
   const useGetInvoiceablePatients = (): UseQueryResult<GetInvoicesTasksResponse, Error> => {
     return useQuery({
       queryKey: [GET_INVOICES_TASKS_ZAMBDA_KEY, page],
@@ -163,7 +167,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                 </TableCell>
                 <TableCell style={{ width: '200px' }}>
                   <Typography fontWeight="500" fontSize="14px">
-                    Candid id
+                    Claim id
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -199,7 +203,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.patient.dob}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body1">{report.appointmentDate}</Typography>
+                        <Typography variant="body1">{report.visitDate}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body1">{report.finalizationDate}</Typography>
@@ -216,14 +220,14 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.claimId}</Typography>
                       </TableCell>
                       <TableCell>
+                        <Button>Update</Button>
                         <Button
                           onClick={() => {
                             setSelectedReport(report);
                           }}
                         >
-                          Update
+                          Invoice
                         </Button>
-                        <Button>Invoice</Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -233,7 +237,7 @@ export default function InvoiceablePatients(): React.ReactElement {
           <TablePagination
             rowsPerPageOptions={[INVOICEABLE_PATIENTS_PAGE_SIZE]}
             component="div"
-            count={invoiceablePatients?.reports?.length ?? -1}
+            count={invoiceablePatients?.totalCount ?? -1}
             rowsPerPage={INVOICEABLE_PATIENTS_PAGE_SIZE}
             page={page}
             onPageChange={(_e, newPageNumber) => {
