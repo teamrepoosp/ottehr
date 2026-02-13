@@ -195,7 +195,6 @@ const createNewTask = ({
       type: 'Appointment',
       reference: `Appointment/${appointment.id}`,
     },
-    // todo needs owner to notify the provider assigned to the appointment
     owner: { reference: providerReference },
   };
   return newTask;
