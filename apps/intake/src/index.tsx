@@ -14,37 +14,6 @@ if (!Object.hasOwn) {
   hasOwn.shim();
 }
 
-// Handle chunk loading failures from deployments
-// When a new deployment happens, old JS chunks are deleted, causing 404 errors
-// Auto-reload once to fetch the new chunks
-let hasReloaded = false;
-const isChunkLoadError = (error: any): boolean => {
-  const errorString = String(error);
-  return (
-    errorString.includes('Failed to fetch dynamically imported module') ||
-    errorString.includes('Importing a module script failed') ||
-    errorString.includes('error loading dynamically imported module') ||
-    errorString.includes('Loading chunk') ||
-    error?.name === 'ChunkLoadError'
-  );
-};
-
-window.addEventListener('error', (event) => {
-  if (!hasReloaded && isChunkLoadError(event.error || event.message)) {
-    console.log('Chunk loading error detected, reloading page...');
-    hasReloaded = true;
-    window.location.reload();
-  }
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-  if (!hasReloaded && isChunkLoadError(event.reason)) {
-    console.log('Chunk loading error detected (unhandled rejection), reloading page...');
-    hasReloaded = true;
-    window.location.reload();
-  }
-});
-
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 const { VITE_APP_AUTH0_AUDIENCE, VITE_APP_AUTH_URL, VITE_APP_CLIENT_ID } = import.meta.env;
 if (!VITE_APP_CLIENT_ID || !VITE_APP_AUTH0_AUDIENCE) {
