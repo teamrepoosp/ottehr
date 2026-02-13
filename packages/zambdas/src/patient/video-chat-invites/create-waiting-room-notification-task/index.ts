@@ -96,8 +96,8 @@ export async function performEffect(
   }
 
   await oystehr.fhir.patch({
-    resourceType: 'Task',
-    id: task.id,
+    resourceType: 'Appointment',
+    id: appointment.id,
     operations: [
       {
         op: 'add',
