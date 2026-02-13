@@ -3,20 +3,13 @@ import { validateJsonBody, ZambdaInput } from '../../../shared';
 
 export interface ValidatedInput {
   body: VideoChatNotificationInput;
-  callerAccessToken: string;
 }
 
 export const validateInput = async (input: ZambdaInput): Promise<ValidatedInput> => {
   const body = validateBody(input);
 
-  const callerAccessToken = input.headers.Authorization?.replace('Bearer ', '');
-  if (!callerAccessToken) {
-    throw new Error('Caller access token is required');
-  }
-
   return {
     body,
-    callerAccessToken,
   };
 };
 
