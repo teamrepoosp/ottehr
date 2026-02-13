@@ -22,7 +22,7 @@ import { ValidatedInput, validateInput, validateSecrets } from './validateReques
 // Lifting up value to outside of the handler allows it to stay in memory across warm lambda invocations
 let m2mToken: string;
 
-const ZAMBDA_NAME = 'get-patient-balances';
+const ZAMBDA_NAME = 'video-chat-waiting-room-notification';
 
 export const index = wrapHandler(ZAMBDA_NAME, async (unsafeInput: ZambdaInput): Promise<APIGatewayProxyResult> => {
   try {
