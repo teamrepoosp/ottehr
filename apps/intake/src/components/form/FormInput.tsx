@@ -164,7 +164,7 @@ const FormInput: FC<FormInputProps> = ({
               aria-describedby={`${name}-helper-text`}
               inputComponent={myInputComponent}
               inputProps={inputProps}
-              onChange={(e) => onChange(e.target.value.trimStart())}
+              onChange={(e) => onChange(e.target.value?.trimStart())}
               {...otherProps}
               disableUnderline
               fullWidth
