@@ -167,7 +167,7 @@ const createNewTask = ({
       coding: [
         {
           system: OttehrTaskSystem,
-          code: 'recommend-diagnosis-codes',
+          code: VIDEO_CHAT_WAITING_ROOM_NOTIFICATION_TASK_CODE,
         },
       ],
     },
