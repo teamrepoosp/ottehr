@@ -13,7 +13,7 @@ import {
   TelemedAppointmentStatus,
   TelemedAppointmentStatusEnum,
   TelemedStatusHistoryElement,
-  textingConfig,
+  TEXTING_CONFIG,
 } from 'utils';
 import { AppointmentResources } from '../../shared/stores/appointment/appointment.store';
 import { diffInMinutes } from './diffInMinutes';
@@ -295,5 +295,5 @@ export const getTelemedQuickTexts = (supportPhone: string): string[] => {
     supportPhone,
   };
 
-  return textingConfig.telemed.quickTexts.map((t) => replaceTemplateVariablesArrows(t, vars));
+  return TEXTING_CONFIG.telemed.quickTexts.map((t) => replaceTemplateVariablesArrows(t, vars));
 };

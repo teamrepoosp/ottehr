@@ -48,7 +48,7 @@ import {
   OrdersForTrackingBoardRow,
   replaceTemplateVariablesArrows,
   ROOM_EXTENSION_URL,
-  textingConfig,
+  TEXTING_CONFIG,
   VisitStatusHistoryEntry,
 } from 'utils';
 import { dataTestIds } from '../constants/data-test-ids';
@@ -528,7 +528,7 @@ export default function AppointmentTableRow({
       officePhone: officePhoneNumber,
     };
 
-    return textingConfig.inPerson.quickTexts.map((text) => {
+    return TEXTING_CONFIG.inPerson.quickTexts.map((text) => {
       return {
         english: text.english ? replaceTemplateVariablesArrows(text.english, vars) : undefined,
         spanish: text.spanish ? replaceTemplateVariablesArrows(text.spanish, vars) : undefined,
