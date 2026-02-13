@@ -155,8 +155,9 @@ const createNewTask = ({
   providerReference,
 }: ReturnedResources & { providerReference: string }): Task => {
   const patientName = getFullestAvailableName(patient);
-  const location = appointment.participant?.find((participant) => participant.actor?.reference?.startsWith('Location/'))
-    ?.actor?.display;
+  const locationReference = appointment.participant?.find(
+    (participant) => participant.actor?.reference?.startsWith('Location/')
+  )?.actor?.reference;
   const newTask: Task = {
     resourceType: 'Task',
     status: 'requested',
@@ -190,7 +191,7 @@ const createNewTask = ({
       type: 'Patient',
       reference: `Patient/${patient.id}`,
     },
-    ...(location && { location: { reference: `Location/${location}` } }),
+    ...(locationReference && { location: { reference: locationReference } }),
     focus: {
       type: 'Appointment',
       reference: `Appointment/${appointment.id}`,
