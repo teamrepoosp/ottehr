@@ -35,10 +35,10 @@ import { VitalsIconTooltip } from 'src/features/visits/shared/components/VitalsI
 import { LocationWithWalkinSchedule } from 'src/pages/AddPatient';
 import { otherColors } from 'src/themes/ottehr/colors';
 import {
-  BRANDING_CONFIG,
   formatMinutes,
   getAbnormalVitals,
   getDurationOfStatus,
+  getInPersonQuickTexts,
   getPatchBinary,
   getVisitTotalTime,
   GetVitalsResponseData,
@@ -46,9 +46,7 @@ import {
   mdyStringFromISOString,
   NON_LOS_STATUSES,
   OrdersForTrackingBoardRow,
-  replaceTemplateVariablesArrows,
   ROOM_EXTENSION_URL,
-  TEXTING_CONFIG,
   VisitStatusHistoryEntry,
 } from 'utils';
 import { dataTestIds } from '../constants/data-test-ids';
@@ -86,8 +84,6 @@ interface AppointmentTableRowProps {
   vitals?: GetVitalsResponseData;
   table?: 'waiting-room' | 'in-exam';
 }
-
-const VITE_APP_PATIENT_APP_URL = import.meta.env.VITE_APP_PATIENT_APP_URL;
 
 const linkStyle = {
   display: 'contents',
@@ -519,22 +515,14 @@ export default function AppointmentTableRow({
     </>
   );
 
-  const quickTexts = useMemo(() => {
-    const vars = {
-      patientName: appointment.patient.firstName ?? '',
-      visitUrl: `${VITE_APP_PATIENT_APP_URL}/visit/${appointment.id}`,
-      aiInterviewUrl: `${VITE_APP_PATIENT_APP_URL}/visit/${appointment.id}/ai-interview-start`,
-      projectName: BRANDING_CONFIG.projectName,
-      officePhone: officePhoneNumber,
-    };
-
-    return TEXTING_CONFIG.inPerson.quickTexts.map((text) => {
-      return {
-        english: text.english ? replaceTemplateVariablesArrows(text.english, vars) : undefined,
-        spanish: text.spanish ? replaceTemplateVariablesArrows(text.spanish, vars) : undefined,
-      };
-    });
-  }, [appointment.id, appointment.patient.firstName, officePhoneNumber]);
+  const quickTexts = getInPersonQuickTexts({
+    patientName: appointment.patient.firstName,
+    visitId: appointment.id,
+    locationName: location?.name,
+    start,
+    appointmentType: appointment.appointmentType,
+    officePhone: officePhoneNumber,
+  });
 
   const onCloseChat = useCallback(() => {
     setChatModalOpen(false);

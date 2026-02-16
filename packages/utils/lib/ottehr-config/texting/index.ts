@@ -1,11 +1,17 @@
 import _ from 'lodash';
+import { BRANDING_CONFIG, replaceTemplateVariablesArrows } from 'utils';
 import { z } from 'zod';
 import { TEXTING_OVERRIDES } from '../../../ottehr-config-overrides';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 
 const I18nQuickTextSchema = z.object({
-  english: z.string().optional(),
+  english: z.string(),
   spanish: z.string().optional(),
+  when: z
+    .object({
+      appointmentTypes: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 const TextingConfigSchema = z.object({
@@ -87,3 +93,40 @@ const TEXTING_DEFAULTS_BASE = Object.freeze({
 const mergedTextingConfig = mergeAndFreezeConfigObjects(TEXTING_DEFAULTS_BASE, TEXTING_OVERRIDES);
 
 export const TEXTING_CONFIG = TextingConfigSchema.parse(mergedTextingConfig);
+
+const PATIENT_APP_URL = import.meta.env.VITE_APP_PATIENT_APP_URL;
+
+type InPersonQuickTextContext = {
+  patientName?: string;
+  visitId: string;
+  locationName?: string;
+  start?: string;
+  appointmentType?: string;
+  officePhone?: string;
+};
+
+const matchesWhen = (when: { appointmentTypes?: string[] } | undefined, appointmentType?: string): boolean => {
+  if (!when?.appointmentTypes) return true;
+  return when.appointmentTypes.includes(appointmentType ?? '');
+};
+
+export const getInPersonQuickTexts = (
+  ctx: InPersonQuickTextContext
+): { english: string | undefined; spanish: string | undefined }[] => {
+  const vars = {
+    patientName: ctx.patientName ?? '',
+    visitUrl: `${PATIENT_APP_URL}/visit/${ctx.visitId}`,
+    aiInterviewUrl: `${PATIENT_APP_URL}/visit/${ctx.visitId}/ai-interview-start`,
+    projectName: BRANDING_CONFIG.projectName,
+    locationName: ctx.locationName ?? '',
+    start: ctx.start ?? '',
+    officePhone: ctx.officePhone ?? '',
+  };
+
+  return TEXTING_CONFIG.inPerson.quickTexts
+    .filter((text) => matchesWhen(text.when, ctx.appointmentType))
+    .map((text) => ({
+      english: text.english ? replaceTemplateVariablesArrows(text.english, vars) : undefined,
+      spanish: text.spanish ? replaceTemplateVariablesArrows(text.spanish, vars) : undefined,
+    }));
+};
