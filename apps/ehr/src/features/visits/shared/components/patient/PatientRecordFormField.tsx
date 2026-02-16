@@ -7,7 +7,7 @@ import { BasicDatePicker, FormSelect, FormTextField } from 'src/components/form'
 import InputMask from 'src/components/InputMask';
 import { Row } from 'src/components/layout';
 import { useApiClients } from 'src/hooks/useAppClients';
-import { dedupeObjectsByKey, FormFieldsDisplayItem, FormFieldsInputItem } from 'utils';
+import { dedupeObjectsByKey, FormFieldsDisplayItem, FormFieldsInputItem, isRemovableField } from 'utils';
 import { evaluateFieldTriggers } from './patientRecordValidation';
 
 interface PatientRecordFormFieldProps {
@@ -317,7 +317,7 @@ const DynamicReferenceField: FC<DynamicReferenceFieldProps> = ({ item, optionStr
                 setValue(item.key, null, { shouldDirty: true });
               }
             }}
-            disableClearable
+            disableClearable={!isRemovableField(item.key)}
             fullWidth
             renderInput={(params) => (
               <TextField {...params} variant="standard" error={!!error} helperText={error?.message} />
