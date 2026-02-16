@@ -47,10 +47,6 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     const oystehr = createOystehrClient(m2mToken, secrets);
     const candid = createCandidApiClient(secrets);
 
-    // 1. getting candid claims for the past two days
-    // 3. getting encounters without a task using claims id
-    // 4. getting itemization response for both groups at the same time to optimize this process
-
     const twoDaysAgo = DateTime.now().minus({ days: 2 });
     const candidClaims = await getAllCandidClaims(candid, twoDaysAgo);
     console.log('getting candid claims for the past two days');
@@ -77,18 +73,25 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   }
 });
 
-async function getPrefilledInvoiceInfo(patientBalanceInCents: number): Promise<InvoiceTaskInput> {
+async function getPrefilledInvoiceInfo(
+  claimId: string,
+  finalizationDate: Date,
+  patientBalanceInCents: number
+): Promise<InvoiceTaskInput> {
   try {
     const smsMessageFromSecret = textingConfig.invoicing.smsMessage;
     const memoFromSecret = textingConfig.invoicing.stripeMemoMessage;
     const dueDateFromSecret = textingConfig.invoicing.dueDateInDays;
     const dueDate = DateTime.now().plus({ days: dueDateFromSecret }).toISODate();
+    const finalizationDateIso = finalizationDate.toISOString();
 
     return {
       smsTextMessage: smsMessageFromSecret,
       memo: memoFromSecret,
       dueDate,
       amountCents: patientBalanceInCents,
+      claimId,
+      finalizationDate: finalizationDateIso,
     };
   } catch (error) {
     console.error('Error fetching prefilled invoice info: ', error);
@@ -101,7 +104,7 @@ export async function createTaskForEncounter(oystehr: Oystehr, encounterPkg: Enc
     const { encounter, claim, amountCents } = encounterPkg;
     const patientId = encounter.subject?.reference?.replace('Patient/', '');
     if (!patientId) throw new Error('Patient ID not found in encounter: ' + encounter.id);
-    const prefilledInvoiceInfo = await getPrefilledInvoiceInfo(amountCents);
+    const prefilledInvoiceInfo = await getPrefilledInvoiceInfo(claim.claimId, claim.timestamp, amountCents);
     console.log(
       `Creating task. patient: ${claim.patientExternalId}, claim: ${claim.claimId}, oyst encounter: ${encounter.id} balance (cents): ${amountCents}`
     );
