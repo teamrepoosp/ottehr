@@ -71,6 +71,8 @@ import { PatientDateOfBirth } from './PatientDateOfBirth';
 import { PriorityIconWithBorder } from './PriorityIconWithBorder';
 import ReasonsForVisit from './ReasonForVisit';
 
+const VITE_APP_PATIENT_APP_URL = import.meta.env.VITE_APP_PATIENT_APP_URL;
+
 interface AppointmentTableRowProps {
   appointment: InPersonAppointmentInformation;
   location?: LocationWithWalkinSchedule;
@@ -516,6 +518,7 @@ export default function AppointmentTableRow({
   );
 
   const quickTexts = getInPersonQuickTexts({
+    patientAppUrl: VITE_APP_PATIENT_APP_URL,
     patientName: appointment.patient.firstName,
     visitId: appointment.id,
     locationName: location?.name,

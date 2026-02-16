@@ -94,9 +94,8 @@ const mergedTextingConfig = mergeAndFreezeConfigObjects(TEXTING_DEFAULTS_BASE, T
 
 export const TEXTING_CONFIG = TextingConfigSchema.parse(mergedTextingConfig);
 
-const PATIENT_APP_URL = import.meta.env.VITE_APP_PATIENT_APP_URL;
-
 type InPersonQuickTextContext = {
+  patientAppUrl?: string;
   patientName?: string;
   visitId: string;
   locationName?: string;
@@ -115,8 +114,8 @@ export const getInPersonQuickTexts = (
 ): { english: string | undefined; spanish: string | undefined }[] => {
   const vars = {
     patientName: ctx.patientName ?? '',
-    visitUrl: `${PATIENT_APP_URL}/visit/${ctx.visitId}`,
-    aiInterviewUrl: `${PATIENT_APP_URL}/visit/${ctx.visitId}/ai-interview-start`,
+    visitUrl: `${ctx.patientAppUrl}/visit/${ctx.visitId}`,
+    aiInterviewUrl: `${ctx.patientAppUrl}/visit/${ctx.visitId}/ai-interview-start`,
     projectName: BRANDING_CONFIG.projectName,
     locationName: ctx.locationName ?? '',
     start: ctx.start ?? '',
