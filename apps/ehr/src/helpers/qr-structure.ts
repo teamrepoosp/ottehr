@@ -7,12 +7,18 @@ import {
   mapQuestionnaireAndValueSetsToItemsList,
 } from 'utils';
 
-const containedItemWithLinkId = (item: QuestionnaireItem, linkId: string): QuestionnaireItem | undefined => {
+export const containedItemWithLinkId = (item: QuestionnaireItem, linkId: string): QuestionnaireItem | undefined => {
   // note: if item.linkId === linkId, return item
   const { linkId: itemLinkId, item: subItems } = item;
   if (itemLinkId === linkId) return item;
   if (!subItems) return undefined;
-  return subItems.find((subItem) => containedItemWithLinkId(subItem, linkId));
+
+  for (const subItem of subItems) {
+    const found = containedItemWithLinkId(subItem, linkId);
+    if (found) return found;
+  }
+
+  return undefined;
 };
 
 export const structureQuestionnaireResponse = (

@@ -598,7 +598,7 @@ export const makeQRResponseItem = (
         });
         return { ...base, answer };
       }
-      let valueString = value.trimStart();
+      let valueString = value?.trimStart();
       // restrict user from ever entering non-numeric digits
       if (item.dataType === 'ZIP') {
         valueString = valueString.replace(/[^0-9]/g, '');
