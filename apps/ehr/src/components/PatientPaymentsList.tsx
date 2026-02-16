@@ -24,6 +24,7 @@ import { Appointment, DocumentReference, Encounter, Organization, Patient } from
 import { DateTime } from 'luxon';
 import { enqueueSnackbar } from 'notistack';
 import { FC, Fragment, ReactElement, useState } from 'react';
+import { getEligibilityCheckDetailsForCoverage } from 'src/features/visits/shared/components/patient/InsuranceSection';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { useApiClients } from 'src/hooks/useAppClients';
 import { useEncounterReceipt, useGetEncounter } from 'src/hooks/useEncounter';
@@ -33,6 +34,7 @@ import {
   APIError,
   APIErrorCode,
   CashOrCardPayment,
+  CoverageCheckWithDetails,
   FHIR_EXTENSION,
   getCoding,
   getPaymentVariantFromEncounter,
@@ -293,8 +295,16 @@ export default function PatientPaymentList({
     (extensionTemp) => extensionTemp.url === FHIR_EXTENSION.InsurancePlan.notes.url
   )?.valueString;
 
+  let coverageCheck: CoverageCheckWithDetails | undefined = undefined;
+  if (insuranceCoverages?.coverages?.primary && insuranceData?.coverageChecks) {
+    coverageCheck = getEligibilityCheckDetailsForCoverage(
+      insuranceCoverages?.coverages?.primary,
+      insuranceData?.coverageChecks
+    );
+  }
+
   const copayAmount = getPaymentAmountFromPatientBenefit({
-    coverage: insuranceData?.coverageChecks?.[0]?.copay || [],
+    coverage: coverageCheck?.copay?.filter((item) => item.inNetwork === true) || [],
     code: 'UC',
     coverageCode: 'B',
     levelCode: 'IND',
@@ -302,7 +312,7 @@ export default function PatientPaymentList({
   });
 
   const remainingDeductibleAmount = getPaymentAmountFromPatientBenefit({
-    coverage: insuranceData?.coverageChecks?.[0]?.deductible || [],
+    coverage: coverageCheck?.deductible?.filter((item) => item.inNetwork === true) || [],
     code: '30',
     coverageCode: 'C',
     levelCode: 'IND',

@@ -60,6 +60,8 @@ import {
   GetLabOrdersParameters,
   GetNursingOrdersInput,
   GetOrUploadPatientProfilePhotoZambdaResponse,
+  GetPatientBalancesZambdaInput,
+  GetPatientBalancesZambdaOutput,
   GetPresignedFileURLInput,
   GetRadiologyOrderListZambdaInput,
   GetRadiologyOrderListZambdaOutput,
@@ -95,7 +97,11 @@ import {
   RecentPatientsReportZambdaOutput,
   SaveFollowupEncounterZambdaInput,
   SaveFollowupEncounterZambdaOutput,
+  SavePreliminaryReportZambdaInput,
+  SavePreliminaryReportZambdaOutput,
   ScheduleDTO,
+  SendForFinalReadZambdaInput,
+  SendForFinalReadZambdaOutput,
   SendReceiptByEmailZambdaInput,
   SendReceiptByEmailZambdaOutput,
   SubmitLabOrderInput,
@@ -180,6 +186,7 @@ const PENDING_SUPERVISOR_APPROVAL_ZAMBDA_ID = 'pending-supervisor-approval';
 const SEND_RECEIPT_BY_EMAIL_ZAMBDA_ID = 'send-receipt-by-email';
 const BULK_UPDATE_INSURANCE_STATUS_ZAMBDA_ID = 'bulk-update-insurance-status';
 const UPDATE_INVOICE_TASK_ZAMBDA_ID = 'update-invoice-task';
+const GET_PATIENT_BALANCES_ZAMBDA_ID = 'get-patient-balances';
 
 export const getUser = async (token: string): Promise<User> => {
   const oystehr = new Oystehr({
@@ -972,6 +979,38 @@ export const radiologyLaunchViewer = async (
   }
 };
 
+export const savePreliminaryReport = async (
+  oystehr: Oystehr,
+  parameters: SavePreliminaryReportZambdaInput
+): Promise<SavePreliminaryReportZambdaOutput> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'radiology-save-preliminary-report',
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const sendForFinalRead = async (
+  oystehr: Oystehr,
+  parameters: SendForFinalReadZambdaInput
+): Promise<SendForFinalReadZambdaOutput> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'radiology-send-for-final-read',
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw error;
+  }
+};
+
 export const getRadiologyOrders = async (
   oystehr: Oystehr,
   parameters: GetRadiologyOrderListZambdaInput
@@ -1461,6 +1500,26 @@ export const updateInvoiceTask = async (oystehr: Oystehr, parameters: UpdateInvo
       id: UPDATE_INVOICE_TASK_ZAMBDA_ID,
       ...parameters,
     });
+  } catch (error: unknown) {
+    console.log(error);
+    throw apiErrorToThrow(error);
+  }
+};
+
+export const getPatientBalances = async (
+  oystehr: Oystehr,
+  parameters: GetPatientBalancesZambdaInput
+): Promise<GetPatientBalancesZambdaOutput> => {
+  try {
+    if (GET_PATIENT_BALANCES_ZAMBDA_ID == null) {
+      throw new Error('get patient balances environment variable could not be loaded');
+    }
+
+    const response = await oystehr.zambda.execute({
+      id: GET_PATIENT_BALANCES_ZAMBDA_ID,
+      ...parameters,
+    });
+    return chooseJson(response);
   } catch (error: unknown) {
     console.log(error);
     throw apiErrorToThrow(error);
