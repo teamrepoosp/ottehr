@@ -14,13 +14,12 @@ export function validateRequestParameters(input: ZambdaInput): GetInvoicesTasksV
 
   const parsedJSON = JSON.parse(input.body) as unknown;
 
-  const { status, page } = safeValidate(GetInvoicesTasksZambdaInputSchema, parsedJSON);
+  const parsedInput = safeValidate(GetInvoicesTasksZambdaInputSchema, parsedJSON);
 
   console.groupEnd();
   console.debug('validateRequestParameters success');
   return {
-    status,
-    page,
+    ...parsedInput,
     secrets: input.secrets,
   };
 }

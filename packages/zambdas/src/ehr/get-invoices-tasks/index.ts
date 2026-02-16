@@ -52,10 +52,6 @@ interface TaskGroup {
   slot?: Slot;
   responsibleParty?: Patient | RelatedPerson;
   relatedPerson?: RelatedPerson;
-  candidData?: {
-    finalizationDate?: string;
-    claimId?: string;
-  };
 }
 
 export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promise<APIGatewayProxyResult> => {
@@ -70,9 +66,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     const fhirSearchStart = performance.now();
     const fhirResources = await getFhirResourcesGroupped(oystehr, validatedParams);
     const fhirSearchEnd = performance.now();
-    // const taskGroups = await fillGroupsWithCandidData(candid, fhirResources.taskGroups);
     const taskGroups = fhirResources.taskGroups;
-    // const candidSearchEnd = performance.now();
 
     const response = performEffect(taskGroups, fhirResources.bundleTotal);
     const end = performance.now();
@@ -145,17 +139,12 @@ async function getFhirResourcesGroupped(
   oystehr: Oystehr,
   complexValidatedInput: GetInvoicesTasksInput
 ): Promise<{ taskGroups: TaskGroup[]; bundleTotal: number }> {
-  const { page, status } = complexValidatedInput;
-  // todo: add here filter by patient for example
+  const { page, status, patientId } = complexValidatedInput;
   const params: SearchParam[] = [
     {
       name: '_sort',
       value: '-authored-on',
     },
-    // {
-    //   name: '_sort',
-    //   value: '-Appointment.start',
-    // },
     {
       name: '_total',
       value: 'accurate',
@@ -163,10 +152,6 @@ async function getFhirResourcesGroupped(
     {
       name: '_count',
       value: INVOICEABLE_PATIENTS_PAGE_SIZE,
-    },
-    {
-      name: 'status:not',
-      value: 'cancelled',
     },
     {
       name: 'code',
@@ -211,6 +196,13 @@ async function getFhirResourcesGroupped(
     params.push({
       name: 'status',
       value: status,
+    });
+  }
+  if (patientId) {
+    console.log('adding patientId to search params: ', patientId);
+    params.push({
+      name: 'patient',
+      value: `Patient/${patientId}`,
     });
   }
   const bundle = await oystehr.fhir.search({

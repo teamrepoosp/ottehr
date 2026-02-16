@@ -12,6 +12,7 @@ import {
   formatDateConfigurable,
   getSecret,
   getStartTimeFromEncounterStatusHistory,
+  mapDisplayToInvoiceTaskStatus,
   SecretsKeys,
 } from 'utils';
 import {
@@ -53,7 +54,10 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       await oystehr.fhir.patch({
         resourceType: 'Task',
         id: taskId,
-        operations: [{ op: 'replace', path: '/input', value: createInvoiceTaskInput(invoiceTaskInput) }],
+        operations: [
+          { op: 'replace', path: '/input', value: createInvoiceTaskInput(invoiceTaskInput) },
+          { op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('ready') },
+        ],
       });
       console.log(`Updated task input for task id: "${taskId}"`);
     }

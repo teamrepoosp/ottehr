@@ -105,7 +105,7 @@ export default function SendInvoiceToPatientDialog({
           const memo = textingConfig.invoicing.stripeMemoMessage;
           const smsMessage = textingConfig.invoicing.smsMessage;
           reset({
-            amount: amountCents / 100,
+            amount: (amountCents ?? 0) / 100,
             dueDate: dueDate,
             memo: memo,
             smsTextMessage: smsMessage,

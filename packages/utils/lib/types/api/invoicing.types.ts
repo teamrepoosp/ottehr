@@ -5,6 +5,9 @@ import { Secrets } from '../../secrets';
 export const INVOICEABLE_PATIENTS_PAGE_SIZE = 40;
 export const GET_INVOICES_TASKS_ZAMBDA_KEY = 'get-invoices-tasks';
 
+export const InvoiceTaskDisplayStatuses = ['ready', 'updating', 'sending', 'sent', 'error'];
+export type InvoiceTaskDisplayStatus = (typeof InvoiceTaskDisplayStatuses)[number];
+
 export const InvoiceTaskInputSchemaBase = z.object({
   dueDate: z.string(),
   memo: z.string(),
@@ -23,7 +26,7 @@ export type SubSendInvoiceToPatientTaskInput = z.infer<typeof SubSendInvoiceToPa
 export const UpdateInvoiceTaskZambdaInputSchema = z.object({
   taskId: z.string().uuid(),
   status: z.string(),
-  invoiceTaskInput: InvoiceTaskInputSchema,
+  invoiceTaskInput: InvoiceTaskInputSchema.optional(),
   userTimezone: z.string(),
 });
 export type UpdateInvoiceTaskZambdaInput = z.infer<typeof UpdateInvoiceTaskZambdaInputSchema>;
@@ -57,6 +60,7 @@ const allowedStatuses = [
 export const GetInvoicesTasksZambdaInputSchema = z.object({
   page: z.number().min(0).optional(),
   status: z.enum(allowedStatuses).optional(),
+  patientId: z.string().optional(),
 });
 export const GetInvoicesTasksZambdaValidatedInputSchema = GetInvoicesTasksZambdaInputSchema.extend({
   secrets: z.custom<Secrets>().nullable(),

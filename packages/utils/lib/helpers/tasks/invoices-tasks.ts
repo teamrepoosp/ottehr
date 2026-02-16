@@ -1,6 +1,6 @@
 import { Task, TaskInput } from 'fhir/r4b';
 import { ottehrCodeSystemUrl } from '../../fhir/systemUrls';
-import { InvoiceTaskInput, InvoiceTaskInputSchema } from '../../types';
+import { InvoiceTaskDisplayStatus, InvoiceTaskInput, InvoiceTaskInputSchema } from '../../types';
 
 export function createInvoiceTaskInput(input: InvoiceTaskInput): TaskInput[] {
   const fieldsNames = Object.keys(input);
@@ -45,4 +45,36 @@ function getInvoiceTaskInputFieldByCode(code: keyof InvoiceTaskInput, task: Task
     (input) =>
       input.type.coding?.find((type) => type.system === ottehrCodeSystemUrl('invoice-task-input') && type.code === code)
   )?.valueString;
+}
+
+export function mapInvoiceTaskStatusToDisplay(status: Task['status']): InvoiceTaskDisplayStatus {
+  switch (status) {
+    case 'ready':
+      return 'ready';
+    case 'requested':
+      return 'updating';
+    case 'in-progress':
+      return 'sending';
+    case 'completed':
+      return 'sent';
+    default:
+      return 'error';
+  }
+}
+
+export function mapDisplayToInvoiceTaskStatus(status: InvoiceTaskDisplayStatus): Task['status'] {
+  switch (status) {
+    case 'ready':
+      return 'ready';
+    case 'updating':
+      return 'requested';
+    case 'sending':
+      return 'in-progress';
+    case 'sent':
+      return 'completed';
+    case 'error':
+      return 'failed';
+    default:
+      return 'failed';
+  }
 }

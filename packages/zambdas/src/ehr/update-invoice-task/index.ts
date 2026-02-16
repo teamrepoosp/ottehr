@@ -22,16 +22,16 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
 
-    const taskInput = createInvoiceTaskInput(invoiceTaskInput);
-
     const task = await oystehr.fhir.get<Task>({
       resourceType: 'Task',
       id: taskId,
     });
 
     task.status = status as any;
-    console.log('status: ', status);
-    task.input = taskInput;
+    console.log('New status: ', status);
+    if (invoiceTaskInput) {
+      task.input = createInvoiceTaskInput(invoiceTaskInput);
+    }
 
     if (!task.extension) {
       task.extension = [];

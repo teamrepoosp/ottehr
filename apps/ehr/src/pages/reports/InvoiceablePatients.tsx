@@ -11,14 +11,14 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material';
 import { Box, Stack } from '@mui/system';
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { Task } from 'fhir/r4b';
+import { useQuery } from '@tanstack/react-query';
 import { DateTime } from 'luxon';
 import { enqueueSnackbar } from 'notistack';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { SendInvoiceToPatientDialog } from 'src/components/dialogs';
@@ -29,17 +29,72 @@ import {
   GetInvoicesTasksResponse,
   INVOICEABLE_PATIENTS_PAGE_SIZE,
   InvoiceablePatientReport,
+  InvoiceTaskDisplayStatus,
+  InvoiceTaskDisplayStatuses,
   InvoiceTaskInput,
+  mapDisplayToInvoiceTaskStatus,
+  mapInvoiceTaskStatusToDisplay,
 } from 'utils';
 import { updateInvoiceTask } from '../../api/api';
 import { SelectInput } from '../../components/input/SelectInput';
+import { MappedStatusChip } from '../../components/MappedStatusChip';
 import { useApiClients } from '../../hooks/useAppClients';
 import PageContainer from '../../layout/PageContainer';
 
-const INVOICE_TASK_STATUS_LABEL: Record<string, Task['status']> = {
-  ready: 'ready',
-  'in-progress': 'in-progress',
-  completed: 'completed',
+const LOCAL_STORAGE_FILTERS_KEY = 'invoices-tasks.filters';
+
+const INVOICEABLE_TASK_STATUS_COLORS_MAP: {
+  [status in InvoiceTaskDisplayStatus]: {
+    background: {
+      primary: string;
+      secondary?: string;
+    };
+    color: {
+      primary: string;
+      secondary?: string;
+    };
+  };
+} = {
+  ready: {
+    background: {
+      primary: '#6129ef',
+    },
+    color: {
+      primary: '#ffffff',
+    },
+  },
+  updating: {
+    background: {
+      primary: '#B3E5FC',
+    },
+    color: {
+      primary: '#01579B',
+    },
+  },
+  sending: {
+    background: {
+      primary: '#D1C4E9',
+    },
+    color: {
+      primary: '#311B92',
+    },
+  },
+  sent: {
+    background: {
+      primary: '#C8E6C9',
+    },
+    color: {
+      primary: '#1B5E20',
+    },
+  },
+  error: {
+    background: {
+      primary: '#FFCCBC',
+    },
+    color: {
+      primary: '#BF360C',
+    },
+  },
 };
 
 export default function InvoiceablePatients(): React.ReactElement {
@@ -47,8 +102,11 @@ export default function InvoiceablePatients(): React.ReactElement {
   const navigate = useNavigate();
   const methods = useForm();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedReport, setSelectedReport] = useState<InvoiceablePatientReport | undefined>();
-  const page = Number(searchParams.get('page') ?? '0');
+  const [selectedReportToSend, setSelectedReportToSend] = useState<InvoiceablePatientReport | undefined>();
+  const pageSP = Number(searchParams.get('page') ?? '0');
+  const statusSP = searchParams.get('status');
+  const patientSP = searchParams.get('patient');
+  console.log('patient sp changed, ', patientSP);
 
   const handleBack = (): void => {
     navigate('/reports');
@@ -64,45 +122,99 @@ export default function InvoiceablePatients(): React.ReactElement {
       if (oystehrZambda) {
         await updateInvoiceTask(oystehrZambda, {
           taskId,
-          status: 'requested',
+          status: mapDisplayToInvoiceTaskStatus('sending'),
           invoiceTaskInput,
           userTimezone: DateTime.local().zoneName,
         });
-        setSelectedReport(undefined);
-        enqueueSnackbar('Invoice created and sent successfully', { variant: 'success' });
+        setSelectedReportToSend(undefined);
+        enqueueSnackbar('Invoice status changed to "sending"', { variant: 'success' });
       }
     } catch {
-      enqueueSnackbar('Error occurred during invoice creation, please try again', { variant: 'error' });
+      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
     }
   };
 
-  // const updateInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
-  //
-  // }
-
-  const useGetInvoiceablePatients = (): UseQueryResult<GetInvoicesTasksResponse, Error> => {
-    return useQuery({
-      queryKey: [GET_INVOICES_TASKS_ZAMBDA_KEY, page],
-      queryFn: async () => {
-        if (!oystehrZambda) throw new Error('oystehrZambda not defined');
-        const status = searchParams.get('status');
-        const params: GetInvoicesTasksInput = {
-          page,
-          status: status ? (status as Task['status']) : undefined,
-        };
-        const response = await oystehrZambda.zambda.execute({
-          id: GET_INVOICES_TASKS_ZAMBDA_KEY,
-          ...params,
+  const updateInvoice = (taskId: string | undefined): void => {
+    try {
+      if (oystehrZambda && taskId) {
+        void updateInvoiceTask(oystehrZambda, {
+          taskId,
+          status: mapDisplayToInvoiceTaskStatus('updating'),
+          userTimezone: DateTime.local().zoneName,
+        }).then(() => {
+          enqueueSnackbar('Invoice status changed to "updating"', { variant: 'success' });
         });
-        return chooseJson(response);
-      },
-      enabled: oystehrZambda !== undefined,
-      retry: 2,
-      staleTime: 5 * 1000,
-    });
+      }
+    } catch {
+      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
+    }
   };
 
-  const { data: invoiceablePatients, isLoading: isInvoiceablePatientsLoading } = useGetInvoiceablePatients();
+  const { data: invoiceablePatients, isLoading: isInvoiceablePatientsLoading } = useQuery<GetInvoicesTasksResponse>({
+    queryKey: [GET_INVOICES_TASKS_ZAMBDA_KEY, pageSP, statusSP, patientSP],
+    queryFn: async () => {
+      if (!oystehrZambda) throw new Error('oystehrZambda not defined');
+      const params: GetInvoicesTasksInput = {
+        page: pageSP,
+        status: statusSP ? mapDisplayToInvoiceTaskStatus(statusSP as InvoiceTaskDisplayStatus) : undefined,
+        patientId: patientSP ?? undefined,
+      };
+      const response = await oystehrZambda.zambda.execute({
+        id: GET_INVOICES_TASKS_ZAMBDA_KEY,
+        ...params,
+      });
+      return chooseJson(response);
+    },
+    enabled: oystehrZambda !== undefined,
+    retry: 2,
+    staleTime: 5 * 1000,
+  });
+
+  useEffect(() => {
+    const filtersValues = {
+      status: searchParams.get('status'),
+      patient: searchParams.get('patient'),
+    };
+    methods.reset(filtersValues);
+  }, [searchParams, methods]);
+
+  useEffect(() => {
+    const callback = methods.subscribe({
+      formState: {
+        values: true,
+      },
+      callback: ({ values }) => {
+        const queryParams = new URLSearchParams();
+        const filtersToPersist: Record<string, string> = {};
+        for (const key in values) {
+          const value = values[key];
+          if (value) {
+            queryParams.set(key, value);
+            filtersToPersist[key] = value;
+          }
+        }
+        setSearchParams(queryParams);
+        if (Object.keys(filtersToPersist).length > 0) {
+          localStorage.setItem(LOCAL_STORAGE_FILTERS_KEY, JSON.stringify(filtersToPersist));
+        } else {
+          localStorage.removeItem(LOCAL_STORAGE_FILTERS_KEY);
+        }
+      },
+    });
+    return () => callback();
+  }, [methods, navigate, setSearchParams]);
+
+  useEffect(() => {
+    const persistedFilters = localStorage.getItem(LOCAL_STORAGE_FILTERS_KEY);
+    if (searchParams.size === 0 && persistedFilters != null) {
+      const filters = JSON.parse(persistedFilters);
+      const queryParams = new URLSearchParams();
+      for (const key in filters) {
+        queryParams.set(key, filters[key]);
+      }
+      setSearchParams(queryParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <PageContainer>
@@ -122,16 +234,12 @@ export default function InvoiceablePatients(): React.ReactElement {
         <FormProvider {...methods}>
           <Paper>
             <Stack direction="row" spacing={2} padding="8px">
-              <SelectInput
-                name="status"
-                label="Status"
-                options={Object.keys(INVOICE_TASK_STATUS_LABEL)}
-                getOptionLabel={(option) => INVOICE_TASK_STATUS_LABEL[option]}
-              />
+              <SelectInput name="status" label="Status" options={InvoiceTaskDisplayStatuses} />
+              <TextField {...methods.register('patient')} label="Patient id" sx={{ width: '100%' }} size="small" />
             </Stack>
           </Paper>
         </FormProvider>
-        <Paper>
+        <Paper sx={{ mt: 2 }}>
           <Table sx={{ width: '100%' }}>
             <TableHead>
               <TableRow>
@@ -170,19 +278,29 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Claim id
                   </Typography>
                 </TableCell>
+                <TableCell style={{ width: '200px' }}>
+                  <Typography fontWeight="500" fontSize="14px">
+                    Status
+                  </Typography>
+                </TableCell>
+                <TableCell style={{ width: '200px' }}>
+                  <Typography fontWeight="500" fontSize="14px">
+                    Actions
+                  </Typography>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isInvoiceablePatientsLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : null}
               {!isInvoiceablePatientsLoading && (invoiceablePatients?.reports ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={9} align="center">
                     <Typography variant="body2">No reports</Typography>
                   </TableCell>
                 </TableRow>
@@ -190,7 +308,7 @@ export default function InvoiceablePatients(): React.ReactElement {
               {!isInvoiceablePatientsLoading &&
                 (invoiceablePatients?.reports ?? []).map((report) => {
                   return (
-                    <TableRow>
+                    <TableRow key={report.task.id}>
                       <TableCell>
                         <Link
                           to={`/patient/${report.patient.patientId}`}
@@ -220,10 +338,22 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.claimId}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Button>Refresh</Button>
+                        <MappedStatusChip
+                          status={mapInvoiceTaskStatusToDisplay(report.task.status)}
+                          mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP}
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Button
                           onClick={() => {
-                            setSelectedReport(report);
+                            updateInvoice(report.task.id);
+                          }}
+                        >
+                          Refresh
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setSelectedReportToSend(report);
                           }}
                         >
                           Invoice
@@ -239,7 +369,7 @@ export default function InvoiceablePatients(): React.ReactElement {
             component="div"
             count={invoiceablePatients?.totalCount ?? -1}
             rowsPerPage={INVOICEABLE_PATIENTS_PAGE_SIZE}
-            page={page}
+            page={pageSP}
             onPageChange={(_e, newPageNumber) => {
               setPage(newPageNumber);
             }}
@@ -247,13 +377,13 @@ export default function InvoiceablePatients(): React.ReactElement {
         </Paper>
         <SendInvoiceToPatientDialog
           title="Send invoice"
-          modalOpen={selectedReport !== undefined}
+          modalOpen={selectedReportToSend !== undefined}
           handleClose={() => {
-            setSelectedReport(undefined);
+            setSelectedReportToSend(undefined);
           }}
           submitButtonName="Send Invoice"
           onSubmit={sendInvoice}
-          report={selectedReport}
+          report={selectedReportToSend}
         />
       </Box>
     </PageContainer>
