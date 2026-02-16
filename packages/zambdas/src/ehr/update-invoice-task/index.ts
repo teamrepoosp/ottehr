@@ -1,5 +1,5 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { Encounter, Task } from 'fhir/r4b';
+import { Task } from 'fhir/r4b';
 import { createInvoiceTaskInput, getSecret, SecretsKeys, USER_TIMEZONE_EXTENSION_URL } from 'utils';
 import {
   checkOrCreateM2MClientToken,
@@ -24,26 +24,12 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     const taskInput = createInvoiceTaskInput(invoiceTaskInput);
 
-    const resources = (
-      await oystehr.fhir.search({
-        resourceType: 'Task',
-        params: [
-          {
-            name: 'id',
-            value: taskId,
-          },
-          {
-            name: '_include',
-            value: 'Task:encounter',
-          },
-        ],
-      })
-    ).unbundle();
-    const task = resources.find((resource) => resource.resourceType === 'Task' && resource.id === taskId) as Task;
-    const encounter = resources.find((res) => res.resourceType === 'Encounter') as Encounter;
-    console.log('Encounter: ', encounter);
+    const task = await oystehr.fhir.get<Task>({
+      resourceType: 'Task',
+      id: taskId,
+    });
 
-    // task.status = status as any;
+    task.status = status as any;
     console.log('status: ', status);
     task.input = taskInput;
 
@@ -71,28 +57,3 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     };
   }
 });
-
-// async function syncWithCandid(
-//   candid: CandidApiClient,
-//   encounter: Encounter
-// ): Promise<{ claimId: string; patientBalance: number } | undefined> {
-//   const candidEncounterId = getCandidEncounterIdFromEncounter(encounter);
-//   if (candidEncounterId) {
-//     const candidResponse = await candid.encounters.v4.get(EncounterId(candidEncounterId));
-//     if (candidResponse.ok && candidResponse.body) {
-//       const candidEncounter = candidResponse.body;
-//       const claimId = candidEncounter.claims.at(0)?.claimId;
-//       if (claimId) {
-//         const itemization = await candid.patientAr.v1.itemize(CandidApi.ClaimId(claimId));
-//         if (itemization.ok && itemization.body) {
-//           const balance = itemization.body.patientBalanceCents;
-//           return {
-//             claimId,
-//             patientBalance: balance,
-//           };
-//         }
-//       }
-//     }
-//   }
-//   return undefined;
-// }

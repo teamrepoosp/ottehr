@@ -2,7 +2,7 @@ import { Task } from 'fhir/r4b';
 import z from 'zod';
 import { Secrets } from '../../secrets';
 
-export const INVOICEABLE_PATIENTS_PAGE_SIZE = 20;
+export const INVOICEABLE_PATIENTS_PAGE_SIZE = 40;
 export const GET_INVOICES_TASKS_ZAMBDA_KEY = 'get-invoices-tasks';
 
 export const InvoiceTaskInputSchemaBase = z.object({

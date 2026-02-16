@@ -14,6 +14,7 @@ import {
 import { DateTime } from 'luxon';
 import {
   FHIR_EXTENSION,
+  formatDateConfigurable,
   GET_INVOICES_TASKS_ZAMBDA_KEY,
   getEmailForIndividual,
   getFullName,
@@ -33,13 +34,7 @@ import {
   SecretsKeys,
   TIMEZONES,
 } from 'utils';
-import {
-  checkOrCreateM2MClientToken,
-  createOystehrClient,
-  topLevelCatch,
-  wrapHandler,
-  ZambdaInput,
-} from '../../shared';
+import { checkOrCreateM2MClientToken, topLevelCatch, wrapHandler, ZambdaInput } from '../../shared';
 import { accountMatchesType } from '../shared/harvest';
 import { validateRequestParameters } from './validateRequestParameters';
 
@@ -100,10 +95,10 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
 
   taskGroups.forEach((group) => {
     const { task, patient, appointment, responsibleParty, slot } = group;
-    const input = parseInvoiceTaskInput(task);
+    const taskInput = parseInvoiceTaskInput(task);
 
     const patientName = getFullName(patient);
-    const patientDob = formatDate({ isoDate: patient.birthDate });
+    const patientDob = formatDateConfigurable({ isoDate: patient.birthDate });
     const patientGenderLabel = patient?.gender && mapGenderToLabel[patient.gender];
 
     const responsiblePartyName = responsibleParty && getFullName(responsibleParty);
@@ -118,12 +113,12 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
         timezone = slotDateTime.zoneName;
       }
     }
-    const visitDate = formatDate({ isoDate: appointment?.start, timezone });
+    const visitDate = formatDateConfigurable({ isoDate: appointment?.start, timezone });
 
     reports.push({
-      claimId: group.candidData?.claimId ?? '---',
-      finalizationDate: group.candidData?.finalizationDate ?? '---',
-      amountInvoiceable: `${input.amountCents ?? 0 / 100}`,
+      claimId: taskInput.claimId ?? '---',
+      finalizationDate: taskInput.finalizationDate ?? '---',
+      amountInvoiceable: `${taskInput.amountCents ?? 0 / 100}`,
       visitDate: visitDate ?? '---',
       location: group.location?.name ?? '---',
       task: task,
@@ -300,21 +295,6 @@ function findResourceById<T extends Resource>(
 ): T | undefined {
   if (!id) return undefined;
   return resources.find((res) => res.resourceType === resourceType && res.id === id) as T;
-}
-
-export function formatDate(input: {
-  isoDate?: string;
-  date?: DateTime;
-  format?: string;
-  timezone?: string;
-}): string | undefined {
-  const { isoDate, date, format = 'MM/dd/yyyy', timezone } = input;
-  let targetDate = date || (isoDate ? DateTime.fromISO(isoDate) : null);
-
-  if (!targetDate || !targetDate.isValid) return undefined;
-  if (timezone) targetDate = targetDate.setZone(timezone);
-
-  return targetDate.toFormat(format);
 }
 
 export function getResponsiblePartyRelationship(

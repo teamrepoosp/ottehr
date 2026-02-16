@@ -220,7 +220,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.claimId}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Button>Update</Button>
+                        <Button>Refresh</Button>
                         <Button
                           onClick={() => {
                             setSelectedReport(report);
