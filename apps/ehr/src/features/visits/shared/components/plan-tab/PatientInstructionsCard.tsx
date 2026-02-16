@@ -122,6 +122,12 @@ export const PatientInstructionsCard: FC = () => {
                   multiline
                   fullWidth
                 />
+                <RoundedButton onClick={() => setMyTemplatesOpen(true)}>My Templates</RoundedButton>
+                <RoundedButton onClick={() => setDefaultTemplatesOpen(true)}>
+                  {BRANDING_CONFIG.projectName} Templates
+                </RoundedButton>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                 <RoundedButton onClick={onAdd} disabled={!instruction.trim() || isLoading} startIcon={<AddIcon />}>
                   Add
                 </RoundedButton>
@@ -130,13 +136,7 @@ export const PatientInstructionsCard: FC = () => {
                   disabled={!instruction.trim() || isLoading}
                   startIcon={<DoneIcon />}
                 >
-                  Add & Save
-                </RoundedButton>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <RoundedButton onClick={() => setMyTemplatesOpen(true)}>My templates</RoundedButton>
-                <RoundedButton onClick={() => setDefaultTemplatesOpen(true)}>
-                  {BRANDING_CONFIG.projectName} templates
+                  Add & Save as Template
                 </RoundedButton>
               </Box>
             </>
