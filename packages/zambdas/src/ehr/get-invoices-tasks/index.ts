@@ -13,6 +13,7 @@ import {
 } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
+  DISPLAY_DATE_FORMAT,
   FHIR_EXTENSION,
   formatDateConfigurable,
   GET_INVOICES_TASKS_ZAMBDA_KEY,
@@ -114,19 +115,15 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
       }
     }
     const visitDate = formatDateConfigurable({ isoDate: appointment?.start, timezone });
-
-    const relatedPerson = resources.find(
-      (resource) =>
-        resource.resourceType === 'RelatedPerson' &&
-        (resource as RelatedPerson).relationship?.find(
-          (relationship) => relationship.coding?.find((code) => code.code === 'user-relatedperson')
-        )
-    ) as RelatedPerson;
-    const patientPhoneNumber = relatedPerson && getPhoneNumberForIndividual(relatedPerson);
+    const patientPhoneNumber = group.relatedPerson && getPhoneNumberForIndividual(group.relatedPerson);
+    const finalizationDate = formatDateConfigurable({
+      isoDate: taskInput.finalizationDate,
+      format: DISPLAY_DATE_FORMAT + ' HH:mm',
+    });
 
     reports.push({
       claimId: taskInput.claimId ?? '---',
-      finalizationDate: taskInput.finalizationDate ?? '---',
+      finalizationDate: finalizationDate ?? '---',
       amountInvoiceable: `${(taskInput.amountCents ?? 0) / 100}`,
       visitDate: visitDate ?? '---',
       location: group.location?.name ?? '---',
@@ -136,7 +133,7 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
         fullName: patientName,
         dob: patientDob,
         gender: patientGenderLabel,
-        phoneNumber: patientPhoneNumber,
+        phoneNumber: patientPhoneNumber ?? '---',
       },
       responsibleParty: {
         fullName: responsiblePartyName,

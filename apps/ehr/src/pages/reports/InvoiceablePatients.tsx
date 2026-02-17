@@ -247,12 +247,12 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Patient Name
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell style={{ width: '150px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     DOB
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '200px' }}>
+                <TableCell style={{ width: '150px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     Appointment Date
                   </Typography>
@@ -267,7 +267,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Responsible Party
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '200px' }}>
+                <TableCell style={{ width: '80px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     Amount
                   </Typography>
@@ -277,7 +277,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Claim id
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '200px' }}>
+                <TableCell style={{ width: '100px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     Status
                   </Typography>
@@ -354,6 +354,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                           onClick={() => {
                             setSelectedReportToSend(report);
                           }}
+                          variant="contained"
                         >
                           Invoice
                         </Button>

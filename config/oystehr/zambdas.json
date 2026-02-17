@@ -1235,6 +1235,7 @@
         "reason": "Refresh invoice task",
         "event": "create"
       }
+    },
     "GET_PATIENT_BALANCES": {
       "name": "get-patient-balances",
       "type": "http_auth",
