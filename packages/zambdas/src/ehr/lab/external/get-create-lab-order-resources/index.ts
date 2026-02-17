@@ -41,7 +41,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
 
-    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, isWorkersCompEncounter } = await getResources(
+    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, appointmentIsWorkersComp } = await getResources(
       oystehr,
       patientId,
       encounterId,
@@ -76,7 +76,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       coverages: coverageInfo,
       labs,
       additionalCptCodes,
-      isWorkersCompEncounter,
+      appointmentIsWorkersComp,
       ...orderingLocationDetails,
     };
 
@@ -101,7 +101,7 @@ const getResources = async (
   coverages: Coverage[];
   labOrgsGUIDs: string[];
   orderingLocationDetails: ExternalLabOrderingLocations;
-  isWorkersCompEncounter: boolean;
+  appointmentIsWorkersComp: boolean;
 }> => {
   const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter | Appointment>[] = [];
 
@@ -216,7 +216,7 @@ const getResources = async (
   if (appointmentIsWorkersComp) {
     if (workersCompAccounts.length !== 1) {
       console.log(
-        `Unexpected number of workers comp account returned for ${patientId}. Accounts found: ${workersCompAccounts.map(
+        `Unexpected number of workers comp account returned for Patient/${patientId}. Accounts found: ${workersCompAccounts.map(
           (account) => account.id
         )}`
       );
@@ -228,7 +228,7 @@ const getResources = async (
     accounts,
     labOrgsGUIDs,
     orderingLocationDetails: { orderingLocationIds, orderingLocations },
-    isWorkersCompEncounter: appointmentIsWorkersComp,
+    appointmentIsWorkersComp,
   };
 };
 

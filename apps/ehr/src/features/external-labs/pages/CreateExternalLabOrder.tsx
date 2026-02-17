@@ -125,7 +125,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
   const orderingLocations = createExternalLabResources?.orderingLocations ?? [];
   const orderingLocationIdsStable = (createExternalLabResources?.orderingLocationIds ?? []).join(',');
   const additionalCptCodesToAdd = createExternalLabResources?.additionalCptCodes;
-  const isWorkersComp = !!createExternalLabResources?.isWorkersCompEncounter;
+  const isWorkersComp = !!createExternalLabResources?.appointmentIsWorkersComp;
 
   const orderingLocationIdToLocationAndLabGUIDsMap = useMemo(
     () =>
