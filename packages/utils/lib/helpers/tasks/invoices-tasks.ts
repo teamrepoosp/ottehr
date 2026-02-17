@@ -30,14 +30,15 @@ export function parseInvoiceTaskInput(invoiceTask: Task): InvoiceTaskInput {
   const claimId = getInvoiceTaskInputFieldByCode('claimId', invoiceTask);
   const finalizationDate = getInvoiceTaskInputFieldByCode('finalizationDate', invoiceTask);
 
-  return InvoiceTaskInputSchema.parse({
+  const taskInput: InvoiceTaskInput = {
     dueDate,
     memo,
     smsTextMessage,
-    amount,
     claimId,
     finalizationDate,
-  });
+    amountCents: parseInt(amount ?? '0'),
+  };
+  return InvoiceTaskInputSchema.parse(taskInput);
 }
 
 function getInvoiceTaskInputFieldByCode(code: keyof InvoiceTaskInput, task: Task): string | undefined {

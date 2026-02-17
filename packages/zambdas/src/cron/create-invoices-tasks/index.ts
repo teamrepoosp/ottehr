@@ -73,7 +73,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
   }
 });
 
-async function getPrefilledInvoiceInfo(
+async function getInvoiceTaskInput(
   claimId: string,
   finalizationDate: Date,
   patientBalanceInCents: number
@@ -104,7 +104,7 @@ export async function createTaskForEncounter(oystehr: Oystehr, encounterPkg: Enc
     const { encounter, claim, amountCents } = encounterPkg;
     const patientId = encounter.subject?.reference?.replace('Patient/', '');
     if (!patientId) throw new Error('Patient ID not found in encounter: ' + encounter.id);
-    const prefilledInvoiceInfo = await getPrefilledInvoiceInfo(claim.claimId, claim.timestamp, amountCents);
+    const prefilledInvoiceInfo = await getInvoiceTaskInput(claim.claimId, claim.timestamp, amountCents);
     console.log(
       `Creating task. patient: ${claim.patientExternalId}, claim: ${claim.claimId}, oyst encounter: ${encounter.id} balance (cents): ${amountCents}`
     );

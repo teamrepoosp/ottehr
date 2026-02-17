@@ -70,7 +70,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     const oystehr = createOystehrClient(m2mToken, secrets);
 
     const fhirSearchStart = performance.now();
-    const fhirResources = await getFhirResourcesGroupped(oystehr, validatedParams);
+    const fhirResources = await getFhirResourcesGrouped(oystehr, validatedParams);
     const fhirSearchEnd = performance.now();
     const taskGroups = fhirResources.taskGroups;
 
@@ -115,10 +115,19 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
     }
     const visitDate = formatDateConfigurable({ isoDate: appointment?.start, timezone });
 
+    const relatedPerson = resources.find(
+      (resource) =>
+        resource.resourceType === 'RelatedPerson' &&
+        (resource as RelatedPerson).relationship?.find(
+          (relationship) => relationship.coding?.find((code) => code.code === 'user-relatedperson')
+        )
+    ) as RelatedPerson;
+    const patientPhoneNumber = relatedPerson && getPhoneNumberForIndividual(relatedPerson);
+
     reports.push({
       claimId: taskInput.claimId ?? '---',
       finalizationDate: taskInput.finalizationDate ?? '---',
-      amountInvoiceable: `${taskInput.amountCents ?? 0 / 100}`,
+      amountInvoiceable: `${(taskInput.amountCents ?? 0) / 100}`,
       visitDate: visitDate ?? '---',
       location: group.location?.name ?? '---',
       task: task,
@@ -127,7 +136,7 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
         fullName: patientName,
         dob: patientDob,
         gender: patientGenderLabel,
-        phoneNumber: 'll', // todo this
+        phoneNumber: patientPhoneNumber,
       },
       responsibleParty: {
         fullName: responsiblePartyName,
@@ -141,7 +150,7 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
   return { reports, totalCount: total };
 }
 
-async function getFhirResourcesGroupped(
+async function getFhirResourcesGrouped(
   oystehr: Oystehr,
   complexValidatedInput: GetInvoicesTasksInput
 ): Promise<{ taskGroups: TaskGroup[]; bundleTotal: number }> {

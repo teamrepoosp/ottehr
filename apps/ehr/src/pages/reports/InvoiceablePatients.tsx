@@ -106,7 +106,6 @@ export default function InvoiceablePatients(): React.ReactElement {
   const pageSP = Number(searchParams.get('page') ?? '0');
   const statusSP = searchParams.get('status');
   const patientSP = searchParams.get('patient');
-  console.log('patient sp changed, ', patientSP);
 
   const handleBack = (): void => {
     navigate('/reports');

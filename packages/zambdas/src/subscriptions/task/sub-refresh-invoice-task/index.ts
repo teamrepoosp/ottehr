@@ -62,7 +62,13 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       console.log(`Updated task input for task id: "${taskId}"`);
     }
 
-    console.error('Task was not updated because no inventory record was found for the task.'); // todo how i can better manage this situation
+    console.warn('Task was not updated because no inventory record was found for the task.'); // todo how i can better manage this situation
+    await oystehr.fhir.patch({
+      resourceType: 'Task',
+      id: taskId,
+      operations: [{ op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('error') }],
+    });
+
     return {
       statusCode: 200,
       body: JSON.stringify({ message: 'Task was not updated because no inventory record was found for the task.' }),
