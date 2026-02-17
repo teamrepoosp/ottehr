@@ -233,7 +233,7 @@ export default function InvoiceablePatients(): React.ReactElement {
         <FormProvider {...methods}>
           <Paper>
             <Stack direction="row" spacing={2} padding="8px">
-              <SelectInput name="status" label="Status" options={InvoiceTaskDisplayStatuses} />
+              <SelectInput name="status" label="Status" options={InvoiceTaskDisplayStatuses as unknown as string[]} />
               <TextField {...methods.register('patient')} label="Patient id" sx={{ width: '100%' }} size="small" />
             </Stack>
           </Paper>
