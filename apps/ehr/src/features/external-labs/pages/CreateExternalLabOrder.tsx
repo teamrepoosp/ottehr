@@ -224,6 +224,8 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
               Information.
             </>,
           ]);
+        } else if (sdkError.code === 500) {
+          setError(['Internal Server Error']);
         } else {
           setError(errorMessage);
         }

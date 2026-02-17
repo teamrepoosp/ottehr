@@ -779,6 +779,20 @@ const getAdditionalResources = async (
 
     const workersCompAccount = workersCompAccounts[0];
 
+    console.log('checking that workers comp account is associated with this encounter');
+    console.log('workersCompAccount', workersCompAccount.id);
+    console.log('encounter.account', JSON.stringify(encounter?.account));
+
+    const encounterHasWorkersCompAccount = !!encounter?.account?.some(
+      (ref) => ref.reference === `Account/${workersCompAccount.id}`
+    );
+
+    if (!encounterHasWorkersCompAccount) {
+      throw new Error(
+        `There is a config issue with this encounter. The appointment is tagged as workers comp and the lab payment method selected is workers comp but the wc account is not linked to Encounter/${encounter?.id}.`
+      );
+    }
+
     // todo labs oystehr submit lab will throw an error if there is no address under Account.guarantor.party, it would be good to validate that here too
     // we'll need to grab the workersCompAccount organization and check
 
