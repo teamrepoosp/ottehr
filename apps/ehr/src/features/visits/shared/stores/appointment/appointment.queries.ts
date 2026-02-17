@@ -28,11 +28,10 @@ import useEvolveUser from 'src/hooks/useEvolveUser';
 import {
   AISuggestionNotesInput,
   APIError,
+  BillingSuggestionInput,
   CancelMatchUnsolicitedResultTask,
-  CPTCodeDTO,
   CPTSearchRequestParams,
   createSmsModel,
-  DiagnosisDTO,
   filterResources,
   FinalizeUnsolicitedResultMatch,
   GetCreateLabOrderResources,
@@ -603,13 +602,13 @@ export const useAiSuggestionNotes = () => {
 export const useRecommendBillingSuggestions = () => {
   const apiClient = useOystehrAPIClient();
   return useMutation({
-    mutationFn: (props: { diagnoses: DiagnosisDTO[] | undefined; billing: CPTCodeDTO[] | undefined }) => {
+    mutationFn: (props: BillingSuggestionInput) => {
       if (!apiClient) {
         throw new Error('api client is not defined');
       }
       return apiClient.recommendBillingSuggestions(props);
     },
-    retry: 2,
+    retry: 0,
   });
 };
 

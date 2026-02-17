@@ -5,16 +5,16 @@ import {
   AISuggestionNotesInput,
   AssignPractitionerInput,
   AssignPractitionerResponse,
+  BillingSuggestionInput,
+  BillingSuggestionOutput,
   ChangeInPersonVisitStatusInput,
   ChangeInPersonVisitStatusResponse,
   ChangeTelemedAppointmentStatusInput,
   ChangeTelemedAppointmentStatusResponse,
   CommunicationDTO,
-  CPTCodeDTO,
   DeleteChartDataRequest,
   DeleteChartDataResponse,
   DeletePatientInstructionInput,
-  DiagnosisDTO,
   GetChartDataRequest,
   GetChartDataResponse,
   GetCreateLabOrderResources,
@@ -317,10 +317,7 @@ export const getOystehrTelemedAPI = (
     return await makeZapRequest('ai suggestion notes', parameters);
   };
 
-  const recommendBillingSuggestions = async (parameters: {
-    diagnoses: DiagnosisDTO[] | undefined;
-    billing: CPTCodeDTO[] | undefined;
-  }): Promise<string> => {
+  const recommendBillingSuggestions = async (parameters: BillingSuggestionInput): Promise<BillingSuggestionOutput> => {
     return await makeZapRequest('recommend billing suggestions', parameters);
   };
 
