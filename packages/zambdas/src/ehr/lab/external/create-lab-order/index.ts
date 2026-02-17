@@ -768,10 +768,16 @@ const getAdditionalResources = async (
 
     if (!workersCompInsurance) {
       console.log(`workersCompInsurance not found for encounter: ${encounter.id}`);
-      throw EXTERNAL_LAB_ERROR(`No coverage is found for this workers comp account`);
+      throw EXTERNAL_LAB_ERROR(
+        `Insurance information is missing. Please review paperwork and confirm all workers compensation information is entered`
+      );
     }
 
     const workersCompAccount = workersCompAccounts[0];
+
+    // todo labs oystehr submit lab will throw an error if there is no address under Account.guarantor.party, it would be good to validate that here too
+    // we'll need to grab the workersCompAccount organization and check
+
     const workersCompInsuranceId = (workersCompInsurance as Coverage | undefined)?.id;
     const insuranceMatchesAccount = workersCompAccount.coverage?.some(
       (cov) => cov.coverage.reference === `Coverage/${workersCompInsuranceId}`

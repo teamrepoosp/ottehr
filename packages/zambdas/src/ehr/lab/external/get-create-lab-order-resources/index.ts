@@ -216,10 +216,13 @@ const getResources = async (
   // oystehr labs depends on this account for submitting workers comp labs
   if (appointmentIsWorkersComp) {
     if (workersCompAccounts.length !== 1) {
-      throw new Error(
+      console.log(
         `Unexpected number of workers comp account returned for ${patientId}. Accounts found: ${workersCompAccounts.map(
           (account) => account.id
         )}`
+      );
+      throw EXTERNAL_LAB_ERROR(
+        'Information necessary to submit labs is missing. Please review paperwork and confirm all workers compensation information is entered.'
       );
     }
     const workersCompAccount = workersCompAccounts[0];
