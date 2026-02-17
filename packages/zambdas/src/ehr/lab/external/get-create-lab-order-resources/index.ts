@@ -210,7 +210,6 @@ const getResources = async (
   const appointment = appointments.find((resource) => resource.id === appointmentId);
   const appointmentIsWorkersComp = appointment ? isAppointmentWorkersComp(appointment) : false;
   console.log('appointmentIsWorkersComp', appointmentIsWorkersComp);
-  let encounterIsWorkersComp = false;
 
   // doing some validation that the workers comp account is properly linked to the encounter
   // oystehr labs depends on this account for submitting workers comp labs
@@ -221,17 +220,7 @@ const getResources = async (
           (account) => account.id
         )}`
       );
-      throw EXTERNAL_LAB_ERROR(
-        'Information necessary to submit labs is missing. Please review paperwork and confirm all workers compensation information is entered.'
-      );
     }
-    const workersCompAccount = workersCompAccounts[0];
-
-    console.log('checking that workers comp account is associated with this encounter');
-    console.log('workersCompAccount', workersCompAccount.id);
-    console.log('encounter.account', JSON.stringify(encounter?.account));
-
-    encounterIsWorkersComp = !!encounter?.account?.some((ref) => ref.reference === `Account/${workersCompAccount.id}`);
   }
 
   return {
@@ -239,7 +228,7 @@ const getResources = async (
     accounts,
     labOrgsGUIDs,
     orderingLocationDetails: { orderingLocationIds, orderingLocations },
-    isWorkersCompEncounter: appointmentIsWorkersComp && encounterIsWorkersComp,
+    isWorkersCompEncounter: appointmentIsWorkersComp,
   };
 };
 

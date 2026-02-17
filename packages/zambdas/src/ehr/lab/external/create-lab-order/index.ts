@@ -26,6 +26,7 @@ import {
   CreateLabPaymentMethod,
   createOrderNumber,
   EXTERNAL_LAB_ERROR,
+  EXTERNAL_LAB_ERROR_MISSING_WC_INFO,
   FHIR_IDC10_VALUESET_SYSTEM,
   flattenBundleResources,
   getAttendingPractitionerId,
@@ -763,13 +764,16 @@ const getAdditionalResources = async (
 
   if (selectedPaymentMethod === LabPaymentMethod.WorkersComp) {
     if (workersCompAccounts.length !== 1) {
-      throw new Error(`Incorrect number of workers comp accounts found: ${workersCompAccounts.length}`);
+      console.log(`Incorrect number of workers comp accounts found: ${workersCompAccounts.length}`);
+      throw EXTERNAL_LAB_ERROR_MISSING_WC_INFO(
+        `Information necessary to submit labs is missing. Please navigate to visit details and complete all Worker's Compensation Information.`
+      );
     }
 
     if (!workersCompInsurance) {
       console.log(`workersCompInsurance not found for encounter: ${encounter.id}`);
-      throw EXTERNAL_LAB_ERROR(
-        `Insurance information is missing. Please review paperwork and confirm all workers compensation information is entered`
+      throw EXTERNAL_LAB_ERROR_MISSING_WC_INFO(
+        `Information necessary to submit labs is missing. Please navigate to visit details and complete all Worker's Compensation Information.`
       );
     }
 
