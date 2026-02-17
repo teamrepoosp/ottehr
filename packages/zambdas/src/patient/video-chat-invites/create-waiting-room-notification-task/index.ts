@@ -79,10 +79,6 @@ export async function performEffect(
   const providerReference = encounter.participant?.find(
     (participant) => participant.individual?.reference?.startsWith('Practitioner/')
   )?.individual?.reference;
-  if (!providerReference) {
-    failureResponse.taskNotCreatedReason = 'No provider assigned to the encounter';
-    return failureResponse;
-  }
 
   console.group('createNewTask');
   const newTask = createNewTask({ appointment, encounter, patient, providerReference });
@@ -153,7 +149,7 @@ const createNewTask = ({
   encounter,
   patient,
   providerReference,
-}: ReturnedResources & { providerReference: string }): Task => {
+}: ReturnedResources & { providerReference?: string }): Task => {
   const patientName = getFullestAvailableName(patient);
   const locationReference = appointment.participant?.find(
     (participant) => participant.actor?.reference?.startsWith('Location/')
@@ -196,7 +192,7 @@ const createNewTask = ({
       type: 'Appointment',
       reference: `Appointment/${appointment.id}`,
     },
-    owner: { reference: providerReference },
+    ...(providerReference && { owner: { reference: providerReference } }),
   };
   return newTask;
 };
