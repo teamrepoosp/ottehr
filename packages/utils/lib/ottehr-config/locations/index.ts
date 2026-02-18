@@ -9,7 +9,7 @@ const LOCATION_DEFAULTS: any = {
   telemedLocations: [{ name: 'Telemed New Jersey' }, { name: 'Telemed Ohio' }],
   supportPhoneNumber: '(202) 555-1212',
   supportScheduleGroups: [],
-};
+} as const;
 
 const mergedLocationConfig = mergeAndFreezeConfigObjects(LOCATION_DEFAULTS, overrides);
 
@@ -18,6 +18,7 @@ const locationArraySchema = z.array(
     name: z.string().min(1, { message: 'Location name cannot be empty' }),
   })
 );
+
 const LocationConfigSchema = z.object({
   inPersonLocations: locationArraySchema,
   telemedLocations: locationArraySchema,
@@ -33,7 +34,9 @@ const LocationConfigSchema = z.object({
     .optional(),
 });
 
-export const LOCATION_CONFIG = Object.freeze(LocationConfigSchema.parse(mergedLocationConfig));
+export const LOCATION_CONFIG = Object.freeze(
+  LocationConfigSchema.parse(mergedLocationConfig)
+) as typeof mergedLocationConfig;
 
 export const ALL_LOCATIONS = [...LOCATION_CONFIG.inPersonLocations, ...LOCATION_CONFIG.telemedLocations] as const;
 
@@ -41,7 +44,9 @@ export function getSupportPhoneFor(locationName?: string): string | undefined {
   const { locationSupportPhoneNumberMap, supportPhoneNumber } = LOCATION_CONFIG;
 
   if (locationSupportPhoneNumberMap && locationName) {
-    return locationSupportPhoneNumberMap[locationName] || supportPhoneNumber;
+    return (
+      locationSupportPhoneNumberMap[locationName as keyof typeof locationSupportPhoneNumberMap] || supportPhoneNumber
+    );
   }
 
   return supportPhoneNumber;

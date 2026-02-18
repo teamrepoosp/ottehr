@@ -34,5 +34,5 @@ export type MedicationFavorite = z.infer<typeof MedicationFavoriteSchema>;
 export type MedicalHistoryConfig = z.infer<typeof MedicalHistoryConfigSchema>;
 
 export const validateMedicalHistoryConfig = (config: unknown): MedicalHistoryConfig => {
-  return MedicalHistoryConfigSchema.parse(config);
+  return MedicalHistoryConfigSchema.parse(config) as MedicalHistoryConfig;
 };

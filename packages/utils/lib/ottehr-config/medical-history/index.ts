@@ -2,7 +2,7 @@ import { MEDICAL_HISTORY_OVERRIDES } from '../../../ottehr-config-overrides';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 import { MedicalHistoryConfig, validateMedicalHistoryConfig } from './medical-history.schema';
 
-const MEDICAL_HISTORY_DEFAULTS: MedicalHistoryConfig = {
+const MEDICAL_HISTORY_DEFAULTS = {
   medicalConditions: {
     favorites: [
       {
@@ -183,7 +183,7 @@ const MEDICAL_HISTORY_DEFAULTS: MedicalHistoryConfig = {
       },
     ],
   },
-};
+} as const satisfies MedicalHistoryConfig;
 
 const mergedMedicalHistoryConfig = mergeAndFreezeConfigObjects(
   MEDICAL_HISTORY_DEFAULTS,
