@@ -58,7 +58,7 @@ import FileInput, { AttachmentType } from './components/FileInput';
 import FreeMultiSelectInput from './components/FreeMultiSelectInput';
 import GroupContainer from './components/group/GroupContainer';
 import MultiAnswerHeader from './components/group/MultiAnswerHeader';
-import { PharmacyCollection } from './components/Pharmacy/PharmacyCollection';
+import { PharmacyCollection } from './components/PharmacyCollection';
 import RadioInput from './components/RadioInput';
 import RadioListInput from './components/RadioListInput';
 import { usePaperworkContext } from './context';
@@ -801,12 +801,7 @@ const FormInputField: FC<GetFormInputFieldProps> = ({
         }
       case 'Credit Card':
         return (
-          <CreditCardVerification
-            value={unwrappedValue}
-            required={item.required ?? false}
-            onChange={smartOnChange}
-            pageItem={pageItem}
-          />
+          <CreditCardVerification value={unwrappedValue} required={item.required ?? false} onChange={smartOnChange} />
         );
       case 'Medical History':
         return <AIInterview value={unwrappedValue} onChange={smartOnChange} />;

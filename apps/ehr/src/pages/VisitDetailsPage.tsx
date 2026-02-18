@@ -40,11 +40,13 @@ import {
 } from 'src/api/api';
 import ImageCarousel, { ImageCarouselObject } from 'src/components/ImageCarousel';
 import ImageUploader from 'src/components/ImageUploader';
+import PatientBalances from 'src/components/PatientBalances';
 import { RoundedButton } from 'src/components/RoundedButton';
 import { ScannerModal } from 'src/components/ScannerModal';
 import { TelemedAppointmentStatusChip } from 'src/components/TelemedAppointmentStatusChip';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { useGetPatientAccount, useGetPatientCoverages } from 'src/hooks/useGetPatient';
+import { useGetPatientBalances } from 'src/hooks/useGetPatientBalances';
 import { useGetPatientDocs } from 'src/hooks/useGetPatientDocs';
 import {
   BOOKING_CONFIG,
@@ -70,6 +72,8 @@ import {
   isInPersonAppointment,
   isTelemedAppointment,
   OrderedCoveragesWithSubscribers,
+  PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE,
+  PATIENT_INFO_META_DATA_SYSTEM,
   PatientAccountResponse,
   SERVICE_CATEGORY_SYSTEM,
   ServiceMode,
@@ -455,6 +459,15 @@ export default function VisitDetailsPage(): ReactElement {
   const patient = visitDetailsData?.patient;
   const patientId = patient?.id;
   const serverConsentAttested = visitDetailsData?.consentIsAttested ?? false;
+
+  const {
+    data: patientBalancesData,
+    isLoading: patientBalancesLoading,
+    refetch: refetchPatientBalances,
+  } = useGetPatientBalances({
+    patientId,
+    disabled: !patientId,
+  });
 
   useEffect(() => {
     if (consentAttested === null) {
@@ -843,6 +856,17 @@ export default function VisitDetailsPage(): ReactElement {
       setVisitDetailsPdfLoading(false);
     }
   };
+
+  const patientInfoAdditionalItem: any = {};
+
+  const patientBeenToClinicPreviously = appointment?.meta?.tag?.some(
+    (tag) => tag.system === PATIENT_INFO_META_DATA_SYSTEM && tag.code === PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE
+  );
+
+  if (patientBeenToClinicPreviously) {
+    patientInfoAdditionalItem['Patient has been to clinic previously'] = 'true';
+  }
+
   return (
     <PageContainer>
       <>
@@ -1119,6 +1143,7 @@ export default function VisitDetailsPage(): ReactElement {
                           'Authorized non-legal guardian(s)': patient?.extension?.find(
                             (e) => e.url === FHIR_EXTENSION.Patient.authorizedNonLegalGuardians.url
                           )?.valueString || <></>,
+                          ...patientInfoAdditionalItem,
                         }}
                         icon={{
                           "Patient's date of birth (Unmatched)": (
@@ -1255,6 +1280,17 @@ export default function VisitDetailsPage(): ReactElement {
                     </Grid>
                   </Grid>
                   <Grid container item xs={12} sm={6} direction="column">
+                    {!patientBalancesLoading &&
+                    patientBalancesData?.totalBalanceCents &&
+                    patientBalancesData?.totalBalanceCents > 0 ? (
+                      <Grid item>
+                        <PatientBalances
+                          patient={patient}
+                          patientBalances={patientBalancesData}
+                          refetchPatientBalances={refetchPatientBalances}
+                        />
+                      </Grid>
+                    ) : null}
                     <Grid item>
                       <PatientPaymentList
                         patient={patient}

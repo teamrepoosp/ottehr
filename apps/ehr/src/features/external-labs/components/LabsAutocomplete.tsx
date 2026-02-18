@@ -75,9 +75,7 @@ export const LabsAutocomplete: FC<LabsAutocompleteProps> = (props) => {
         value={null}
         onChange={(_, selectedLab: any) => {
           const alreadySelected = selectedLabs.find((tempLab) => {
-            const tempLabCode = `${tempLab.item.itemCode}${tempLab.lab.labGuid}`;
-            const selectedLabCode = `${selectedLab.item.itemCode}${selectedLab.lab.labGuid}`;
-            return tempLabCode === selectedLabCode;
+            return tempLab.item.uniqueName === selectedLab.item.uniqueName;
           });
           if (!alreadySelected) {
             setSelectedLabs([...selectedLabs, selectedLab]);
@@ -116,10 +114,7 @@ export const LabsAutocomplete: FC<LabsAutocompleteProps> = (props) => {
                   onClick={() =>
                     setSelectedLabs((prev) =>
                       prev.filter((tempLab) => {
-                        const tempLabCode = `${tempLab.item.itemCode}${tempLab.lab.labGuid}`;
-                        const labCode = `${lab.item.itemCode}${lab.lab.labGuid}`;
-
-                        return tempLabCode !== labCode;
+                        return tempLab.item.uniqueName !== lab.item.uniqueName;
                       })
                     )
                   }

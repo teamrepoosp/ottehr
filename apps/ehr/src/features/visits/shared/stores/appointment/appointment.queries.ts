@@ -26,10 +26,11 @@ import { extractReviewAndSignAppointmentData } from 'src/features/visits/telemed
 import { useApiClients } from 'src/hooks/useAppClients';
 import useEvolveUser from 'src/hooks/useEvolveUser';
 import {
+  AISuggestionNotesInput,
   APIError,
-  APIErrorCode,
   CancelMatchUnsolicitedResultTask,
   CPTCodeDTO,
+  CPTSearchRequestParams,
   createSmsModel,
   DiagnosisDTO,
   filterResources,
@@ -53,7 +54,6 @@ import {
   GetUnsolicitedResultsTasksOutput,
   Icd10SearchRequestParams,
   Icd10SearchResponse,
-  IcdSearchRequestParams,
   IcdSearchResponse,
   InstructionType,
   INVENTORY_MEDICATION_TYPE_CODE,
@@ -537,34 +537,90 @@ export function useFinalizeUnsolicitedResultMatch(): UseMutationResult<void, Err
   });
 }
 
-export const useGetIcd10Search = ({
+export const useGetCPTHCPCSSearch = ({
   search,
-  sabs,
+  type,
   radiologyOnly,
-}: IcdSearchRequestParams): UseQueryResult<IcdSearchResponse | undefined, APIError> => {
-  const apiClient = useOystehrAPIClient();
+}: CPTSearchRequestParams): UseQueryResult<IcdSearchResponse | undefined, APIError> => {
+  const { oystehr } = useApiClients();
 
   const queryResult = useQuery({
-    queryKey: ['icd-search', search, sabs, radiologyOnly],
+    queryKey: ['hcpcs-search', search, radiologyOnly],
 
     queryFn: async () => {
-      return apiClient?.icdSearch({ search, sabs, radiologyOnly });
+      switch (type) {
+        case 'cpt': {
+          const terminologyResponse = await oystehr?.terminology.searchCpt({
+            query: search,
+            searchType: 'all',
+            limit: 100,
+          });
+          if (!terminologyResponse) {
+            throw new Error('could not get terminology results');
+          }
+          if (radiologyOnly) {
+            terminologyResponse.codes = terminologyResponse!.codes.filter((code) => code.code.startsWith('7'));
+          }
+          terminologyResponse.codes = terminologyResponse.codes.sort((a, b) => a.code.localeCompare(b.code));
+          return terminologyResponse;
+        }
+        case 'hcpcs': {
+          const terminologyResponse = await oystehr?.terminology.searchHcpcs({
+            query: search,
+            searchType: 'all',
+            limit: 100,
+          });
+          if (!terminologyResponse) {
+            throw new Error('could not get terminology results');
+          }
+          terminologyResponse.codes = terminologyResponse.codes.sort((a, b) => a.code.localeCompare(b.code));
+          return terminologyResponse;
+        }
+        case 'both': {
+          const [cptResponse, hcpcsResponse] = await Promise.all([
+            oystehr?.terminology.searchCpt({
+              query: search,
+              searchType: 'all',
+              limit: 100,
+            }),
+            oystehr?.terminology.searchHcpcs({
+              query: search,
+              searchType: 'all',
+              limit: 100,
+            }),
+          ]);
+          if (!cptResponse || !hcpcsResponse) {
+            throw new Error('could not get terminology results');
+          }
+          let combinedCodes = [...cptResponse.codes, ...hcpcsResponse.codes].filter(
+            (codeValues, index, self) => index === self.findIndex((t) => t.code === codeValues.code)
+          );
+          combinedCodes = combinedCodes.sort((a, b) => a.code.localeCompare(b.code));
+          return { codes: combinedCodes };
+        }
+      }
     },
 
-    enabled: Boolean(apiClient && search),
+    enabled: Boolean(oystehr && search),
     placeholderData: keepPreviousData,
     staleTime: QUERY_STALE_TIME,
   });
 
-  useEffect(() => {
-    if (queryResult.error && (queryResult.error as APIError)?.code !== APIErrorCode.MISSING_NLM_API_KEY_ERROR) {
-      enqueueSnackbar('An error occurred during the search. Please try again in a moment.', {
-        variant: 'error',
-      });
-    }
-  }, [queryResult.error]);
-
   return queryResult;
+};
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export const useAiSuggestionNotes = () => {
+  const apiClient = useOystehrAPIClient();
+  return useMutation({
+    mutationFn: (props: AISuggestionNotesInput) => {
+      if (!apiClient) {
+        throw new Error('api client is not defined');
+      }
+      return apiClient.aiSuggestionNotes(props);
+    },
+    retry: 2,
+  });
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -899,7 +955,7 @@ export const useCreateUpdateMedicationOrder = () => {
 
 export const useGetMedicationOrders = (
   searchBy: GetMedicationOrdersInput['searchBy']
-): UseQueryResult<GetMedicationOrdersResponse, Error> => {
+): UseQueryResult<GetMedicationOrdersResponse | undefined, Error> => {
   const apiClient = useOystehrAPIClient();
 
   const encounterIdIsDefined = searchBy.field === 'encounterId' && searchBy.value;
@@ -910,7 +966,11 @@ export const useGetMedicationOrders = (
 
     queryFn: async () => {
       if (apiClient) {
-        return await apiClient.getMedicationOrders({ searchBy });
+        if (encounterIdIsDefined || encounterIdsHasLen) {
+          return await apiClient.getMedicationOrders({ searchBy });
+        } else {
+          return;
+        }
       }
       throw new Error('api client not defined');
     },

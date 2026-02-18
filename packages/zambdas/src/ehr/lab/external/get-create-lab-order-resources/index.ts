@@ -1,6 +1,6 @@
 import Oystehr, { BatchInputRequest, Bundle } from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { Account, Coverage, Encounter, List, Location, Organization } from 'fhir/r4b';
+import { Account, Appointment, Coverage, Encounter, List, Location, Organization } from 'fhir/r4b';
 import {
   CODE_SYSTEM_COVERAGE_CLASS,
   CPTCodeOption,
@@ -9,6 +9,7 @@ import {
   ExternalLabOrderingLocations,
   flattenBundleResources,
   getSecret,
+  isAppointmentWorkersComp,
   LAB_ACCOUNT_NUMBER_SYSTEM,
   LAB_LIST_CODE_CODING,
   LAB_ORG_TYPE_CODING,
@@ -117,7 +118,8 @@ const getResources = async (
   isWorkersCompEncounter: boolean;
   labLists: List[];
 }> => {
-  const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter | List>[] = [];
+  const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter | Appointment | List>[] =
+    [];
 
   if (patientId) {
     const coverageSearchRequest: BatchInputRequest<Coverage> = {
@@ -136,9 +138,9 @@ const getResources = async (
   }
 
   if (encounterId) {
-    const encounterRequest: BatchInputRequest<Encounter> = {
+    const encounterRequest: BatchInputRequest<Encounter | Appointment> = {
       method: 'GET',
-      url: `/Encounter?_id=${encounterId}`,
+      url: `/Encounter?_id=${encounterId}&_include=Encounter:appointment`,
     };
     requests.push(encounterRequest);
   }
@@ -159,13 +161,13 @@ const getResources = async (
   };
   requests.push(orderingLocationsRequest);
 
-  const searchResults: Bundle<Coverage | Account | Organization | Location | Encounter | List> =
+  const searchResults: Bundle<Coverage | Account | Organization | Location | Encounter | Appointment | List> =
     await oystehr.fhir.batch({
       requests,
     });
-  const resources = flattenBundleResources<Coverage | Account | Organization | Location | Encounter | List>(
-    searchResults
-  );
+  const resources = flattenBundleResources<
+    Coverage | Account | Organization | Location | Encounter | Appointment | List
+  >(searchResults);
 
   const coverages: Coverage[] = [];
   const accounts: Account[] = [];
@@ -176,6 +178,7 @@ const getResources = async (
   const encounters: Encounter[] = [];
   const workersCompAccounts: Account[] = [];
   const labLists: List[] = [];
+  const appointments: Appointment[] = [];
 
   resources.forEach((resource) => {
     if (resource.resourceType === 'Organization') {
@@ -220,11 +223,20 @@ const getResources = async (
       }
     }
     if (resource.resourceType === 'Encounter') encounters.push(resource);
+    if (resource.resourceType === 'Appointment') appointments.push(resource);
     if (resource.resourceType === 'List') labLists.push(resource);
   });
 
-  let isWorkersCompEncounter = false;
-  if (workersCompAccounts.length > 0) {
+  const encounter = encounters.find((resource) => resource.id === encounterId);
+  const appointmentId = encounter?.appointment?.[0].reference?.replace('Appointment/', '');
+  const appointment = appointments.find((resource) => resource.id === appointmentId);
+  const appointmentIsWorkersComp = appointment ? isAppointmentWorkersComp(appointment) : false;
+  console.log('appointmentIsWorkersComp', appointmentIsWorkersComp);
+  let encounterIsWorkersComp = false;
+
+  // doing some validation that the workers comp account is properly linked to the encounter
+  // oystehr labs depends on this account for submitting workers comp labs
+  if (appointmentIsWorkersComp) {
     // should not happen
     if (encounterId && encounters.length !== 1) {
       throw new Error(`More than one or no encounter was returned ${encounterId}`);
@@ -233,7 +245,7 @@ const getResources = async (
 
     if (workersCompAccounts.length !== 1) {
       throw new Error(
-        `More than one active workers comp account was returned for ${patientId}. Accounts found: ${workersCompAccounts.map(
+        `Unexpected number of workers comp account returned for ${patientId}. Accounts found: ${workersCompAccounts.map(
           (account) => account.id
         )}`
       );
@@ -242,10 +254,9 @@ const getResources = async (
 
     console.log('checking that workers comp account is associated with this encounter');
     console.log('workersCompAccount', workersCompAccount.id);
-    console.log('encounter.account', JSON.stringify(encounter.account));
+    console.log('encounter.account', JSON.stringify(encounter?.account));
 
-    isWorkersCompEncounter = !!encounter.account?.some((ref) => ref.reference === `Account/${workersCompAccount.id}`);
-    console.log('isWorkersCompEncounter', isWorkersCompEncounter);
+    encounterIsWorkersComp = !!encounter?.account?.some((ref) => ref.reference === `Account/${workersCompAccount.id}`);
   }
 
   return {
@@ -253,7 +264,7 @@ const getResources = async (
     accounts,
     labOrgsGUIDs,
     orderingLocationDetails: { orderingLocationIds, orderingLocations },
-    isWorkersCompEncounter,
+    isWorkersCompEncounter: appointmentIsWorkersComp && encounterIsWorkersComp,
     labLists,
   };
 };

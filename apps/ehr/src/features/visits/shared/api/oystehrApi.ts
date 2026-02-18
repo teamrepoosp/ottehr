@@ -1,6 +1,8 @@
 import Oystehr from '@oystehr/sdk';
 import { Organization } from 'fhir/r4b';
 import {
+  AISuggestionNotes,
+  AISuggestionNotesInput,
   AssignPractitionerInput,
   AssignPractitionerResponse,
   ChangeInPersonVisitStatusInput,
@@ -26,8 +28,6 @@ import {
   GetTelemedAppointmentsResponseEhr,
   GetUnsolicitedResultsResourcesInput,
   GetUnsolicitedResultsResourcesOutput,
-  IcdSearchRequestParams,
-  IcdSearchResponse,
   InitTelemedSessionRequestParams,
   InitTelemedSessionResponse,
   LabOrderResourcesRes,
@@ -41,6 +41,8 @@ import {
   SaveChartDataRequest,
   SaveChartDataResponse,
   SavePatientInstructionInput,
+  SearchPlacesInput,
+  SearchPlacesOutput,
   SendFaxZambdaInput,
   SignAppointmentInput,
   SignAppointmentResponse,
@@ -74,6 +76,7 @@ enum ZambdaNames {
   'save patient instruction' = 'save patient instruction',
   'delete patient instruction' = 'delete patient instruction',
   'icd search' = 'icd search',
+  'ai suggestion notes' = 'ai suggestion notes',
   'recommend billing suggestions' = 'recommend billing suggestions',
   'recommend billing codes' = 'recommend billing codes',
   'create update medication order' = 'create update medication order',
@@ -86,6 +89,7 @@ enum ZambdaNames {
   'external lab resource search' = 'external lab resource search',
   'get unsolicited results resources' = 'get unsolicited results resources',
   'update lab order resources' = 'update lab order resources',
+  'search places' = 'search places',
   'inhouse lab resource search' = 'inhouse lab resource search',
 }
 
@@ -106,6 +110,7 @@ const zambdasPublicityMap: Record<keyof typeof ZambdaNames, boolean> = {
   'save patient instruction': false,
   'delete patient instruction': false,
   'icd search': false,
+  'ai suggestion notes': false,
   'recommend billing suggestions': false,
   'recommend billing codes': false,
   'create update medication order': false,
@@ -118,6 +123,7 @@ const zambdasPublicityMap: Record<keyof typeof ZambdaNames, boolean> = {
   'external lab resource search': false,
   'get unsolicited results resources': false,
   'update lab order resources': false,
+  'search places': false,
   'inhouse lab resource search': false,
 };
 
@@ -142,7 +148,7 @@ export const getOystehrTelemedAPI = (
   getPatientInstructions: typeof getPatientInstructions;
   savePatientInstruction: typeof savePatientInstruction;
   deletePatientInstruction: typeof deletePatientInstruction;
-  icdSearch: typeof icdSearch;
+  aiSuggestionNotes: typeof aiSuggestionNotes;
   recommendBillingSuggestions: typeof recommendBillingSuggestions;
   recommendBillingCodes: typeof recommendBillingCodes;
   createUpdateMedicationOrder: typeof createUpdateMedicationOrder;
@@ -156,6 +162,7 @@ export const getOystehrTelemedAPI = (
   getCreateExternalLabResources: typeof getCreateExternalLabResources;
   getUnsolicitedResultsResources: typeof getUnsolicitedResultsResources;
   updateLabOrderResources: typeof updateLabOrderResources;
+  searchPlaces: typeof searchPlaces;
   getCreateInHouseLabOrderResources: typeof getCreateInHouseLabOrderResources;
 } => {
   const {
@@ -175,6 +182,7 @@ export const getOystehrTelemedAPI = (
     savePatientInstructionZambdaID,
     deletePatientInstructionZambdaID,
     icdSearchZambdaId,
+    aiSuggestionNotesZambdaID,
     recommendBillingSuggestionsZambdaID,
     recommendBillingCodesZambdaID,
     createUpdateMedicationOrderZambdaID,
@@ -187,6 +195,7 @@ export const getOystehrTelemedAPI = (
     externalLabResourceSearchID,
     getUnsolicitedResultsResourcesID,
     updateLabOrderResourcesID,
+    searchPlacesID,
     inhouseLabResourceSearchID,
   } = params;
 
@@ -207,6 +216,7 @@ export const getOystehrTelemedAPI = (
     'save patient instruction': savePatientInstructionZambdaID,
     'delete patient instruction': deletePatientInstructionZambdaID,
     'icd search': icdSearchZambdaId,
+    'ai suggestion notes': aiSuggestionNotesZambdaID,
     'recommend billing suggestions': recommendBillingSuggestionsZambdaID,
     'recommend billing codes': recommendBillingCodesZambdaID,
     'create update medication order': createUpdateMedicationOrderZambdaID,
@@ -219,6 +229,7 @@ export const getOystehrTelemedAPI = (
     'external lab resource search': externalLabResourceSearchID,
     'get unsolicited results resources': getUnsolicitedResultsResourcesID,
     'update lab order resources': updateLabOrderResourcesID,
+    'search places': searchPlacesID,
     'inhouse lab resource search': inhouseLabResourceSearchID,
   };
   const isAppLocalProvided = params.isAppLocal != null;
@@ -309,8 +320,8 @@ export const getOystehrTelemedAPI = (
     return await makeZapRequest('create update patient followup', parameters);
   };
 
-  const icdSearch = async (parameters: IcdSearchRequestParams): Promise<IcdSearchResponse> => {
-    return await makeZapRequest('icd search', parameters);
+  const aiSuggestionNotes = async (parameters: AISuggestionNotesInput): Promise<AISuggestionNotes> => {
+    return await makeZapRequest('ai suggestion notes', parameters);
   };
 
   const recommendBillingSuggestions = async (parameters: {
@@ -385,6 +396,10 @@ export const getOystehrTelemedAPI = (
     return await makeZapRequest('update lab order resources', parameters);
   };
 
+  const searchPlaces = async (parameters: SearchPlacesInput): Promise<SearchPlacesOutput> => {
+    return await makeZapRequest('search places', parameters);
+  };
+
   const getCreateInHouseLabOrderResources = async (
     parameters: GetCreateInHouseLabOrderResourcesInput
   ): Promise<GetCreateInHouseLabOrderResourcesOutput> => {
@@ -407,7 +422,7 @@ export const getOystehrTelemedAPI = (
     getPatientInstructions,
     savePatientInstruction,
     deletePatientInstruction,
-    icdSearch,
+    aiSuggestionNotes,
     recommendBillingSuggestions,
     recommendBillingCodes,
     getMedicationOrders,
@@ -421,6 +436,7 @@ export const getOystehrTelemedAPI = (
     getCreateExternalLabResources,
     getUnsolicitedResultsResources,
     updateLabOrderResources,
+    searchPlaces,
     getCreateInHouseLabOrderResources,
   };
 };

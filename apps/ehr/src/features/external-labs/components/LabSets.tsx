@@ -24,12 +24,13 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
     } catch (e) {
       const sdkError = e as Oystehr.OystehrSdkError;
       console.log('error selecting this lab set', sdkError.code, sdkError.message);
-      const errorMessage = [sdkError.message];
-      setError(errorMessage);
+      setError([sdkError.message]);
     } finally {
       setLoadingId(null);
     }
   };
+
+  if (labSets.length === 0) return <></>;
 
   return (
     <>

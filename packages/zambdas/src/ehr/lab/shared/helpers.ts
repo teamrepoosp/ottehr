@@ -68,11 +68,11 @@ export const makeSoftDeleteStatusPatchRequest = (
 export const formatLabListDTOs = (labLists: List[]): LabListsDTO[] | undefined => {
   if (labLists.length === 0) return;
   const formattedListDTOs: LabListsDTO[] = [];
-  labLists.forEach((list) => {
+  labLists.forEach((list, idx) => {
     const listType = getLabListType(list);
     if (!listType) return;
     const formattedBase = {
-      listId: list.id ?? 'missing',
+      listId: list.id ?? `missing-${idx}`,
       listName: list.title ?? 'Lab List (title missing)',
     };
     if (listType === LabType.external) {

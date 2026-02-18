@@ -13,6 +13,7 @@ import { BOOKING_OVERRIDES } from '../../../ottehr-config-overrides';
 import { FHIR_EXTENSION, getFirstName, getLastName, getMiddleName, SERVICE_CATEGORY_SYSTEM } from '../../fhir';
 import { makeAnswer, pickFirstValueFromAnswerItem } from '../../helpers';
 import { flattenQuestionnaireAnswers, PatientInfo, PersonSex } from '../../types';
+import { BRANDING_CONFIG } from '../branding';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 import {
   createQuestionnaireFromConfig,
@@ -145,6 +146,14 @@ const FormFields = {
         type: 'string',
         dataType: 'Email',
       },
+      returnPatientCheck: {
+        key: 'return-patient-check',
+        label: `Have you been to ${BRANDING_CONFIG.projectName} in the past 3 years?`,
+        type: 'choice',
+        disabledDisplay: 'hidden',
+        options: VALUE_SETS.yesNoOptions,
+        triggers: [PatientDoesntExistTriggerEnableAndRequire],
+      },
       reasonForVisit: {
         key: 'reason-for-visit',
         label: 'Reason for visit',
@@ -199,8 +208,17 @@ const FormFields = {
       },
       tellUsMore: {
         key: 'tell-us-more',
-        label: 'Tell us more (optional)',
+        label: 'Tell us more',
         type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'reason-for-visit',
+            effect: ['require'],
+            operator: '=',
+            answerString: 'Other',
+          },
+        ],
+        enableBehavior: 'any',
       },
       authorizedNonLegalGuardians: {
         key: 'authorized-non-legal-guardian',
@@ -208,7 +226,7 @@ const FormFields = {
         type: 'string',
       },
     },
-    hiddenFields: [],
+    hiddenFields: ['return-patient-check'],
     requiredFields: ['patient-birth-sex', 'patient-email'],
   },
 };
@@ -234,11 +252,11 @@ const FORM_DEFAULTS = {
   FormFields,
 };
 
-const mergedBookingQConfig = _.merge(FORM_DEFAULTS, {
+const mergedBookingQConfig = mergeAndFreezeConfigObjects(FORM_DEFAULTS, {
   FormFields: BOOKING_OVERRIDES.FormFields ?? {},
   questionnaireBase: BOOKING_OVERRIDES.questionnaireBase ?? {},
+  hiddenFormSections: BOOKING_OVERRIDES.hiddenFormSections ?? [],
 });
-mergedBookingQConfig.hiddenFormSections = BOOKING_OVERRIDES.hiddenFormSections ?? FORM_DEFAULTS.hiddenFormSections;
 
 const BookingPaperworkConfigSchema = QuestionnaireConfigSchema.extend({
   FormFields: FormFieldsSchema,
@@ -346,6 +364,10 @@ export const mapBookingQRItemToPatientInfo = (qrItem: QuestionnaireResponseItem[
         const weight = parseFloat(pickFirstValueFromAnswerItem(item, 'string') || '');
         patientInfo.weight = Number.isNaN(weight) ? undefined : weight;
         break;
+      case 'return-patient-check':
+        patientInfo.patientBeenSeenBefore =
+          (pickFirstValueFromAnswerItem(item, 'string') ?? 'no').toLowerCase() === 'yes';
+        break;
       default:
         break;
     }
@@ -372,12 +394,25 @@ const inPersonPrebookRoutingParams: { key: string; value: string }[] = [
   { key: 'scheduleType', value: 'group' },
 ];
 
+enum VisitType {
+  InPersonWalkIn = 'in-person-walk-in',
+  InPersonPreBook = 'in-person-pre-booked',
+  InPersonPostTelemed = 'in-person-post-telemed',
+  VirtualOnDemand = 'virtual-on-demand',
+  VirtualScheduled = 'virtual-scheduled',
+}
+
+interface BookingOption {
+  id: string;
+  label: string;
+}
 export interface BookingConfig {
   serviceCategoriesEnabled: {
     serviceModes: string[];
     visitType: string[];
   };
   homepageOptions: string[];
+  ehrBookingOptions: BookingOption[];
   serviceCategories: StrongCoding[];
   formConfig: z.infer<typeof QuestionnaireConfigSchema>;
   inPersonPrebookRoutingParams: { key: string; value: string }[];
@@ -404,6 +439,28 @@ const BOOKING_DEFAULTS: BookingConfig = {
     HomepageOptions.ScheduleInPersonVisit,
     HomepageOptions.StartVirtualVisit,
     HomepageOptions.ScheduleVirtualVisit,
+  ],
+  ehrBookingOptions: [
+    {
+      id: VisitType.InPersonWalkIn,
+      label: 'Walk-in In Person Visit',
+    },
+    {
+      id: VisitType.InPersonPreBook,
+      label: 'Pre-booked In Person Visit',
+    },
+    {
+      id: VisitType.VirtualOnDemand,
+      label: 'On Demand Virtual Visit',
+    },
+    {
+      id: VisitType.VirtualScheduled,
+      label: 'Scheduled Virtual Visit',
+    },
+    {
+      id: VisitType.InPersonPostTelemed,
+      label: 'Post Telemed Lab Only',
+    },
   ],
   serviceCategories: SERVICE_CATEGORIES_AVAILABLE,
   formConfig,
