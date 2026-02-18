@@ -23,7 +23,7 @@ export interface LabListsDTO {
   listId: string;
   listName: string;
   labs: {
-    display: string; // list of names of the tests contained in this list formatted list {lab name / filler lab name}
+    display: string; // formatted list {test name / filler lab name}
     itemCode: string;
     labGuid: string;
   }[];

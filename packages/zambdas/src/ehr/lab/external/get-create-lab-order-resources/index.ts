@@ -367,9 +367,9 @@ const getCoverageInfo = (accounts: Account[], coverages: Coverage[]): CreateLabC
 const formatLabListDTOs = (labLists: List[]): LabListsDTO[] | undefined => {
   if (labLists.length === 0) return;
   const formattedListDTOs: LabListsDTO[] = [];
-  labLists.forEach((list) => {
+  labLists.forEach((list, idx) => {
     const formatted: LabListsDTO = {
-      listId: list.id ?? 'missing',
+      listId: list.id ?? `missing-${idx}`,
       listName: list.title ?? 'Lab List (title missing)',
       labs:
         list.entry?.map((lab) => {

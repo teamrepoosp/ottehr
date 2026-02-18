@@ -115,7 +115,7 @@ export const index = wrapHandler('create-lab-order', async (input: ZambdaInput):
     const testsGroupedByLabGuid = groupTestsByLabGuid(orderableItems);
 
     // create lab order requests will come in for the same patient, encounter, psc flag, location
-    // the only thing that is potentially different is the lab the test will be run by
+    // the only potential difference is the lab that will perform the test
     const commonResources = {
       encounter,
       psc,
@@ -192,7 +192,7 @@ const formatAllResourceRequests = (
     clinicalInfoNoteByUser,
   } = resources;
   console.log(
-    `Formatting fhir batch input requests. Requisition: ${requisitionNumber} Test: ${orderableItem.item.itemName} ${orderableItem.item.itemCode}`
+    `Formatting fhir batch input requests. Requisition: ${requisitionNumber} Test: ${orderableItem.item.itemName} ${orderableItem.item.itemCode} LabGuid: ${orderableItem.lab.labGuid}`
   );
 
   const requests: BatchInputRequest<FhirResource>[] = [];
