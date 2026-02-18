@@ -17,8 +17,8 @@ import {
 } from '@mui/material';
 import Oystehr from '@oystehr/sdk';
 import { enqueueSnackbar } from 'notistack';
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { ReactElement, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ActionsList } from 'src/components/ActionsList';
 import { DeleteIconButton } from 'src/components/DeleteIconButton';
 import DetailPageContainer from 'src/features/common/DetailPageContainer';
@@ -36,6 +36,7 @@ import {
 } from 'src/features/visits/shared/stores/appointment/appointment.store';
 import { useDebounce } from 'src/shared/hooks/useDebounce';
 import {
+  APIErrorCode,
   CreateLabPaymentMethod,
   DiagnosisDTO,
   getAttendingPractitionerId,
@@ -64,7 +65,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
   const theme = useTheme();
   const { oystehrZambda } = useApiClients();
   const navigate = useNavigate();
-  const [error, setError] = useState<string[] | undefined>(undefined);
+  const [error, setError] = useState<(string | ReactElement)[] | undefined>(undefined);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const apiClient = useOystehrAPIClient();
   const {
@@ -124,7 +125,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
   const orderingLocations = createExternalLabResources?.orderingLocations ?? [];
   const orderingLocationIdsStable = (createExternalLabResources?.orderingLocationIds ?? []).join(',');
   const additionalCptCodesToAdd = createExternalLabResources?.additionalCptCodes;
-  const isWorkersComp = !!createExternalLabResources?.isWorkersCompEncounter;
+  const isWorkersComp = !!createExternalLabResources?.appointmentIsWorkersComp;
   const labSets = createExternalLabResources?.labSets;
 
   const orderingLocationIdToLocationAndLabGUIDsMap = useMemo(
@@ -216,7 +217,19 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
         const sdkError = e as Oystehr.OystehrSdkError;
         console.log('error creating external lab order', sdkError.code, sdkError.message);
         const errorMessage = [sdkError.message];
-        setError(errorMessage);
+        if (sdkError.code === APIErrorCode.MISSING_WC_INFO_FOR_LABS) {
+          setError([
+            <>
+              Information necessary to submit labs is missing. Please navigate to{' '}
+              <Link to={`/visit/${appointment?.id}`}>visit details</Link> and complete all Worker's Compensation
+              Information.
+            </>,
+          ]);
+        } else if (sdkError.code === 500) {
+          setError(['Internal Server Error']);
+        } else {
+          setError(errorMessage);
+        }
       }
     } else if (!paramsSatisfied) {
       const errorMessage = [];
@@ -619,9 +632,7 @@ export const CreateExternalLabOrder: React.FC<CreateExternalLabOrdersProps> = ()
                   error.length > 0 &&
                   error.map((msg, idx) => (
                     <Grid item xs={12} sx={{ textAlign: 'right', paddingTop: 1 }} key={idx}>
-                      <Typography sx={{ color: theme.palette.error.main }}>
-                        {typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)}
-                      </Typography>
+                      <Typography sx={{ color: theme.palette.error.main }}>{msg}</Typography>
                     </Grid>
                   ))}
               </Grid>
