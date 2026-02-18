@@ -20,9 +20,9 @@ import {
   useSaveChartData,
 } from '../../stores/appointment/appointment.store';
 
-export const useAddCptCode = (): { onAdd: (value: CPTCodeOption) => void } => {
+export const useAddCptCode = (): { onAdd: (value: CPTCodeOption) => void; isPending: boolean } => {
   const { chartData, setPartialChartData } = useChartData();
-  const { mutate: saveCPTChartData } = useSaveChartData();
+  const { mutate: saveCPTChartData, isPending } = useSaveChartData();
   const cptCodes = chartData?.cptCodes || [];
 
   const onAdd = (value: CPTCodeOption): void => {
@@ -52,7 +52,7 @@ export const useAddCptCode = (): { onAdd: (value: CPTCodeOption) => void } => {
     );
   };
 
-  return { onAdd };
+  return { onAdd, isPending };
 };
 
 export const BillingCodesContainer: FC = () => {
@@ -72,11 +72,10 @@ export const BillingCodesContainer: FC = () => {
   const cptSearchOptions = data?.codes || [];
 
   const { mutate: saveEMChartData, isPending: isSaveEMLoading } = useSaveChartData();
-  const { isPending: isSaveCPTLoading } = useSaveChartData();
   const { mutate: deleteEMChartData, isPending: isDeleteEMLoading } = useDeleteChartData();
   const { mutate: deleteCPTChartData, isPending: isDeleteCPTLoading } = useDeleteChartData();
 
-  const { onAdd } = useAddCptCode();
+  const { onAdd, isPending: isSaveCPTLoading } = useAddCptCode();
 
   const disabledEM = Boolean(isSaveEMLoading || isDeleteEMLoading || (emCode && !emCode.resourceId));
   const disabledCPT = Boolean(isSaveCPTLoading || isDeleteCPTLoading);
