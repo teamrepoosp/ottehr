@@ -742,7 +742,7 @@ export const useSavePatientInstruction = () => {
   const apiClient = useOystehrAPIClient();
 
   return useMutation({
-    mutationFn: (instruction: { text: string }) => {
+    mutationFn: (instruction: { text?: string; title?: string }) => {
       if (apiClient) {
         return apiClient.savePatientInstruction(instruction);
       }

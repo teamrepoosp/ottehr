@@ -627,7 +627,7 @@ export interface CptCodes extends PdfData {
 }
 
 export interface PlanData extends PdfData {
-  patientInstructions?: string[];
+  patientInstructions?: { text?: string; title?: string }[];
   disposition: {
     header: string;
     text: string;
