@@ -370,7 +370,7 @@ export type ExternalLabOrderingLocations = {
 export type LabOrderResourcesRes = {
   coverages?: CreateLabCoverageInfo[];
   labs: OrderableItemSearchResult[];
-  isWorkersCompEncounter: boolean;
+  appointmentIsWorkersComp: boolean;
   additionalCptCodes?: CPTCodeOption[];
   labSets: LabListsDTO[] | undefined;
 } & ExternalLabOrderingLocations;

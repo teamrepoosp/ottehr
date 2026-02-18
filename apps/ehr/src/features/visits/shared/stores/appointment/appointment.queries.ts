@@ -59,6 +59,7 @@ import {
   INVENTORY_MEDICATION_TYPE_CODE,
   LabOrderResourcesRes,
   MEDICATION_IDENTIFIER_NAME_SYSTEM,
+  MEDISPAN_DISPENSABLE_DRUG_ID_CODE_SYSTEM,
   MeetingData,
   ProcedureDetail,
   PromiseReturnType,
@@ -981,25 +982,36 @@ export const useGetMedicationOrders = (
   });
 };
 
-const emptyMedications: Record<string, string> = {};
+type MedicationListData = {
+  idToName: Record<string, string>;
+  idToMedispanCode: Record<string, string>;
+};
+
+const emptyMedicationListData: MedicationListData = {
+  idToName: {},
+  idToMedispanCode: {},
+};
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const useGetMedicationList = () => {
   const { oystehr } = useApiClients();
 
-  const getMedicationIdentifierNames = (data: Medication[]): Record<string, string> => {
-    return (data || []).reduce(
-      (acc, entry) => {
-        const identifier = entry.identifier?.find((id: Coding) => id.system === MEDICATION_IDENTIFIER_NAME_SYSTEM);
-
-        if (identifier?.value && entry.id) {
-          acc[entry.id] = identifier.value;
-        }
-
-        return acc;
-      },
-      {} as Record<string, string>
-    );
+  const buildMedicationListData = (data: Medication[]): MedicationListData => {
+    const idToName: Record<string, string> = {};
+    const idToMedispanCode: Record<string, string> = {};
+    for (const entry of data || []) {
+      const identifier = entry.identifier?.find((id: Coding) => id.system === MEDICATION_IDENTIFIER_NAME_SYSTEM);
+      if (identifier?.value && entry.id) {
+        idToName[entry.id] = identifier.value;
+      }
+      const medispanCoding = entry.code?.coding?.find(
+        (c: Coding) => c.system === MEDISPAN_DISPENSABLE_DRUG_ID_CODE_SYSTEM
+      );
+      if (medispanCoding?.code && entry.id) {
+        idToMedispanCode[entry.id] = medispanCoding.code;
+      }
+    }
+    return { idToName, idToMedispanCode };
   };
 
   const queryResult = useQuery({
@@ -1007,14 +1019,14 @@ export const useGetMedicationList = () => {
 
     queryFn: async () => {
       if (!oystehr) {
-        return emptyMedications;
+        return emptyMedicationListData;
       }
       const data = await oystehr.fhir.search<Medication>({
         resourceType: 'Medication',
         params: [{ name: 'identifier', value: INVENTORY_MEDICATION_TYPE_CODE }],
       });
 
-      return getMedicationIdentifierNames(data.unbundle());
+      return buildMedicationListData(data.unbundle());
     },
 
     placeholderData: keepPreviousData,
