@@ -2109,7 +2109,18 @@ const mergeGuarantors = (guarantors: Account['guarantor'], organizationReference
 };
 
 const buildEmployerOrganization = (details: EmployerInformation, id?: string): Organization => {
-  const lines = [details.addressLine1, details.addressLine2].filter(Boolean) as string[];
+  const { addressLine1, addressLine2 } = details;
+  const lines: string[] = [];
+
+  if (addressLine1) {
+    lines[0] = addressLine1;
+  } else if (addressLine2) {
+    lines[0] = '-';
+  }
+
+  if (addressLine2) {
+    lines[1] = addressLine2;
+  }
   const phone = safeFormatPhone(details.contactPhone);
   const fax = safeFormatPhone(details.contactFax);
 
