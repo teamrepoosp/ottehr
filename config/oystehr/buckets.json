@@ -53,6 +53,10 @@
       "name": "#{var/PROJECT_ID}-discharge-summaries",
       "removalPolicy": "retain"
     },
+    "INVOICEABLE_PATIENTS_REPORTS": {
+      "name": "#{var/PROJECT_ID}-invoiceable-patients-reports",
+      "removalPolicy": "retain"
+    },
     "STATEMENTS": {
       "name": "#{var/PROJECT_ID}-statements",
       "removalPolicy": "retain"
