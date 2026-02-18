@@ -15,7 +15,7 @@ import {
   mapDisplayToInvoiceTaskStatus,
   RcmTaskCodings,
   SecretsKeys,
-  textingConfig,
+  TEXTING_CONFIG,
 } from 'utils';
 import { createInvoiceTaskInput } from 'utils/lib/helpers/tasks/invoices-tasks';
 import {
@@ -79,9 +79,9 @@ async function getInvoiceTaskInput(
   patientBalanceInCents: number
 ): Promise<InvoiceTaskInput> {
   try {
-    const smsMessageFromSecret = textingConfig.invoicing.smsMessage;
-    const memoFromSecret = textingConfig.invoicing.stripeMemoMessage;
-    const dueDateFromSecret = textingConfig.invoicing.dueDateInDays;
+    const smsMessageFromSecret = TEXTING_CONFIG.invoicing.smsMessage;
+    const memoFromSecret = TEXTING_CONFIG.invoicing.stripeMemoMessage;
+    const dueDateFromSecret = TEXTING_CONFIG.invoicing.dueDateInDays;
     const dueDate = DateTime.now().plus({ days: dueDateFromSecret }).toISODate();
     const finalizationDateIso = finalizationDate.toISOString();
 
