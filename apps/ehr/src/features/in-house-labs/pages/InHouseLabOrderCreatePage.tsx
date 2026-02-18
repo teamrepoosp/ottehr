@@ -183,9 +183,9 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
           window.open(labelPdf.presignedURL, '_blank');
         }
 
-        if (res.serviceRequestId) {
+        if (res.serviceRequestIds.length === 1) {
           // we will only nav forward if one test was created, else we will direct the user back to the table
-          navigate(`/in-person/${appointment?.id}/in-house-lab-orders/${res.serviceRequestId}/order-details`);
+          navigate(`/in-person/${appointment?.id}/in-house-lab-orders/${res.serviceRequestIds[0]}/order-details`);
         } else {
           navigate(`/in-person/${appointment?.id}/in-house-lab-orders`);
         }
@@ -241,8 +241,6 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
         selectedLabSet: labSet,
       });
       const labs = res?.labs;
-
-      console.log('inhouse labs', labs);
 
       if (labs) {
         setSelectedTests((currentLabs) => {

@@ -354,12 +354,12 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     const transactionResponse = await oystehr.fhir.transaction({ requests: resourcePostRequests });
 
-    let serviceRequestId: string | undefined;
-    if (resourcesToCreateAllRequests.testResources.length === 1) {
-      const resources = parseCreatedResourcesBundle(transactionResponse);
-      const newServiceRequest = resources.find((r) => r.resourceType === 'ServiceRequest');
-      serviceRequestId = newServiceRequest?.id;
-    }
+    const serviceRequestIds: string[] = [];
+
+    const resources = parseCreatedResourcesBundle(transactionResponse);
+    resources.forEach((r) => {
+      if (r.resourceType === 'ServiceRequest' && r.id) serviceRequestIds.push(r.id);
+    });
 
     if (!transactionResponse.entry?.every((entry) => entry.response?.status[0] === '2')) {
       throw Error('Error creating in-house lab order in transaction');
@@ -374,9 +374,8 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       : {};
 
     const response = {
-      transactionResponse,
       saveChartDataResponse,
-      serviceRequestId,
+      serviceRequestIds,
     };
 
     return {

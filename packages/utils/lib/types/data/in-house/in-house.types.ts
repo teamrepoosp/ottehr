@@ -1,4 +1,3 @@
-import { Bundle, FhirResource } from 'fhir/r4b';
 import { DiagnosisDTO, InHouseLabListDTO, LabListsDTO, OBSERVATION_CODES, Pagination } from 'utils';
 
 export interface TestItemMethods {
@@ -162,9 +161,8 @@ export type CreateInHouseLabOrderParameters = {
 };
 
 export type CreateInHouseLabOrderResponse = {
-  transactionResponse: { output: Bundle<FhirResource> };
   saveChartDataResponse: { output: { chartData: { diagnosis: (DiagnosisDTO & { resourceId: string })[] } } };
-  serviceRequestId?: string | undefined; // this will only return if one test is ordered
+  serviceRequestIds: string[];
 };
 
 export type GetCreateInHouseLabOrderResourcesInput = { encounterId?: string; selectedLabSet?: InHouseLabListDTO };

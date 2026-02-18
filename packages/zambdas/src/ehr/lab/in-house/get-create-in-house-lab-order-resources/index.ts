@@ -16,6 +16,7 @@ import {
 import {
   checkOrCreateM2MClientToken,
   createOystehrClient,
+  sendErrors,
   topLevelCatch,
   wrapHandler,
   ZambdaInput,
@@ -119,9 +120,17 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
         `Found ${labSetActivityDefinitions.length} active ActivityDefinition resources for the labSet List/${selectedLabSet.listId}`
       );
 
-      for (const activeDefinition of labSetActivityDefinitions) {
-        const testItem = convertActivityDefinitionToTestItem(activeDefinition);
+      for (const activityDefinition of labSetActivityDefinitions) {
+        const testItem = convertActivityDefinitionToTestItem(activityDefinition);
         testItems.push(testItem);
+
+        // notify the dev team that something is misconfigured
+        if (activityDefinition.status !== 'active') {
+          const errorMessage = `There is an INACTIVE Activity Definition linked to the current working Lab Set List/${selectedLabSet.listId}`;
+          const ENVIRONMENT = getSecret(SecretsKeys.ENVIRONMENT, secrets);
+          console.log(errorMessage);
+          await sendErrors(errorMessage, ENVIRONMENT);
+        }
       }
     }
 
