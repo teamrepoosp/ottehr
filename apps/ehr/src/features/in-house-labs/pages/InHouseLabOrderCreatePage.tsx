@@ -217,7 +217,17 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
       return;
     }
 
-    setSelectedTests([...selectedTests, foundEntry]);
+    const alreadySelected = selectedTests.find((tempLab) => {
+      return tempLab.name === selectedTest;
+    });
+
+    if (!alreadySelected) {
+      setSelectedTests([...selectedTests, foundEntry]);
+    } else {
+      enqueueSnackbar('This lab has already been selected', {
+        variant: 'error',
+      });
+    }
   };
 
   const handleSetSelectedLabsViaLabSets = async (labSet: LabListsDTO): Promise<void> => {
