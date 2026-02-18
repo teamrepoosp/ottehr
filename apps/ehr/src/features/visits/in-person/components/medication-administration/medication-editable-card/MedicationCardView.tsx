@@ -10,12 +10,14 @@ import {
   ExtendedMedicationDataForResponse,
   IN_HOUSE_CONTAINED_MEDICATION_ID,
   makeMedicationOrderUpdateRequestInput,
+  MEDICAL_HISTORY_CONFIG,
   MedicationData,
   MedicationOrderStatusesType,
   UpdateMedicationOrderInput,
 } from 'utils';
 import { dataTestIds } from '../../../../../../constants/data-test-ids';
 import { Loader } from '../../../../shared/components/Loader';
+import { SelectFromFavoritesButton } from '../../../../shared/components/medical-history-tab/SelectFromFavoritesButton';
 import { OrderFieldsSelectsOptions } from '../../../hooks/useGetFieldOptions';
 import { getInHouseMedicationMARUrl } from '../../../routing/helpers';
 import { ButtonRounded } from '../../RoundedButton';
@@ -62,6 +64,7 @@ type MedicationCardViewProps = {
   onInteractionsMessageClick: () => void;
   onDelete?: () => void;
   isReadOnly?: boolean;
+  onFavoriteSelect?: (favorite: (typeof MEDICAL_HISTORY_CONFIG.inHouseMedications.favorites)[number]) => void;
 };
 
 export const MedicationCardView: React.FC<MedicationCardViewProps> = ({
@@ -86,6 +89,7 @@ export const MedicationCardView: React.FC<MedicationCardViewProps> = ({
   onInteractionsMessageClick,
   onDelete,
   isReadOnly,
+  onFavoriteSelect,
 }) => {
   const navigate = useNavigate();
   const { id: appointmentId } = useParams();
@@ -216,6 +220,29 @@ export const MedicationCardView: React.FC<MedicationCardViewProps> = ({
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
       <Grid container spacing={2}>
+        {(type === 'order-new' || type === 'order-edit') && onFavoriteSelect && (
+          <Grid item xs={12}>
+            <SelectFromFavoritesButton
+              favorites={MEDICAL_HISTORY_CONFIG.inHouseMedications.favorites}
+              getLabel={(favorite) => {
+                const parts = [favorite.name];
+                if (favorite.dose != null && favorite.units != null) {
+                  parts.push(`${favorite.dose} ${favorite.units}`);
+                } else if (favorite.dose != null) {
+                  parts.push(String(favorite.dose));
+                }
+                if (favorite.route != null) {
+                  const routeLabel =
+                    selectsOptions.route.options.find((o) => o.value === favorite.route)?.label ?? favorite.route;
+                  parts.push(routeLabel);
+                }
+                return parts.join(', ');
+              }}
+              onSelect={onFavoriteSelect}
+              disabled={isUpdating}
+            />
+          </Grid>
+        )}
         <Grid
           item
           xs={12}

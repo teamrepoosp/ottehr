@@ -183,6 +183,29 @@ const MEDICAL_HISTORY_DEFAULTS: MedicalHistoryConfig = {
       },
     ],
   },
+  inHouseMedications: {
+    favorites: [
+      { name: 'Acetaminophen', dose: 500, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Aspirin', dose: 325, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Ceftriaxone', dose: 1, units: 'g', route: '78421000', id: 1 },
+      { name: 'Ceftriaxone', dose: 500, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Clonidine', dose: 0.1, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Cyanocobalamin', dose: 1, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Dexamethasone', dose: 5, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Dexamethasone', dose: 10, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Diphenhydramine', dose: 25, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Diphenhydramine', dose: 50, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Ketorolac', dose: 30, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Ketorolac', dose: 60, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Nitrostat', dose: 0.4, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Ondansetron', dose: 2, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Ondansetron', dose: 4, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Ondansetron', dose: 8, units: 'mg', route: '78421000', id: 1 },
+      { name: 'Ondansetron', dose: 4, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Ondansetron', dose: 8, units: 'mg', route: '26643006', id: 1 },
+      { name: 'Promethazine', dose: 25, units: 'mg', id: 1 },
+    ],
+  },
 };
 
 const mergedMedicalHistoryConfig = mergeAndFreezeConfigObjects(
