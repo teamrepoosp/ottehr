@@ -183,7 +183,12 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
           window.open(labelPdf.presignedURL, '_blank');
         }
 
-        navigate(`/in-person/${appointment?.id}/in-house-lab-orders`);
+        if (res.serviceRequestId) {
+          // we will only nav forward if one test was created, else we will direct the user back to the table
+          navigate(`/in-person/${appointment?.id}/in-house-lab-orders/${res.serviceRequestId}/order-details`);
+        } else {
+          navigate(`/in-person/${appointment?.id}/in-house-lab-orders`);
+        }
       } catch (e) {
         const sdkError = e as Oystehr.OystehrSdkError;
         console.error('error creating in house lab order', sdkError.code, sdkError.message);
@@ -350,7 +355,9 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
                           {selectedTests.map((test) => (
                             <TableRow key={test.name}>
                               <TableCell>{test.name}</TableCell>
-                              <TableCell>{`${test.cptCode}${test.orderedAsRepeat ? `-91 (QW)` : ''}`}</TableCell>
+                              <TableCell data-testid={dataTestIds.orderInHouseLabPage.CPTCodeField}>{`${test.cptCode}${
+                                test.orderedAsRepeat ? `-91 (QW)` : ''
+                              }`}</TableCell>
                               <TableCell align="center">
                                 {test.repeatable && (
                                   <Checkbox

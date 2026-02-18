@@ -28,6 +28,7 @@ import {
   checkOrCreateM2MClientToken,
   createOystehrClient,
   getMyPractitionerId,
+  parseCreatedResourcesBundle,
   topLevelCatch,
   wrapHandler,
   ZambdaInput,
@@ -229,8 +230,6 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       }
     );
 
-    console.log('whats here!', JSON.stringify(testItemResources));
-
     const testResources: TestItemResources[] = testItemResources.map((data) => {
       const { activityDefinition, serviceRequests, orderedAsRepeat, parentTestCanonicalUrl } = data;
 
@@ -355,6 +354,13 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     const transactionResponse = await oystehr.fhir.transaction({ requests: resourcePostRequests });
 
+    let serviceRequestId: string | undefined;
+    if (resourcesToCreateAllRequests.testResources.length === 1) {
+      const resources = parseCreatedResourcesBundle(transactionResponse);
+      const newServiceRequest = resources.find((r) => r.resourceType === 'ServiceRequest');
+      serviceRequestId = newServiceRequest?.id;
+    }
+
     if (!transactionResponse.entry?.every((entry) => entry.response?.status[0] === '2')) {
       throw Error('Error creating in-house lab order in transaction');
     }
@@ -370,6 +376,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     const response = {
       transactionResponse,
       saveChartDataResponse,
+      serviceRequestId,
     };
 
     return {

@@ -164,6 +164,7 @@ export type CreateInHouseLabOrderParameters = {
 export type CreateInHouseLabOrderResponse = {
   transactionResponse: { output: Bundle<FhirResource> };
   saveChartDataResponse: { output: { chartData: { diagnosis: (DiagnosisDTO & { resourceId: string })[] } } };
+  serviceRequestId?: string | undefined; // this will only return if one test is ordered
 };
 
 export type GetCreateInHouseLabOrderResourcesInput = { encounterId?: string; selectedLabSet?: InHouseLabListDTO };
