@@ -41,7 +41,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
 
-    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, isWorkersCompEncounter } = await getResources(
+    const { accounts, coverages, labOrgsGUIDs, orderingLocationDetails, appointmentIsWorkersComp } = await getResources(
       oystehr,
       patientId,
       encounterId,
@@ -76,7 +76,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       coverages: coverageInfo,
       labs,
       additionalCptCodes,
-      isWorkersCompEncounter,
+      appointmentIsWorkersComp,
       ...orderingLocationDetails,
     };
 
@@ -101,7 +101,7 @@ const getResources = async (
   coverages: Coverage[];
   labOrgsGUIDs: string[];
   orderingLocationDetails: ExternalLabOrderingLocations;
-  isWorkersCompEncounter: boolean;
+  appointmentIsWorkersComp: boolean;
 }> => {
   const requests: BatchInputRequest<Coverage | Account | Organization | Location | Encounter | Appointment>[] = [];
 
@@ -210,25 +210,17 @@ const getResources = async (
   const appointment = appointments.find((resource) => resource.id === appointmentId);
   const appointmentIsWorkersComp = appointment ? isAppointmentWorkersComp(appointment) : false;
   console.log('appointmentIsWorkersComp', appointmentIsWorkersComp);
-  let encounterIsWorkersComp = false;
 
   // doing some validation that the workers comp account is properly linked to the encounter
   // oystehr labs depends on this account for submitting workers comp labs
   if (appointmentIsWorkersComp) {
     if (workersCompAccounts.length !== 1) {
-      throw new Error(
-        `Unexpected number of workers comp account returned for ${patientId}. Accounts found: ${workersCompAccounts.map(
+      console.log(
+        `Unexpected number of workers comp account returned for Patient/${patientId}. Accounts found: ${workersCompAccounts.map(
           (account) => account.id
         )}`
       );
     }
-    const workersCompAccount = workersCompAccounts[0];
-
-    console.log('checking that workers comp account is associated with this encounter');
-    console.log('workersCompAccount', workersCompAccount.id);
-    console.log('encounter.account', JSON.stringify(encounter?.account));
-
-    encounterIsWorkersComp = !!encounter?.account?.some((ref) => ref.reference === `Account/${workersCompAccount.id}`);
   }
 
   return {
@@ -236,7 +228,7 @@ const getResources = async (
     accounts,
     labOrgsGUIDs,
     orderingLocationDetails: { orderingLocationIds, orderingLocations },
-    isWorkersCompEncounter: appointmentIsWorkersComp && encounterIsWorkersComp,
+    appointmentIsWorkersComp,
   };
 };
 
