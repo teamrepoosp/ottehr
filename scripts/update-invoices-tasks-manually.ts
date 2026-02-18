@@ -15,7 +15,7 @@ interface TaskGroup {
 async function createOyst(zambdaEnv: Record<string, string>, token: string): Promise<Oystehr> {
   const oystehr = new Oystehr({
     accessToken: token,
-    projectId: zambdaEnv.PROJECT_ID,
+    projectId: '<projID>',
     services: {
       fhirApiUrl: zambdaEnv.FHIR_API,
       projectApiUrl: zambdaEnv.PROJECT_API,
@@ -45,7 +45,7 @@ async function main(): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-expect-error
   const candidEnv = environment === 'production' ? CandidApiEnvironment.Production : CandidApiEnvironment.Staging;
-  const token = '<oyst-token-here>';
+  const token = '<oyst-key-here>';
 
   console.log(`Reading environment variables from packages/zambdas/.env/${environment}.json.`);
   const zambdaEnv: Record<string, string> = JSON.parse(

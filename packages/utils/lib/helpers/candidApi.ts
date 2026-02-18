@@ -55,6 +55,7 @@ export async function findClaimsBy(input: {
     } else {
       console.log('⚠️ Unexpected response format or failed request on page', pageCount);
       console.log('Response details:', JSON.stringify(inventoryResponse));
+      throw new Error(`'⚠️ Unexpected response format or failed request on page', ${pageCount}`);
     }
   } while (pageToken && pageCount < pageLimit && leftToFindIds.size !== 0);
 
