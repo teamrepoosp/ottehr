@@ -126,7 +126,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
         // notify the dev team that something is misconfigured
         if (activityDefinition.status !== 'active') {
-          const errorMessage = `There is an INACTIVE Activity Definition linked to the current working Lab Set List/${selectedLabSet.listId}`;
+          const errorMessage = `There is an INACTIVE Activity Definition (ActivityDefinition/${activityDefinition.id}) linked to the current working Lab Set List/${selectedLabSet.listId}`;
           const ENVIRONMENT = getSecret(SecretsKeys.ENVIRONMENT, secrets);
           console.log(errorMessage);
           await sendErrors(errorMessage, ENVIRONMENT);
