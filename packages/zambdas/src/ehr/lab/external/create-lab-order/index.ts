@@ -26,6 +26,7 @@ import {
   CreateLabPaymentMethod,
   createOrderNumber,
   EXTERNAL_LAB_ERROR,
+  EXTERNAL_LAB_ERROR_MISSING_WC_INFO,
   FHIR_IDC10_VALUESET_SYSTEM,
   flattenBundleResources,
   getAttendingPractitionerId,
@@ -763,15 +764,38 @@ const getAdditionalResources = async (
 
   if (selectedPaymentMethod === LabPaymentMethod.WorkersComp) {
     if (workersCompAccounts.length !== 1) {
-      throw new Error(`Incorrect number of workers comp accounts found: ${workersCompAccounts.length}`);
+      console.log(`Incorrect number of workers comp accounts found: ${workersCompAccounts.length}`);
+      throw EXTERNAL_LAB_ERROR_MISSING_WC_INFO(
+        `Information necessary to submit labs is missing. Please navigate to visit details and complete all Worker's Compensation Information.`
+      );
     }
 
     if (!workersCompInsurance) {
       console.log(`workersCompInsurance not found for encounter: ${encounter.id}`);
-      throw EXTERNAL_LAB_ERROR(`No coverage is found for this workers comp account`);
+      throw EXTERNAL_LAB_ERROR_MISSING_WC_INFO(
+        `Information necessary to submit labs is missing. Please navigate to visit details and complete all Worker's Compensation Information.`
+      );
     }
 
     const workersCompAccount = workersCompAccounts[0];
+
+    console.log('checking that workers comp account is associated with this encounter');
+    console.log('workersCompAccount', workersCompAccount.id);
+    console.log('encounter.account', JSON.stringify(encounter?.account));
+
+    const encounterHasWorkersCompAccount = !!encounter?.account?.some(
+      (ref) => ref.reference === `Account/${workersCompAccount.id}`
+    );
+
+    if (!encounterHasWorkersCompAccount) {
+      throw new Error(
+        `There is a config issue with this encounter. The appointment is tagged as workers comp and the lab payment method selected is workers comp but the wc account is not linked to Encounter/${encounter?.id}.`
+      );
+    }
+
+    // todo labs oystehr submit lab will throw an error if there is no address under Account.guarantor.party, it would be good to validate that here too
+    // we'll need to grab the workersCompAccount organization and check
+
     const workersCompInsuranceId = (workersCompInsurance as Coverage | undefined)?.id;
     const insuranceMatchesAccount = workersCompAccount.coverage?.some(
       (cov) => cov.coverage.reference === `Coverage/${workersCompInsuranceId}`
