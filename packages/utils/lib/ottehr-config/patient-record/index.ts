@@ -715,6 +715,7 @@ const FormFields = {
       'responsible-party-first-name',
       'responsible-party-last-name',
       'responsible-party-date-of-birth',
+      'responsible-party-birth-sex',
       'responsible-party-address',
       'responsible-party-city',
       'responsible-party-state',
@@ -741,11 +742,27 @@ const FormFields = {
         type: 'boolean',
         label: "Emergency contact address is the same as patient's address",
       },
-      streetAddress: { key: 'emergency-contact-address', type: 'string', label: 'Street address' },
-      addressLine2: { key: 'emergency-contact-address-2', type: 'string', label: 'Address line 2 (optional)' },
-      city: { key: 'emergency-contact-city', type: 'string', label: 'City' },
-      state: { key: 'emergency-contact-state', type: 'choice', label: 'State', options: formValueSets.stateOptions },
-      zip: { key: 'emergency-contact-zip', type: 'string', label: 'Zip', dataType: 'ZIP' },
+      streetAddress: {
+        key: 'emergency-contact-address',
+        type: 'string',
+        label: 'Street address',
+        disabledDisplay: 'disabled',
+      },
+      addressLine2: {
+        key: 'emergency-contact-address-2',
+        type: 'string',
+        label: 'Address line 2 (optional)',
+        disabledDisplay: 'disabled',
+      },
+      city: { key: 'emergency-contact-city', type: 'string', label: 'City', disabledDisplay: 'disabled' },
+      state: {
+        key: 'emergency-contact-state',
+        type: 'choice',
+        label: 'State',
+        options: formValueSets.stateOptions,
+        disabledDisplay: 'disabled',
+      },
+      zip: { key: 'emergency-contact-zip', type: 'string', label: 'Zip', dataType: 'ZIP', disabledDisplay: 'disabled' },
     },
     hiddenFields: [],
     requiredFields: [
@@ -759,8 +776,95 @@ const FormFields = {
     linkId: 'preferred-pharmacy-section',
     title: 'Preferred pharmacy',
     items: {
-      name: { key: 'pharmacy-name', type: 'string', label: 'Pharmacy name' },
-      address: { key: 'pharmacy-address', type: 'string', label: 'Pharmacy address' },
+      pharmacyCollection: {
+        key: 'pharmacy-collection',
+        text: 'Pharmacy',
+        type: 'group',
+        groupType: 'pharmacy-collection',
+        items: {
+          pharmacyPlacesId: {
+            key: 'pharmacy-places-id',
+            label: 'places id',
+            type: 'string',
+          },
+          pharmacyPlacesName: {
+            key: 'pharmacy-places-name',
+            label: 'places name',
+            type: 'string',
+          },
+          pharmacyPlacesAddress: {
+            key: 'pharmacy-places-address',
+            label: 'places address',
+            type: 'string',
+          },
+          pharmacyPlacesSaved: {
+            key: 'pharmacy-places-saved',
+            label: 'places saved',
+            type: 'boolean',
+          },
+          erxPharmacyId: {
+            key: 'erx-pharmacy-id',
+            label: 'erx pharmacy id',
+            type: 'string',
+          },
+        },
+        disabledDisplay: 'hidden',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+        ],
+      },
+      manualEntry: {
+        key: 'pharmacy-page-manual-entry',
+        label: "Can't find? Add manually",
+        type: 'boolean',
+        element: 'Link',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-places-saved',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['sub-text'],
+            operator: '=',
+            answerBoolean: true,
+            substituteText: 'Use search',
+          },
+        ],
+      },
+      name: {
+        key: 'pharmacy-name',
+        label: 'Pharmacy name',
+        type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+        ],
+      },
+      address: {
+        key: 'pharmacy-address',
+        label: 'Pharmacy address',
+        type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+        ],
+      },
     },
     hiddenFields: [],
     requiredFields: [],

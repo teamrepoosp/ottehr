@@ -1436,9 +1436,10 @@ const FormFields = {
         key: 'card-payment-details-text',
         text: 'If you choose not to enter your credit card information in advance, payment (cash or credit) will be required upon arrival.',
         type: 'display',
+        element: 'p',
       },
     },
-    hiddenFields: ['card-payment-details-text'],
+    hiddenFields: [],
     requiredFields: ['valid-card-on-file'],
     triggers: [
       {
@@ -2414,7 +2415,7 @@ const hiddenFormSections: string[] = [];
 const questionnaireBaseDefaults: QuestionnaireBase = {
   resourceType: 'Questionnaire',
   url: 'https://ottehr.com/FHIR/Questionnaire/intake-paperwork-virtual',
-  version: '1.0.20',
+  version: '1.0.22',
   name: 'virtual_pre-visit_paperwork',
   title: 'virtual pre-visit paperwork',
   status: 'active',
