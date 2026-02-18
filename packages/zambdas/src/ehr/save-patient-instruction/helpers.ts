@@ -18,12 +18,19 @@ export async function checkIfProvidersInstruction(
   }
 }
 
-export async function createCommunicationResource(
-  practitionerProfile: string,
-  oystehr: Oystehr,
-  text?: string,
-  title?: string
-): Promise<Communication> {
+type CreateCommunicationResourceParams = {
+  practitionerProfile: string;
+  oystehr: Oystehr;
+  text?: string;
+  title?: string;
+};
+
+export async function createCommunicationResource({
+  practitionerProfile,
+  oystehr,
+  text,
+  title,
+}: CreateCommunicationResourceParams): Promise<Communication> {
   const communicationResource: Communication = {
     resourceType: 'Communication',
     status: 'completed',
@@ -46,12 +53,19 @@ export async function createCommunicationResource(
   return await oystehr.fhir.create(communicationResource);
 }
 
-export async function updateCommunicationResource(
-  communicationId: string,
-  oystehr: Oystehr,
-  text?: string,
-  title?: string
-): Promise<Communication> {
+type UpdateCommunicationResourceParams = {
+  communicationId: string;
+  oystehr: Oystehr;
+  text?: string;
+  title?: string;
+};
+
+export async function updateCommunicationResource({
+  communicationId,
+  oystehr,
+  text,
+  title,
+}: UpdateCommunicationResourceParams): Promise<Communication> {
   const existing = await oystehr.fhir.get<Communication>({
     resourceType: 'Communication',
     id: communicationId,

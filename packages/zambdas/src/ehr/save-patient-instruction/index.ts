@@ -21,9 +21,9 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     if (instructionId) {
       await checkIfProvidersInstruction(instructionId, myUserProfile, oystehr);
-      communication = await updateCommunicationResource(instructionId, oystehr, text, title);
+      communication = await updateCommunicationResource({ communicationId: instructionId, oystehr, text, title });
     } else {
-      communication = await createCommunicationResource(myUserProfile, oystehr, text, title);
+      communication = await createCommunicationResource({ practitionerProfile: myUserProfile, oystehr, text, title });
     }
     return {
       body: JSON.stringify(makeCommunicationDTO(communication)),
