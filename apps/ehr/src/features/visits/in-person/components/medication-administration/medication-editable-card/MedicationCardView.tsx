@@ -5,6 +5,7 @@ import ErrorOutlineOutlined from '@mui/icons-material/ErrorOutlineOutlined';
 import { Box, CircularProgress, Grid, Paper, Typography, useTheme } from '@mui/material';
 import { Stack } from '@mui/system';
 import { DateTime } from 'luxon';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ExtendedMedicationDataForResponse,
@@ -94,6 +95,14 @@ export const MedicationCardView: React.FC<MedicationCardViewProps> = ({
   const navigate = useNavigate();
   const { id: appointmentId } = useParams();
   const theme = useTheme();
+
+  const favoritesInHouseMedicationsList = useMemo(() => {
+    const medispanCodeSet = selectsOptions.medicationId.medispanCodeSet ?? new Set<string>();
+    return MEDICAL_HISTORY_CONFIG.inHouseMedications.favorites.filter((f) => medispanCodeSet.has(String(f.dosespotId)));
+  }, [selectsOptions.medicationId.medispanCodeSet]);
+
+  const showAddFromFavorites =
+    (type === 'order-new' || type === 'order-edit') && onFavoriteSelect && favoritesInHouseMedicationsList.length > 0;
 
   const OrderFooter = (): React.ReactElement => {
     return (
@@ -220,10 +229,10 @@ export const MedicationCardView: React.FC<MedicationCardViewProps> = ({
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
       <Grid container spacing={2}>
-        {(type === 'order-new' || type === 'order-edit') && onFavoriteSelect && (
+        {showAddFromFavorites && (
           <Grid item xs={12}>
             <SelectFromFavoritesButton
-              favorites={MEDICAL_HISTORY_CONFIG.inHouseMedications.favorites}
+              favorites={favoritesInHouseMedicationsList}
               getLabel={(favorite) => {
                 const parts = [favorite.name];
                 if (favorite.dose != null && favorite.units != null) {

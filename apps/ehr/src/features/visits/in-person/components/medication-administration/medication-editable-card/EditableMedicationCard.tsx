@@ -152,16 +152,18 @@ export const EditableMedicationCard: React.FC<{
 
   const handleFavoriteSelect = useCallback(
     (favorite: (typeof MEDICAL_HISTORY_CONFIG.inHouseMedications.favorites)[number]): void => {
+      const medicationId = selectsOptions.medicationId.medispanCodeToMedicationId?.[String(favorite.dosespotId)];
       setLocalValues((prev) => ({
         ...prev,
-        medicationId: String(favorite.id),
+        medicationId,
         ...(favorite.dose != null && { dose: favorite.dose }),
         ...(favorite.units != null && { units: favorite.units }),
         ...(favorite.route != null && { route: favorite.route }),
+        ...(favorite.instructions != null && { instructions: favorite.instructions }),
       }));
       setErxEnabled(true);
     },
-    []
+    [selectsOptions.medicationId.medispanCodeToMedicationId]
   );
 
   const updateOrCreateOrder = async (updatedRequestInput: UpdateMedicationOrderInput): Promise<void> => {

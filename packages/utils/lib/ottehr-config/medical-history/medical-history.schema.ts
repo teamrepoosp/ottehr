@@ -18,10 +18,11 @@ const MedicationFavoriteSchema = z.object({
 
 const InHouseMedicationFavoriteSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  id: z.number(),
+  dosespotId: z.number(),
   dose: z.number().optional(),
   units: z.string().optional(),
   route: z.string().optional(),
+  instructions: z.string().optional(),
 });
 
 const MedicalHistoryConfigSchema = z.object({
