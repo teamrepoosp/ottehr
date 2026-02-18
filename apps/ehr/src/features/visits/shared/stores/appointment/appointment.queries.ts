@@ -34,6 +34,8 @@ import {
   DiagnosisDTO,
   filterResources,
   FinalizeUnsolicitedResultMatch,
+  GetCreateInHouseLabOrderResourcesInput,
+  GetCreateInHouseLabOrderResourcesOutput,
   GetCreateLabOrderResources,
   GetMedicationOrdersInput,
   GetMedicationOrdersResponse,
@@ -334,6 +336,28 @@ export const useGetCreateExternalLabResources = ({
     },
 
     enabled: Boolean(apiClient && (patientId || search)),
+    placeholderData: keepPreviousData,
+    staleTime: QUERY_STALE_TIME,
+  });
+};
+
+export const useGetCreateInHouseLabResources = ({
+  encounterId,
+}: GetCreateInHouseLabOrderResourcesInput): UseQueryResult<GetCreateInHouseLabOrderResourcesOutput | null, Error> => {
+  const apiClient = useOystehrAPIClient();
+  return useQuery({
+    queryKey: ['inhouse lab resource search', encounterId],
+
+    queryFn: async () => {
+      const res = await apiClient?.getCreateInHouseLabOrderResources({ encounterId });
+      if (res) {
+        return res;
+      } else {
+        return null;
+      }
+    },
+
+    enabled: Boolean(apiClient),
     placeholderData: keepPreviousData,
     staleTime: QUERY_STALE_TIME,
   });

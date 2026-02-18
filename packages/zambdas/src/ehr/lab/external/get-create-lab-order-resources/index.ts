@@ -1,6 +1,6 @@
 import Oystehr, { BatchInputRequest, Bundle } from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { Account, Coverage, Encounter, List, Location, Organization, Reference } from 'fhir/r4b';
+import { Account, Coverage, Encounter, List, Location, Organization } from 'fhir/r4b';
 import {
   CODE_SYSTEM_COVERAGE_CLASS,
   CPTCodeOption,
@@ -11,11 +11,7 @@ import {
   getSecret,
   LAB_ACCOUNT_NUMBER_SYSTEM,
   LAB_LIST_CODE_CODING,
-  LAB_LIST_ITEM_SEARCH_FIELD_EXTENSION_URL,
-  LAB_LIST_SEARCH_FIELD_NESTED_EXTENSION_URL,
   LAB_ORG_TYPE_CODING,
-  LabListsDTO,
-  LabListSearchFieldKey,
   LabOrderResourcesRes,
   ModifiedOrderingLocation,
   OrderableItemSearchResult,
@@ -27,6 +23,7 @@ import {
 import { checkOrCreateM2MClientToken, topLevelCatch, wrapHandler } from '../../../../shared';
 import { createOystehrClient } from '../../../../shared/helpers';
 import { ZambdaInput } from '../../../../shared/types';
+import { formatLabListDTOs } from '../../shared/helpers';
 import { accountIsPatientBill, accountIsWorkersComp, sortCoveragesByPriority } from '../../shared/labs';
 import { validateRequestParameters } from './validateRequestParameters';
 
@@ -362,48 +359,4 @@ const getCoverageInfo = (accounts: Account[], coverages: Coverage[]): CreateLabC
     // empty array equates to self pay
     return [];
   }
-};
-
-const formatLabListDTOs = (labLists: List[]): LabListsDTO[] | undefined => {
-  if (labLists.length === 0) return;
-  const formattedListDTOs: LabListsDTO[] = [];
-  labLists.forEach((list) => {
-    const formatted: LabListsDTO = {
-      listId: list.id ?? 'missing',
-      listName: list.title ?? 'Lab List (title missing)',
-      labs:
-        list.entry?.map((lab) => {
-          const labForList = {
-            display: lab.item.display ?? 'lab item display missing',
-            itemCode: getLabListEntryFieldFromExtension(lab.item, 'itemCode', list.id),
-            labGuid: getLabListEntryFieldFromExtension(lab.item, 'labGuid', list.id),
-          };
-          return labForList;
-        }) ?? [],
-    };
-    formattedListDTOs.push(formatted);
-  });
-  return formattedListDTOs;
-};
-
-const getLabListEntryFieldFromExtension = (
-  lab: Reference,
-  field: LabListSearchFieldKey,
-  listId: string | undefined
-): string => {
-  const searchFieldsExt = lab.extension?.find((ext) => ext.url === LAB_LIST_ITEM_SEARCH_FIELD_EXTENSION_URL);
-
-  const nestedExtensionUrl = LAB_LIST_SEARCH_FIELD_NESTED_EXTENSION_URL[field];
-
-  const fieldValue = searchFieldsExt?.extension?.find((ext) => ext.url === nestedExtensionUrl)?.valueString;
-
-  if (!fieldValue) {
-    throw Error(
-      `Lab list misconfiguration: unable to find nested extension with url ${nestedExtensionUrl} from the extension on ${JSON.stringify(
-        lab
-      )} within List/${listId}`
-    );
-  }
-
-  return fieldValue;
 };

@@ -3,9 +3,10 @@ import { enqueueSnackbar } from 'notistack';
 import { FC, useState } from 'react';
 import { ActionsList } from 'src/components/ActionsList';
 import { DeleteIconButton } from 'src/components/DeleteIconButton';
+import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { useGetCreateExternalLabResources } from 'src/features/visits/shared/stores/appointment/appointment.queries';
 import { useDebounce } from 'src/shared/hooks/useDebounce';
-import { LabListsDTO, nameLabTest, OrderableItemSearchResult } from 'utils';
+import { LabListsDTO, LabType, nameLabTest, OrderableItemSearchResult } from 'utils';
 import { LabSets } from './LabSets';
 
 type LabsAutocompleteProps = {
@@ -18,6 +19,7 @@ type LabsAutocompleteProps = {
 export const LabsAutocomplete: FC<LabsAutocompleteProps> = (props) => {
   const { selectedLabs, setSelectedLabs, labOrgIdsString, labSets } = props;
   const [debouncedLabSearchTerm, setDebouncedLabSearchTerm] = useState<string | undefined>(undefined);
+  const apiClient = useOystehrAPIClient();
 
   const {
     isFetching,
@@ -39,6 +41,25 @@ export const LabsAutocomplete: FC<LabsAutocompleteProps> = (props) => {
   };
 
   if (resourceFetchError) console.log('resourceFetchError', resourceFetchError);
+
+  const handleSetSelectedLabsViaLabSets = async (labSet: LabListsDTO): Promise<void> => {
+    if (labSet.listType === LabType.external) {
+      const res = await apiClient?.getCreateExternalLabResources({
+        selectedLabSet: labSet,
+      });
+      const labs = res?.labs;
+
+      if (labs) {
+        setSelectedLabs((currentLabs) => {
+          const existingCodes = new Set(currentLabs.map((lab) => `${lab.item.itemCode}${lab.lab.labGuid}`));
+
+          const newLabs = labs.filter((lab) => !existingCodes.has(`${lab.item.itemCode}${lab.lab.labGuid}`));
+
+          return [...currentLabs, ...newLabs];
+        });
+      }
+    }
+  };
 
   return (
     <>
@@ -79,7 +100,7 @@ export const LabsAutocomplete: FC<LabsAutocompleteProps> = (props) => {
         )}
       />
 
-      {labSets && <LabSets labSets={labSets} setSelectedLabs={setSelectedLabs} />}
+      {labSets && <LabSets labSets={labSets} setSelectedLabs={handleSetSelectedLabsViaLabSets} />}
 
       {selectedLabs.length > 0 && (
         <Grid container>

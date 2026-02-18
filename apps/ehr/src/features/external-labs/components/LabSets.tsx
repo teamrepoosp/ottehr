@@ -4,12 +4,11 @@ import { LoadingButton } from '@mui/lab';
 import { Box, Dialog, DialogContent, DialogTitle, Divider, Grid, IconButton, Typography } from '@mui/material';
 import Oystehr from '@oystehr/sdk';
 import { FC, useState } from 'react';
-import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
-import { LabListsDTO, OrderableItemSearchResult } from 'utils';
+import { LabListsDTO } from 'utils';
 
 type LabSetsProps = {
   labSets: LabListsDTO[];
-  setSelectedLabs: React.Dispatch<React.SetStateAction<OrderableItemSearchResult[]>>;
+  setSelectedLabs: (labSet: LabListsDTO) => Promise<void>;
 };
 
 export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
@@ -17,26 +16,11 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string[] | undefined>(undefined);
 
-  const apiClient = useOystehrAPIClient();
-
   const handleSelectLabSet = async (labSet: LabListsDTO): Promise<void> => {
     setLoadingId(labSet.listId); // start loading for this button only
     try {
-      const res = await apiClient?.getCreateExternalLabResources({
-        selectedLabSet: labSet,
-      });
-      const labs = res?.labs;
-
-      if (labs) {
-        setSelectedLabs((currentLabs) => {
-          const existingCodes = new Set(currentLabs.map((lab) => `${lab.item.itemCode}${lab.lab.labGuid}`));
-
-          const newLabs = labs.filter((lab) => !existingCodes.has(`${lab.item.itemCode}${lab.lab.labGuid}`));
-
-          return [...currentLabs, ...newLabs];
-        });
-        setOpen(false);
-      }
+      await setSelectedLabs(labSet);
+      setOpen(false);
     } catch (e) {
       const sdkError = e as Oystehr.OystehrSdkError;
       console.log('error selecting this lab set', sdkError.code, sdkError.message);
@@ -67,7 +51,7 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
             p: '24px 24px 16px 24px',
           }}
         >
-          <Typography variant="h4" color="primary.dark">
+          <Typography variant="h4" component="div" color="primary.dark">
             Lab Sets
           </Typography>
           <IconButton
@@ -82,8 +66,8 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
 
         <DialogContent dividers>
           {labSets.map((set, idx) => (
-            <>
-              <Grid key={`set-${idx}-${set.listId}`} container>
+            <Box key={`set-${idx}-${set.listId}`}>
+              <Grid container>
                 <Grid
                   item
                   xs={9}
@@ -96,8 +80,8 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
                   <Typography variant="h6" fontWeight="700" color="primary.dark">
                     {set.listName}:
                   </Typography>
-                  {set.labs.map((lab) => (
-                    <Typography>{lab.display}</Typography>
+                  {set.labs.map((lab, idx) => (
+                    <Typography key={`set-item-${set.listId}-${idx}`}>{lab.display}</Typography>
                   ))}
                 </Grid>
                 <Grid item xs={3} sx={{ textAlign: 'right' }}>
@@ -114,7 +98,7 @@ export const LabSets: FC<LabSetsProps> = ({ labSets, setSelectedLabs }) => {
                 </Grid>
               </Grid>
               {idx < labSets.length - 1 && <Divider sx={{ my: 2 }} />}
-            </>
+            </Box>
           ))}
           {Array.isArray(error) &&
             error.length > 0 &&

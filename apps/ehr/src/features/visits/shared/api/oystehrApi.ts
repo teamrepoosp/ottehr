@@ -15,6 +15,8 @@ import {
   DiagnosisDTO,
   GetChartDataRequest,
   GetChartDataResponse,
+  GetCreateInHouseLabOrderResourcesInput,
+  GetCreateInHouseLabOrderResourcesOutput,
   GetCreateLabOrderResources,
   GetMedicationOrdersInput,
   GetMedicationOrdersResponse,
@@ -84,6 +86,7 @@ enum ZambdaNames {
   'external lab resource search' = 'external lab resource search',
   'get unsolicited results resources' = 'get unsolicited results resources',
   'update lab order resources' = 'update lab order resources',
+  'inhouse lab resource search' = 'inhouse lab resource search',
 }
 
 const zambdasPublicityMap: Record<keyof typeof ZambdaNames, boolean> = {
@@ -115,6 +118,7 @@ const zambdasPublicityMap: Record<keyof typeof ZambdaNames, boolean> = {
   'external lab resource search': false,
   'get unsolicited results resources': false,
   'update lab order resources': false,
+  'inhouse lab resource search': false,
 };
 
 export type OystehrTelemedAPIClient = ReturnType<typeof getOystehrTelemedAPI>;
@@ -152,6 +156,7 @@ export const getOystehrTelemedAPI = (
   getCreateExternalLabResources: typeof getCreateExternalLabResources;
   getUnsolicitedResultsResources: typeof getUnsolicitedResultsResources;
   updateLabOrderResources: typeof updateLabOrderResources;
+  getCreateInHouseLabOrderResources: typeof getCreateInHouseLabOrderResources;
 } => {
   const {
     getTelemedAppointmentsZambdaID,
@@ -182,6 +187,7 @@ export const getOystehrTelemedAPI = (
     externalLabResourceSearchID,
     getUnsolicitedResultsResourcesID,
     updateLabOrderResourcesID,
+    inhouseLabResourceSearchID,
   } = params;
 
   const zambdasToIdsMap: Record<keyof typeof ZambdaNames, string | undefined> = {
@@ -213,6 +219,7 @@ export const getOystehrTelemedAPI = (
     'external lab resource search': externalLabResourceSearchID,
     'get unsolicited results resources': getUnsolicitedResultsResourcesID,
     'update lab order resources': updateLabOrderResourcesID,
+    'inhouse lab resource search': inhouseLabResourceSearchID,
   };
   const isAppLocalProvided = params.isAppLocal != null;
 
@@ -378,6 +385,12 @@ export const getOystehrTelemedAPI = (
     return await makeZapRequest('update lab order resources', parameters);
   };
 
+  const getCreateInHouseLabOrderResources = async (
+    parameters: GetCreateInHouseLabOrderResourcesInput
+  ): Promise<GetCreateInHouseLabOrderResourcesOutput> => {
+    return await makeZapRequest('inhouse lab resource search', parameters);
+  };
+
   return {
     getTelemedAppointments,
     initTelemedSession,
@@ -408,5 +421,6 @@ export const getOystehrTelemedAPI = (
     getCreateExternalLabResources,
     getUnsolicitedResultsResources,
     updateLabOrderResources,
+    getCreateInHouseLabOrderResources,
   };
 };
