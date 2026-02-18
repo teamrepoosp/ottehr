@@ -154,14 +154,28 @@ export const index = wrapHandler(
               limit: 100,
               strictMatch: true,
             });
-            if (terminologyResponse.codes.length === 1) {
+            if (terminologyResponse.codes.length === 0) {
+              const hcpcsSearchResponse = await oystehr?.terminology.searchHcpcs({
+                query: code.code,
+                searchType: 'code',
+                limit: 100,
+                strictMatch: true,
+              });
+              if (hcpcsSearchResponse.codes.length === 1) {
+                cptSuggestions.push({
+                  code: code.code,
+                  description: hcpcsSearchResponse.codes[0].display,
+                  reason: code.reason,
+                });
+              } else {
+                console.log("Didn't get an CPT or HCPCS code", code.code);
+              }
+            } else if (terminologyResponse.codes.length === 1) {
               cptSuggestions.push({
                 code: code.code,
                 description: terminologyResponse.codes[0].display,
                 reason: code.reason,
               });
-            } else {
-              console.log("Didn't get an CPT code", code.code);
             }
           })
         );
