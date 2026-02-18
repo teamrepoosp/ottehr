@@ -157,9 +157,8 @@ export function createOrderNumber(length = ORDER_NUMBER_LEN): string {
   // https://sentry.io/answers/generate-random-string-characters-in-javascript/
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  let randomArray = new Uint8Array(length);
-  // crypto.getRandomValues(randomArray);
-  randomArray = ['ABC'];
+  const randomArray = new Uint8Array(length);
+  crypto.getRandomValues(randomArray);
   randomArray.forEach((number) => {
     result += chars[number % chars.length];
   });
