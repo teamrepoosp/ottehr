@@ -12,6 +12,10 @@ export function validateRequestParameters(input: ZambdaInput): GetCreateLabOrder
     throw new Error('One of the following must be passed as a parameter: patientId, search, selectedLabSet');
   }
 
+  if (search && selectedLabSet) {
+    throw new Error('Please pass either a search test or a selectedLabSet, not both');
+  }
+
   return {
     patientId,
     encounterId,

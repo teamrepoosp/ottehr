@@ -19,15 +19,32 @@ export interface OrderableItemSearchResult {
   lab: OrderableItemLab;
 }
 
-export interface LabListsDTO {
+export interface ExternalLabListItem {
+  display: string; // {test name / filler lab name}
+  itemCode: string;
+  labGuid: string;
+}
+
+export interface InHouseLabListItem {
+  display: string;
+  activityDefinitionId: string;
+}
+
+export interface ExternalLabListDTO {
   listId: string;
   listName: string;
-  labs: {
-    display: string; // formatted list {test name / filler lab name}
-    itemCode: string;
-    labGuid: string;
-  }[];
+  listType: LabType.external;
+  labs: ExternalLabListItem[];
 }
+
+export interface InHouseLabListDTO {
+  listId: string;
+  listName: string;
+  listType: LabType.inHouse;
+  labs: InHouseLabListItem[];
+}
+
+export type LabListsDTO = ExternalLabListDTO | InHouseLabListDTO;
 
 export interface sampleDTO {
   specimen: { id: string; collectionDate?: string }; // collectionDate exists after order is submitted
@@ -333,7 +350,7 @@ export type GetCreateLabOrderResources = {
   encounterId?: string;
   search?: string;
   labOrgIdsString?: string;
-  selectedLabSet?: LabListsDTO;
+  selectedLabSet?: ExternalLabListDTO;
 };
 
 export type ModifiedOrderingLocation = {
