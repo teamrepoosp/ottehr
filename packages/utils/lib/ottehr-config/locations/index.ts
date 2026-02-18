@@ -2,12 +2,13 @@ import * as z from 'zod';
 import { LOCATIONS_OVERRIDES as OVERRIDES } from '../../../ottehr-config-overrides';
 import { mergeAndFreezeConfigObjects } from '../helpers';
 
-const overrides: any = OVERRIDES || {};
+const overrides = OVERRIDES || {};
 
-const LOCATION_DEFAULTS: any = {
+const LOCATION_DEFAULTS = {
   inPersonLocations: [{ name: 'New York' }, { name: 'Los Angeles' }],
   telemedLocations: [{ name: 'Telemed New Jersey' }, { name: 'Telemed Ohio' }],
   supportPhoneNumber: '(202) 555-1212',
+  locationSupportPhoneNumberMap: {} as Record<string, string>,
   supportScheduleGroups: [],
 } as const;
 
@@ -43,13 +44,13 @@ export const ALL_LOCATIONS = [...LOCATION_CONFIG.inPersonLocations, ...LOCATION_
 export function getSupportPhoneFor(locationName?: string): string | undefined {
   const { locationSupportPhoneNumberMap, supportPhoneNumber } = LOCATION_CONFIG;
 
-  if (locationSupportPhoneNumberMap && locationName) {
-    return (
-      locationSupportPhoneNumberMap[locationName as keyof typeof locationSupportPhoneNumberMap] || supportPhoneNumber
-    );
+  if (!locationName) {
+    return supportPhoneNumber;
   }
 
-  return supportPhoneNumber;
+  const phoneFromMap = locationSupportPhoneNumberMap?.[locationName];
+
+  return phoneFromMap || supportPhoneNumber;
 }
 
 export function getSupportScheduleGroups(): Array<{ hours: string; locations: string[] }> {
