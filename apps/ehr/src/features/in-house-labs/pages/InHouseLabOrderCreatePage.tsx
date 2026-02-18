@@ -340,7 +340,7 @@ export const InHouseLabOrderCreatePage: React.FC = () => {
                           {selectedTests.map((test) => (
                             <TableRow key={test.name}>
                               <TableCell>{test.name}</TableCell>
-                              <TableCell>{test.cptCode}</TableCell>
+                              <TableCell>{`${test.cptCode}${test.orderedAsRepeat ? `-91 (QW)` : ''}`}</TableCell>
                               <TableCell align="center">
                                 {test.repeatable && (
                                   <Checkbox
