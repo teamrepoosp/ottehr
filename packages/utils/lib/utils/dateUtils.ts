@@ -115,6 +115,7 @@ export const distributeTimeSlots = (
 
 export const DATE_FORMAT = 'yyyy-MM-dd';
 export const DISPLAY_DATE_FORMAT = 'MM/dd/yyyy';
+export const DISPLAY_DATE_AND_TIME_FORMAT = DISPLAY_DATE_FORMAT + ' HH:mm';
 
 export function calculatePatientAge(date: string | null | undefined): string | null | undefined {
   if (!date) {

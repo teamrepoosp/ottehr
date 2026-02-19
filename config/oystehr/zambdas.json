@@ -1174,7 +1174,7 @@
       "src": "src/cron/create-invoices-tasks/index",
       "zip": ".dist/zips/create-invoices-tasks.zip",
       "schedule": {
-        "expression": "cron(0 0 * * ? *)"
+        "expression": "cron(0 * * * ? *)"
       }
     },
     "GET-PATIENT-VISIT-HISTORY": {

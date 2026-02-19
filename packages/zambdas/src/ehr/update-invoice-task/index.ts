@@ -55,7 +55,12 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       });
     }
     if (invoiceTaskInput) {
-      task.input = createInvoiceTaskInput(invoiceTaskInput);
+      console.log('Task input: ', JSON.stringify(task.input));
+      task.input = {
+        ...task.input,
+        ...createInvoiceTaskInput(invoiceTaskInput),
+      };
+      console.log('Updated task input: ', JSON.stringify(task.input));
     }
 
     if (!task.extension) {

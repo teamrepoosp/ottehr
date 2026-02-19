@@ -103,6 +103,7 @@ export default function InvoiceablePatients(): React.ReactElement {
   const methods = useForm();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedReportToSend, setSelectedReportToSend] = useState<InvoiceablePatientReport | undefined>();
+  const [updatingOrSendingTaskIds, setUpdatingOrSendingTaskIds] = useState<Set<string>>(new Set());
   const pageSP = Number(searchParams.get('page') ?? '0');
   const statusSP = searchParams.get('status');
   const patientSP = searchParams.get('patient');
@@ -144,6 +145,8 @@ export default function InvoiceablePatients(): React.ReactElement {
   const sendInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
     try {
       if (oystehrZambda) {
+        setUpdatingOrSendingTaskIds((prev) => new Set(prev).add(taskId));
+
         await updateInvoiceTask(oystehrZambda, {
           taskId,
           status: mapDisplayToInvoiceTaskStatus('sending'),
@@ -162,13 +165,20 @@ export default function InvoiceablePatients(): React.ReactElement {
   const updateInvoice = (taskId: string | undefined): void => {
     try {
       if (oystehrZambda && taskId) {
+        setUpdatingOrSendingTaskIds((prev) => new Set(prev).add(taskId));
+
         void updateInvoiceTask(oystehrZambda, {
           taskId,
           status: mapDisplayToInvoiceTaskStatus('updating'),
           userTimezone: DateTime.local().zoneName,
-        }).then(async () => {
+        }).finally(async () => {
           enqueueSnackbar('Invoice status changed to "updating"', { variant: 'success' });
           await refetchInvoiceablePatients();
+          setUpdatingOrSendingTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(taskId);
+            return next;
+          });
         });
       }
     } catch {
@@ -313,6 +323,11 @@ export default function InvoiceablePatients(): React.ReactElement {
               ) : null}
               {!isInvoiceablePatientsLoading &&
                 (invoiceablePatients?.reports ?? []).map((report) => {
+                  const isUpdatingOrSending = report.task.id ? updatingOrSendingTaskIds.has(report.task.id) : false;
+                  const displayStatus = isUpdatingOrSending
+                    ? 'updating'
+                    : mapInvoiceTaskStatusToDisplay(report.task.status);
+
                   return (
                     <TableRow key={report.task.id}>
                       <TableCell>
@@ -344,10 +359,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.claimId}</Typography>
                       </TableCell>
                       <TableCell>
-                        <MappedStatusChip
-                          status={mapInvoiceTaskStatusToDisplay(report.task.status)}
-                          mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP}
-                        />
+                        <MappedStatusChip status={displayStatus} mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP} />
                       </TableCell>
                       <TableCell>
                         <Button
@@ -359,10 +371,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                           Refresh
                         </Button>
                         <Button
-                          disabled={
-                            mapInvoiceTaskStatusToDisplay(report.task.status) === 'updating' ||
-                            mapInvoiceTaskStatusToDisplay(report.task.status) === 'sending'
-                          }
+                          disabled={isUpdatingOrSending || displayStatus === 'updating' || displayStatus === 'sending'}
                           onClick={() => {
                             setSelectedReportToSend(report);
                           }}

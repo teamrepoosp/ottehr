@@ -13,7 +13,7 @@ import {
 } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
-  DISPLAY_DATE_FORMAT,
+  DISPLAY_DATE_AND_TIME_FORMAT,
   FHIR_EXTENSION,
   formatDateConfigurable,
   GET_INVOICES_TASKS_ZAMBDA_KEY,
@@ -118,7 +118,7 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
     const patientPhoneNumber = group.relatedPerson && getPhoneNumberForIndividual(group.relatedPerson);
     const finalizationDate = formatDateConfigurable({
       isoDate: taskInput.finalizationDate,
-      format: DISPLAY_DATE_FORMAT + ' HH:mm',
+      format: DISPLAY_DATE_AND_TIME_FORMAT,
     });
 
     reports.push({
@@ -142,6 +142,15 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
         relationshipToPatient: responsibleParty && getResponsiblePartyRelationship(responsibleParty)?.toLowerCase(),
       },
     });
+  });
+
+  reports.sort((a, b) => {
+    const luxonDateA = DateTime.fromFormat(a.finalizationDate, DISPLAY_DATE_AND_TIME_FORMAT);
+    const luxonDateB = DateTime.fromFormat(b.finalizationDate, DISPLAY_DATE_AND_TIME_FORMAT);
+    if (!luxonDateA.isValid && !luxonDateB.isValid) return 0;
+    if (!luxonDateA.isValid) return 1;
+    if (!luxonDateB.isValid) return -1;
+    return luxonDateB.toMillis() - luxonDateA.toMillis();
   });
 
   return { reports, totalCount: total };
