@@ -157,7 +157,11 @@ export const AiPotentialDiagnosesCard: FC = () => {
     onAddCptCode({ code: cptCode.code, display: cptCode.description });
   };
 
-  return visible && ((icdCodes && icdCodes.length > 0) || (cptCodes && cptCodes.length > 0) || codingSuggestions) ? (
+  return visible &&
+    ((icdCodes && icdCodes.length > 0) ||
+      (cptCodes && cptCodes.length > 0) ||
+      (emCode && emCode.length > 0) ||
+      codingSuggestions) ? (
     <Box
       sx={{
         display: 'flex',
@@ -266,7 +270,7 @@ export const AiPotentialDiagnosesCard: FC = () => {
           </ul>
         </Box>
       )}
-      {emCode && (
+      {emCode && emCode.length > 0 && (
         <Box
           style={{
             background: '#E1F5FECC',
