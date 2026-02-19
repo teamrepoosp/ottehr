@@ -50,6 +50,7 @@ import {
   PATIENT_RESPONSES_VALUE_SET_URL,
   POST_PROCEDURE_INSTRUCTIONS_VALUE_SET_URL,
   PROCEDURE_TYPES_VALUE_SET_URL,
+  PROCEDURES_CONFIG,
   ProcedureSuggestion,
   REQUIRED_FIELD_ERROR_MESSAGE,
   SUPPLIES_VALUE_SET_URL,
@@ -103,6 +104,7 @@ interface PageState {
 
 interface ProcedureType {
   name: string;
+  code: string;
   cpt?: {
     code: string;
     display: string;
@@ -682,6 +684,15 @@ export default function ProceduresNew(): ReactElement {
             });
           }
           state.cptCodes = newCodes;
+
+          if (selected) {
+            Object.entries(PROCEDURES_CONFIG.prepopulation[selected.code] ?? []).forEach(([field, value]) => {
+              const currentValue = (state as any)[field];
+              if (currentValue == null || currentValue === '') {
+                (state as any)[field] = value;
+              }
+            });
+          }
         });
       },
     });
@@ -1049,7 +1060,7 @@ function getProcedureTypes(valueSets: ValueSet[] | undefined): ProcedureType[] {
 
   return latest.expansion.contains
     .map((item): ProcedureType | null => {
-      if (!item.display) return null;
+      if (!item.display || !item.code) return null;
 
       const getCode = (urlPart: string): { code: string; display: string; system?: string } | undefined => {
         const coding = item.extension?.find((ext) => ext.url?.includes(urlPart))?.valueCodeableConcept?.coding?.[0];
@@ -1061,6 +1072,7 @@ function getProcedureTypes(valueSets: ValueSet[] | undefined): ProcedureType[] {
 
       return {
         name: item.display,
+        code: item.code,
         cpt: getCode('procedure-type-cpt'),
         hcpcs: getCode('procedure-type-hcpcs'),
       };
