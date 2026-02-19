@@ -167,6 +167,7 @@ export default function ProceduresNew(): ReactElement {
   const { mutateAsync: recommendBillingCodes } = useRecommendBillingCodes();
   const { mutateAsync: aiSuggestionNotes } = useAiSuggestionNotes();
   const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
+  const [loadingSuggestionNote, setLoadingSuggestionNote] = useState<boolean>(false);
 
   const isReadOnly = useMemo(() => {
     if (isInPerson) {
@@ -233,15 +234,17 @@ export default function ProceduresNew(): ReactElement {
         procedureDetails: state.procedureDetails,
         timeSpent: state.timeSpent,
       });
+      setLoadingSuggestions(false);
       setRecommendedBillingCodes(codes);
-      if (formValues.procedureType === 'Laceration Repair (Suturing/Stapling)' && state.procedureDetails) {
+      if (formValues.procedureType === 'Laceration Repair (Suturing/Stapling)') {
+        setLoadingSuggestionNote(true);
         const suggestions = await aiSuggestionNotes({
           type: 'procedure',
           details: { procedureDetails: state.procedureDetails || '' },
         });
+        setLoadingSuggestionNote(false);
         setSuggestionNote(suggestions);
       }
-      setLoadingSuggestions(false);
     };
 
     fetchRecommendedBillingCodes().catch((error) => console.log(error));
@@ -919,9 +922,12 @@ export default function ProceduresNew(): ReactElement {
                   padding: '4px 8px 4px 8px',
                 }}
               >
-                <Typography variant="body1" style={{ fontWeight: 700 }}>
-                  Procedure Details AI Suggestions
-                </Typography>
+                <Container style={{ display: 'flex', alignItems: 'center', padding: 0 }}>
+                  <Typography variant="body1" style={{ fontWeight: 700 }}>
+                    Procedure Details AI Suggestions
+                  </Typography>
+                  {loadingSuggestionNote && <CircularProgress size={17} style={{ marginLeft: '7px' }} />}
+                </Container>
                 <Typography variant="body1">{suggestionNote?.suggestions?.join(', ')}</Typography>
               </Container>
             )}
