@@ -64,6 +64,8 @@ export const PatientInfoCollection: FC = () => {
 
   const { allItems, questionnaireResponse: prepopulatedQuestionnaire } = questionnaireData || {};
 
+  console.log('questionnaireData', questionnaireData);
+
   // Clear sessionStorage when slotId changes to prevent stale data
   useEffect(() => {
     const activeSlotId = sessionStorage.getItem(ACTIVE_SLOT_ID_KEY);
