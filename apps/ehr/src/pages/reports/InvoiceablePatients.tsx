@@ -116,40 +116,11 @@ export default function InvoiceablePatients(): React.ReactElement {
     setSearchParams(searchParams);
   };
 
-  const sendInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
-    try {
-      if (oystehrZambda) {
-        await updateInvoiceTask(oystehrZambda, {
-          taskId,
-          status: mapDisplayToInvoiceTaskStatus('sending'),
-          invoiceTaskInput,
-          userTimezone: DateTime.local().zoneName,
-        });
-        setSelectedReportToSend(undefined);
-        enqueueSnackbar('Invoice status changed to "sending"', { variant: 'success' });
-      }
-    } catch {
-      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
-    }
-  };
-
-  const updateInvoice = (taskId: string | undefined): void => {
-    try {
-      if (oystehrZambda && taskId) {
-        void updateInvoiceTask(oystehrZambda, {
-          taskId,
-          status: mapDisplayToInvoiceTaskStatus('updating'),
-          userTimezone: DateTime.local().zoneName,
-        }).then(() => {
-          enqueueSnackbar('Invoice status changed to "updating"', { variant: 'success' });
-        });
-      }
-    } catch {
-      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
-    }
-  };
-
-  const { data: invoiceablePatients, isLoading: isInvoiceablePatientsLoading } = useQuery<GetInvoicesTasksResponse>({
+  const {
+    data: invoiceablePatients,
+    isLoading: isInvoiceablePatientsLoading,
+    refetch: refetchInvoiceablePatients,
+  } = useQuery<GetInvoicesTasksResponse>({
     queryKey: [GET_INVOICES_TASKS_ZAMBDA_KEY, pageSP, statusSP, patientSP],
     queryFn: async () => {
       if (!oystehrZambda) throw new Error('oystehrZambda not defined');
@@ -167,7 +138,43 @@ export default function InvoiceablePatients(): React.ReactElement {
     enabled: oystehrZambda !== undefined,
     retry: 2,
     staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000,
   });
+
+  const sendInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
+    try {
+      if (oystehrZambda) {
+        await updateInvoiceTask(oystehrZambda, {
+          taskId,
+          status: mapDisplayToInvoiceTaskStatus('sending'),
+          invoiceTaskInput,
+          userTimezone: DateTime.local().zoneName,
+        });
+        setSelectedReportToSend(undefined);
+        enqueueSnackbar('Invoice status changed to "sending"', { variant: 'success' });
+      }
+    } catch {
+      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
+      await refetchInvoiceablePatients();
+    }
+  };
+
+  const updateInvoice = (taskId: string | undefined): void => {
+    try {
+      if (oystehrZambda && taskId) {
+        void updateInvoiceTask(oystehrZambda, {
+          taskId,
+          status: mapDisplayToInvoiceTaskStatus('updating'),
+          userTimezone: DateTime.local().zoneName,
+        }).then(async () => {
+          enqueueSnackbar('Invoice status changed to "updating"', { variant: 'success' });
+          await refetchInvoiceablePatients();
+        });
+      }
+    } catch {
+      enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
+    }
+  };
 
   useEffect(() => {
     const filtersValues = {
@@ -344,6 +351,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                       </TableCell>
                       <TableCell>
                         <Button
+                          sx={{ mr: 1 }}
                           onClick={() => {
                             updateInvoice(report.task.id);
                           }}
@@ -351,6 +359,10 @@ export default function InvoiceablePatients(): React.ReactElement {
                           Refresh
                         </Button>
                         <Button
+                          disabled={
+                            mapInvoiceTaskStatusToDisplay(report.task.status) === 'updating' ||
+                            mapInvoiceTaskStatusToDisplay(report.task.status) === 'sending'
+                          }
                           onClick={() => {
                             setSelectedReportToSend(report);
                           }}

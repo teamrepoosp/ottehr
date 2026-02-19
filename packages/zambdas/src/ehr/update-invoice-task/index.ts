@@ -1,6 +1,13 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { Task } from 'fhir/r4b';
-import { createInvoiceTaskInput, getSecret, SecretsKeys, USER_TIMEZONE_EXTENSION_URL } from 'utils';
+import {
+  createInvoiceTaskInput,
+  getSecret,
+  mapDisplayToInvoiceTaskStatus,
+  mapInvoiceTaskStatusToDisplay,
+  SecretsKeys,
+  USER_TIMEZONE_EXTENSION_URL,
+} from 'utils';
 import {
   checkOrCreateM2MClientToken,
   createOystehrClient,
@@ -29,6 +36,24 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     task.status = status as any;
     console.log('New status: ', status);
+    if (
+      mapInvoiceTaskStatusToDisplay(status as any) === 'updating' &&
+      mapInvoiceTaskStatusToDisplay(task.status) === 'updating'
+    ) {
+      // this is for preventing task stack in "updating" status
+      console.log(
+        `New status is "${status}", and existing status is also "${
+          task.status
+        }". Updating Task status to "${mapDisplayToInvoiceTaskStatus(
+          'ready'
+        )}" first so it'll trigger subscription after updating to "${status}" again.`
+      );
+      await oystehr.fhir.patch({
+        resourceType: 'Task',
+        id: taskId,
+        operations: [{ op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('ready') }],
+      });
+    }
     if (invoiceTaskInput) {
       task.input = createInvoiceTaskInput(invoiceTaskInput);
     }

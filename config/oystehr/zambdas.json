@@ -1472,7 +1472,7 @@
         "resourceType": "Subscription",
         "status": "active",
         "reason": "Send invoice to patient",
-        "criteria": "Task?code=|send-invoice-to-patient&status=requested",
+        "criteria": "Task?code=|send-invoice-to-patient&status=in-progress",
         "channel": {
           "type": "rest-hook",
           "endpoint": "zapehr-lambda:#{ref/zambdas/SUB-SEND-INVOICE-TO-PATIENT/id}"
@@ -1541,15 +1541,15 @@
         }
       }
     },
-    "SUB_UPDATE_INVOICE_TASK_SUBSCRIPTION": {
+    "SUB_REFRESH_INVOICE_TASK_SUBSCRIPTION": {
       "resource": {
         "resourceType": "Subscription",
         "status": "active",
-        "reason": "Update invoice task",
+        "reason": "Refresh invoice task",
         "criteria": "Task?code=|send-invoice-to-patient&status=requested",
         "channel": {
           "type": "rest-hook",
-          "endpoint": "zapehr-lambda:#{ref/zambdas/SUB-UPDATE-INVOICE-TASK/id}"
+          "endpoint": "zapehr-lambda:#{ref/zambdas/SUB-REFRESH-INVOICE-TASK/id}"
         },
         "extension": [
           {

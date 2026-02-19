@@ -7,9 +7,7 @@ import { DateTime } from 'luxon';
 import {
   createCandidApiClient,
   createInvoiceTaskInput,
-  DISPLAY_DATE_FORMAT,
   findClaimsBy,
-  formatDateConfigurable,
   getSecret,
   getStartTimeFromEncounterStatusHistory,
   mapDisplayToInvoiceTaskStatus,
@@ -42,14 +40,13 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
       console.log(
         `Found inventory record for task, claim id: "${inventoryRecord.claimId}", updating task input finalizationDate`
       );
-      invoiceTaskInput.finalizationDate = formatDateConfigurable({
-        date: DateTime.fromJSDate(inventoryRecord.timestamp),
-        format: DISPLAY_DATE_FORMAT + ' HH:mm',
-      });
+      invoiceTaskInput.finalizationDate = inventoryRecord.timestamp.toISOString();
+      console.log('Finalization date: ', invoiceTaskInput.finalizationDate);
       const itemization = await getItemizationForClaim(candid, inventoryRecord.claimId);
       if (itemization) {
-        console.log(`Found itemization for claim: "${itemization.claimId}", updating task input invoiceItems`);
+        console.log(`Found itemization for claim: "${itemization.claimId}", updating task input amountCents`);
         invoiceTaskInput.amountCents = itemization.patientBalanceCents;
+        console.log('Amount cents: ', invoiceTaskInput.amountCents);
       }
       await oystehr.fhir.patch({
         resourceType: 'Task',
@@ -60,6 +57,10 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
         ],
       });
       console.log(`Updated task input for task id: "${taskId}"`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Task was successfully updated.' }),
+      };
     }
 
     console.warn('Task was not updated because no inventory record was found for the task.'); // todo how i can better manage this situation
@@ -90,7 +91,7 @@ async function getCandidInventoryRecordForTask(
       resourceType: 'Task',
       params: [
         {
-          name: 'id',
+          name: '_id',
           value: taskId,
         },
         {
