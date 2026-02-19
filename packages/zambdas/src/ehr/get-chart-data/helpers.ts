@@ -201,7 +201,6 @@ export async function convertSearchResultsToResponse(
           schoolWorkNotes: [],
           observations: [],
           practitioners: [],
-          aiPotentialDiagnosis: [],
           aiChat: {
             documents: [],
             providers: [],
@@ -294,6 +293,5 @@ export const defaultChartDataFieldsSearchParams: Partial<
   medications: { _tag: 'current-medication' },
   inhouseMedications: { _tag: 'in-house-medication' },
   schoolWorkNotes: { _tag: SCHOOL_WORK_NOTE },
-  aiPotentialDiagnosis: { _tag: 'ai-potential-diagnosis' },
   instructions: { _sort: '-sent' },
 };
