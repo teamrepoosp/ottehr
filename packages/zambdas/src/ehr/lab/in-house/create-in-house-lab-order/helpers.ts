@@ -20,7 +20,7 @@ import {
   getFullestAvailableName,
   IN_HOUSE_LAB_TASK,
   PROVENANCE_ACTIVITY_CODING_ENTITY,
-  REFLEX_TEST_ORDER_DETAIL_TAG_CONFIG,
+  REPEAT_TEST_ORDER_DETAIL_TAG_CONFIG,
 } from 'utils';
 import { fillMeta, makeCptModifierExtension } from '../../../../shared';
 import { createTask } from '../../../../shared/tasks';
@@ -165,8 +165,8 @@ const makeServiceRequestConfig = (
     ];
   }
 
-  if (testDetailType === 'reflex') {
-    serviceRequestConfig.meta = { tag: [REFLEX_TEST_ORDER_DETAIL_TAG_CONFIG] };
+  if (testDetailType === 'repeat') {
+    serviceRequestConfig.meta = { tag: [REPEAT_TEST_ORDER_DETAIL_TAG_CONFIG] };
   }
 
   return serviceRequestConfig;
