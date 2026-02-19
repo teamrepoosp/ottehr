@@ -68,8 +68,8 @@ export const GetInvoicesTasksZambdaValidatedInputSchema = GetInvoicesTasksZambda
 });
 export const InvoiceablePatientReportSchema = z.object({
   claimId: z.string(),
-  finalizationDate: z.string(),
-  amountInvoiceable: z.string(),
+  finalizationDateISO: z.string(),
+  amountInvoiceable: z.number(),
   task: z.custom<Task>(),
   visitDate: z.string(),
   location: z.string(),

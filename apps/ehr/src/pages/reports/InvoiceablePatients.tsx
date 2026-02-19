@@ -1,5 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {
   Button,
   CircularProgress,
@@ -12,6 +13,7 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { Box, Stack } from '@mui/system';
@@ -24,6 +26,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { SendInvoiceToPatientDialog } from 'src/components/dialogs';
 import {
   chooseJson,
+  formatDateConfigurable,
   GET_INVOICES_TASKS_ZAMBDA_KEY,
   GetInvoicesTasksInput,
   GetInvoicesTasksResponse,
@@ -103,7 +106,8 @@ export default function InvoiceablePatients(): React.ReactElement {
   const methods = useForm();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedReportToSend, setSelectedReportToSend] = useState<InvoiceablePatientReport | undefined>();
-  const [updatingOrSendingTaskIds, setUpdatingOrSendingTaskIds] = useState<Set<string>>(new Set());
+  const [updatingTaskIds, setUpdatingTaskIds] = useState<Set<string>>(new Set());
+  const [sendingTaskIds, setSendingTaskIds] = useState<Set<string>>(new Set());
   const pageSP = Number(searchParams.get('page') ?? '0');
   const statusSP = searchParams.get('status');
   const patientSP = searchParams.get('patient');
@@ -145,27 +149,34 @@ export default function InvoiceablePatients(): React.ReactElement {
   const sendInvoice = async (taskId: string, invoiceTaskInput: InvoiceTaskInput): Promise<void> => {
     try {
       if (oystehrZambda) {
-        setUpdatingOrSendingTaskIds((prev) => new Set(prev).add(taskId));
+        setSendingTaskIds((prev) => new Set(prev).add(taskId));
 
         await updateInvoiceTask(oystehrZambda, {
           taskId,
           status: mapDisplayToInvoiceTaskStatus('sending'),
           invoiceTaskInput,
           userTimezone: DateTime.local().zoneName,
+        }).finally(() => {
+          setSendingTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(taskId);
+            return next;
+          });
         });
+
         setSelectedReportToSend(undefined);
         enqueueSnackbar('Invoice status changed to "sending"', { variant: 'success' });
+        await refetchInvoiceablePatients();
       }
     } catch {
       enqueueSnackbar('Error occurred, please try again', { variant: 'error' });
-      await refetchInvoiceablePatients();
     }
   };
 
   const updateInvoice = (taskId: string | undefined): void => {
     try {
       if (oystehrZambda && taskId) {
-        setUpdatingOrSendingTaskIds((prev) => new Set(prev).add(taskId));
+        setUpdatingTaskIds((prev) => new Set(prev).add(taskId));
 
         void updateInvoiceTask(oystehrZambda, {
           taskId,
@@ -174,7 +185,7 @@ export default function InvoiceablePatients(): React.ReactElement {
         }).finally(async () => {
           enqueueSnackbar('Invoice status changed to "updating"', { variant: 'success' });
           await refetchInvoiceablePatients();
-          setUpdatingOrSendingTaskIds((prev) => {
+          setUpdatingTaskIds((prev) => {
             const next = new Set(prev);
             next.delete(taskId);
             return next;
@@ -274,7 +285,7 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Appointment Date
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '200px' }}>
+                <TableCell style={{ width: '150px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     Finalization Date
                   </Typography>
@@ -284,14 +295,14 @@ export default function InvoiceablePatients(): React.ReactElement {
                     Responsible Party
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '80px' }}>
+                <TableCell style={{ width: '120px' }}>
                   <Typography fontWeight="500" fontSize="14px">
                     Amount
                   </Typography>
                 </TableCell>
-                <TableCell style={{ width: '200px' }}>
+                <TableCell style={{ width: '150px' }}>
                   <Typography fontWeight="500" fontSize="14px">
-                    Claim id
+                    RCM Claim id
                   </Typography>
                 </TableCell>
                 <TableCell style={{ width: '100px' }}>
@@ -323,9 +334,12 @@ export default function InvoiceablePatients(): React.ReactElement {
               ) : null}
               {!isInvoiceablePatientsLoading &&
                 (invoiceablePatients?.reports ?? []).map((report) => {
-                  const isUpdatingOrSending = report.task.id ? updatingOrSendingTaskIds.has(report.task.id) : false;
-                  const displayStatus = isUpdatingOrSending
+                  const isUpdating = report.task.id ? updatingTaskIds.has(report.task.id) : false;
+                  const isSending = report.task.id ? sendingTaskIds.has(report.task.id) : false;
+                  const displayStatus = isUpdating
                     ? 'updating'
+                    : isSending
+                    ? 'sending'
                     : mapInvoiceTaskStatusToDisplay(report.task.status);
 
                   return (
@@ -345,7 +359,9 @@ export default function InvoiceablePatients(): React.ReactElement {
                         <Typography variant="body1">{report.visitDate}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body1">{report.finalizationDate}</Typography>
+                        <Typography variant="body1">
+                          {formatDateConfigurable({ isoDate: report.finalizationDateISO })}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body1">
@@ -353,10 +369,24 @@ export default function InvoiceablePatients(): React.ReactElement {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body1">{report.amountInvoiceable}</Typography>
+                        <Typography variant="body1">${(report.amountInvoiceable / 100).toFixed(2)}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body1">{report.claimId}</Typography>
+                        <Typography variant="body1">
+                          {report.claimId.slice(0, 8)}...
+                          <Tooltip title="Copy claim id">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                void navigator.clipboard
+                                  .writeText(report.claimId)
+                                  .then(() => enqueueSnackbar('Copied to clipboard', { variant: 'success' }));
+                              }}
+                            >
+                              <ContentCopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <MappedStatusChip status={displayStatus} mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP} />
@@ -371,7 +401,9 @@ export default function InvoiceablePatients(): React.ReactElement {
                           Refresh
                         </Button>
                         <Button
-                          disabled={isUpdatingOrSending || displayStatus === 'updating' || displayStatus === 'sending'}
+                          disabled={
+                            isUpdating || isSending || displayStatus === 'updating' || displayStatus === 'sending'
+                          }
                           onClick={() => {
                             setSelectedReportToSend(report);
                           }}

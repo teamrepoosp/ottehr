@@ -48,7 +48,7 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
         invoiceTaskInput.amountCents = itemization.patientBalanceCents;
         console.log('Amount cents: ', invoiceTaskInput.amountCents);
       }
-      console.log('Updating task input...', JSON.stringify(invoiceTaskInput, null, 2));
+      console.log('Updating task input...', JSON.stringify(createInvoiceTaskInput(invoiceTaskInput), null, 2));
       await oystehr.fhir.patch({
         resourceType: 'Task',
         id: taskId,

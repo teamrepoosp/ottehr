@@ -13,7 +13,6 @@ import {
 } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
-  DISPLAY_DATE_AND_TIME_FORMAT,
   FHIR_EXTENSION,
   formatDateConfigurable,
   GET_INVOICES_TASKS_ZAMBDA_KEY,
@@ -116,15 +115,11 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
     }
     const visitDate = formatDateConfigurable({ isoDate: appointment?.start, timezone });
     const patientPhoneNumber = group.relatedPerson && getPhoneNumberForIndividual(group.relatedPerson);
-    const finalizationDate = formatDateConfigurable({
-      isoDate: taskInput.finalizationDate,
-      format: DISPLAY_DATE_AND_TIME_FORMAT,
-    });
 
     reports.push({
       claimId: taskInput.claimId ?? '---',
-      finalizationDate: finalizationDate ?? '---',
-      amountInvoiceable: `${(taskInput.amountCents ?? 0) / 100}`,
+      finalizationDateISO: taskInput.finalizationDate ?? '---',
+      amountInvoiceable: taskInput.amountCents ?? 0,
       visitDate: visitDate ?? '---',
       location: group.location?.name ?? '---',
       task: task,
@@ -145,8 +140,8 @@ function performEffect(taskGroups: TaskGroup[], total: number): GetInvoicesTasks
   });
 
   reports.sort((a, b) => {
-    const luxonDateA = DateTime.fromFormat(a.finalizationDate, DISPLAY_DATE_AND_TIME_FORMAT);
-    const luxonDateB = DateTime.fromFormat(b.finalizationDate, DISPLAY_DATE_AND_TIME_FORMAT);
+    const luxonDateA = DateTime.fromISO(a.finalizationDateISO);
+    const luxonDateB = DateTime.fromISO(b.finalizationDateISO);
     if (!luxonDateA.isValid && !luxonDateB.isValid) return 0;
     if (!luxonDateA.isValid) return 1;
     if (!luxonDateB.isValid) return -1;

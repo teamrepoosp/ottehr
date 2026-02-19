@@ -2,9 +2,11 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { Task } from 'fhir/r4b';
 import {
   createInvoiceTaskInput,
+  getExtension,
   getSecret,
   mapDisplayToInvoiceTaskStatus,
   mapInvoiceTaskStatusToDisplay,
+  parseInvoiceTaskInput,
   SecretsKeys,
   USER_TIMEZONE_EXTENSION_URL,
 } from 'utils';
@@ -56,20 +58,30 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
     }
     if (invoiceTaskInput) {
       console.log('Task input: ', JSON.stringify(task.input));
-      task.input = {
-        ...task.input,
-        ...createInvoiceTaskInput(invoiceTaskInput),
-      };
+      const exisingTaskInput = parseInvoiceTaskInput(task);
+      task.input = createInvoiceTaskInput({
+        ...exisingTaskInput,
+        ...invoiceTaskInput,
+      });
       console.log('Updated task input: ', JSON.stringify(task.input));
     }
 
     if (!task.extension) {
       task.extension = [];
     }
-    task.extension.push({
-      url: USER_TIMEZONE_EXTENSION_URL,
-      valueString: userTimezone,
-    });
+    const existingTimezoneExtension = getExtension(task, USER_TIMEZONE_EXTENSION_URL);
+    if (!existingTimezoneExtension) {
+      task.extension.push({
+        url: USER_TIMEZONE_EXTENSION_URL,
+        valueString: userTimezone,
+      });
+    } else if (existingTimezoneExtension?.valueString !== userTimezone) {
+      task.extension = task.extension.filter((extension) => extension.url !== USER_TIMEZONE_EXTENSION_URL);
+      task.extension.push({
+        url: USER_TIMEZONE_EXTENSION_URL,
+        valueString: userTimezone,
+      });
+    }
 
     await oystehr.fhir.update(task);
 
