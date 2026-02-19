@@ -2,12 +2,14 @@ import Oystehr from '@oystehr/sdk';
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { CandidApi, CandidApiClient } from 'candidhealth';
 import { InventoryRecord, InvoiceItemizationResponse } from 'candidhealth/api/resources/patientAr/resources/v1';
+import { Operation } from 'fast-json-patch';
 import { Encounter } from 'fhir/r4b';
 import { DateTime } from 'luxon';
 import {
   createCandidApiClient,
   createInvoiceTaskInput,
   findClaimsBy,
+  getLatestTaskOutput,
   getSecret,
   getStartTimeFromEncounterStatusHistory,
   mapDisplayToInvoiceTaskStatus,
@@ -29,7 +31,7 @@ const ZAMBDA_NAME = 'sub-refresh-invoice-task';
 export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promise<APIGatewayProxyResult> => {
   try {
     const validatedParams = validateRequestParameters(input);
-    const { secrets, invoiceTaskInput, taskId } = validatedParams;
+    const { task, secrets, invoiceTaskInput, taskId } = validatedParams;
 
     m2mToken = await checkOrCreateM2MClientToken(m2mToken, secrets);
     const oystehr = createOystehrClient(m2mToken, secrets);
@@ -49,13 +51,24 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
         console.log('Amount cents: ', invoiceTaskInput.amountCents);
       }
       console.log('Updating task input...', JSON.stringify(createInvoiceTaskInput(invoiceTaskInput), null, 2));
+
+      const updateOperations: Operation[] = [
+        { op: 'replace', path: '/input', value: createInvoiceTaskInput(invoiceTaskInput) },
+      ];
+
+      const getLastTaskOutput = getLatestTaskOutput(task);
+      if (getLastTaskOutput?.type === 'success') {
+        updateOperations.push({ op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('sent') });
+      } else if (getLastTaskOutput?.type === 'error') {
+        updateOperations.push({ op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('error') });
+      } else {
+        updateOperations.push({ op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('ready') });
+      }
+
       await oystehr.fhir.patch({
         resourceType: 'Task',
         id: taskId,
-        operations: [
-          { op: 'replace', path: '/input', value: createInvoiceTaskInput(invoiceTaskInput) },
-          { op: 'replace', path: '/status', value: mapDisplayToInvoiceTaskStatus('ready') },
-        ],
+        operations: updateOperations,
       });
       console.log(`Updated task input for task id: "${taskId}"`);
       return {

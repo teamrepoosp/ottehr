@@ -30,6 +30,7 @@ import {
   GET_INVOICES_TASKS_ZAMBDA_KEY,
   GetInvoicesTasksInput,
   GetInvoicesTasksResponse,
+  getLatestTaskOutput,
   INVOICEABLE_PATIENTS_PAGE_SIZE,
   InvoiceablePatientReport,
   InvoiceTaskDisplayStatus,
@@ -341,6 +342,12 @@ export default function InvoiceablePatients(): React.ReactElement {
                     : isSending
                     ? 'sending'
                     : mapInvoiceTaskStatusToDisplay(report.task.status);
+                  const lastTaskOutput = getLatestTaskOutput(report.task);
+                  const statusTooltipMessage = lastTaskOutput
+                    ? lastTaskOutput.type === 'success'
+                      ? 'Invoice id: ' + lastTaskOutput.message
+                      : 'Error: ' + lastTaskOutput.message
+                    : displayStatus;
 
                   return (
                     <TableRow key={report.task.id}>
@@ -389,7 +396,11 @@ export default function InvoiceablePatients(): React.ReactElement {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <MappedStatusChip status={displayStatus} mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP} />
+                        <Tooltip title={statusTooltipMessage}>
+                          <span>
+                            <MappedStatusChip status={displayStatus} mapper={INVOICEABLE_TASK_STATUS_COLORS_MAP} />
+                          </span>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <Button

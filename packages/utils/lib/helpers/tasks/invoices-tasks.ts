@@ -1,4 +1,5 @@
 import { Task, TaskInput } from 'fhir/r4b';
+import { RcmTaskCode } from '../../fhir';
 import { ottehrCodeSystemUrl } from '../../fhir/systemUrls';
 import { InvoiceTaskDisplayStatus, InvoiceTaskInput, InvoiceTaskInputSchema } from '../../types';
 
@@ -78,4 +79,14 @@ export function mapDisplayToInvoiceTaskStatus(status: InvoiceTaskDisplayStatus):
     default:
       return 'failed';
   }
+}
+
+export function getLatestTaskOutput(task: Task): { type: 'error' | 'success'; message?: string } | undefined {
+  const lastTaskOutput = task.output?.at(-1);
+  if (lastTaskOutput?.type?.coding?.find((coding) => coding.code === RcmTaskCode.sendInvoiceOutputInvoiceId)) {
+    return { type: 'success', message: lastTaskOutput.valueString };
+  } else if (lastTaskOutput?.type?.coding?.find((coding) => coding.code === RcmTaskCode.sendInvoiceOutputError)) {
+    return { type: 'error', message: lastTaskOutput.valueString };
+  }
+  return undefined;
 }
