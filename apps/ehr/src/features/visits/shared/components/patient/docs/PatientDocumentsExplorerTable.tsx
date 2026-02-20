@@ -1,14 +1,16 @@
 // import ErrorIcon from '@mui/icons-material/Error';
 import DownloadIcon from '@mui/icons-material/Download';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Box, IconButton, Menu, MenuItem, useTheme } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, TextField, useTheme } from '@mui/material';
 import { DataGridPro, GridColDef } from '@mui/x-data-grid-pro';
 import { DateTime } from 'luxon';
+import { enqueueSnackbar } from 'notistack';
 import { FC, useCallback, useMemo, useState } from 'react';
+import { CustomDialog } from 'src/components/dialogs';
+import { RoundedButton } from 'src/components/RoundedButton';
 import { stripFileExtension } from 'src/helpers/files.helper';
 import { formatISOStringToDateAndTime } from 'src/helpers/formatDateTime';
 import { PatientDocumentInfo } from 'src/hooks/useGetPatientDocs';
-import { RenameDocumentModal } from './RenameDocumentModal';
 
 export enum DocumentTableActionType {
   ActionDownload = 'ActionDownload',
@@ -27,7 +29,9 @@ const DocActionsCell: FC<{ docInfo: PatientDocumentInfo; actions: DocumentTableA
   const lineColor = theme.palette.primary.main;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isRenameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [newName, setNewName] = useState(stripFileExtension(docInfo.docName));
+  const [renameLoading, setRenameLoading] = useState(false);
 
   const openMenu = (event: React.MouseEvent<HTMLElement>): void => {
     setAnchorEl(event.currentTarget);
@@ -42,9 +46,27 @@ const DocActionsCell: FC<{ docInfo: PatientDocumentInfo; actions: DocumentTableA
     await onDocumentDownload(docInfo.id);
   }, [docInfo.id, onDocumentDownload]);
 
-  const handleRenameClick = (): void => {
+  const handleRenameDialogOpen = (): void => {
     closeMenu();
-    setIsRenameOpen(true);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRenameDialogClose = (): void => {
+    setRenameDialogOpen(false);
+    setNewName(stripFileExtension(docInfo.docName));
+  };
+
+  const handleRenameSubmit = async (): Promise<void> => {
+    setRenameLoading(true);
+
+    try {
+      await onDocumentRename(docInfo.id, newName.trim());
+      setRenameDialogOpen(false);
+    } catch {
+      enqueueSnackbar(`Can't rename document. Try again later`, { variant: 'error' });
+    } finally {
+      setRenameLoading(false);
+    }
   };
 
   return (
@@ -78,18 +100,48 @@ const DocActionsCell: FC<{ docInfo: PatientDocumentInfo; actions: DocumentTableA
       </Box>
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
         {isActionAllowed(docInfo.id, DocumentTableActionType.ActionRename) && (
-          <MenuItem onClick={handleRenameClick}>Rename document</MenuItem>
+          <MenuItem onClick={handleRenameDialogOpen}>Rename document</MenuItem>
         )}
       </Menu>
 
-      <RenameDocumentModal
-        open={isRenameOpen}
-        initialName={stripFileExtension(docInfo.docName)}
-        onClose={() => setIsRenameOpen(false)}
-        onSubmit={async (newName) => {
-          await onDocumentRename(docInfo.id, newName);
-          setIsRenameOpen(false);
-        }}
+      <CustomDialog
+        open={isRenameDialogOpen}
+        handleClose={handleRenameDialogClose}
+        title="Rename Document"
+        description={
+          <Box sx={{ width: '436px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              autoFocus
+              label="Document name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              error={!newName.trim()}
+              helperText={newName.trim().length === 0 ? 'Document name cannot be empty.' : ''}
+              fullWidth
+              required
+              sx={{ mt: 1 }}
+            />
+          </Box>
+        }
+        actions={
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              width: '100%',
+            }}
+          >
+            <RoundedButton onClick={handleRenameDialogClose}>Cancel</RoundedButton>
+            <RoundedButton
+              variant="contained"
+              onClick={handleRenameSubmit}
+              loading={renameLoading}
+              disabled={!newName.trim()}
+            >
+              Save
+            </RoundedButton>
+          </Box>
+        }
       />
     </>
   );
