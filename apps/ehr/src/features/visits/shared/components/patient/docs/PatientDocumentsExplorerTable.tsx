@@ -1,7 +1,8 @@
 // import ErrorIcon from '@mui/icons-material/Error';
 import DownloadIcon from '@mui/icons-material/Download';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Box, IconButton, Menu, MenuItem, TextField, useTheme } from '@mui/material';
+import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, TextField, useTheme } from '@mui/material';
 import { DataGridPro, GridColDef } from '@mui/x-data-grid-pro';
 import { DateTime } from 'luxon';
 import { enqueueSnackbar } from 'notistack';
@@ -100,7 +101,12 @@ const DocActionsCell: FC<{ docInfo: PatientDocumentInfo; actions: DocumentTableA
       </Box>
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
         {isActionAllowed(docInfo.id, DocumentTableActionType.ActionRename) && (
-          <MenuItem onClick={handleRenameDialogOpen}>Rename document</MenuItem>
+          <MenuItem onClick={handleRenameDialogOpen}>
+            <ListItemIcon>
+              <EditOutlinedIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText>Rename document</ListItemText>
+          </MenuItem>
         )}
       </Menu>
 
