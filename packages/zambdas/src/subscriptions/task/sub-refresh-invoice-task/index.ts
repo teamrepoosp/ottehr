@@ -39,16 +39,21 @@ export const index = wrapHandler(ZAMBDA_NAME, async (input: ZambdaInput): Promis
 
     const inventoryRecord = await getCandidInventoryRecordForTask(oystehr, candid, taskId);
     if (inventoryRecord) {
-      console.log(
-        `Found inventory record for task, claim id: "${inventoryRecord.claimId}", updating task input finalizationDate`
-      );
+      console.log(`Found inventory record for task, ${JSON.stringify(inventoryRecord)}`);
+
       invoiceTaskInput.finalizationDate = inventoryRecord.timestamp.toISOString();
-      console.log('Finalization date: ', invoiceTaskInput.finalizationDate);
+      console.log('Updating finalization date: ', invoiceTaskInput.finalizationDate);
+
+      if (!invoiceTaskInput.claimId) {
+        invoiceTaskInput.claimId = inventoryRecord.claimId.toString();
+        console.log('Updating claim id: ', invoiceTaskInput.claimId);
+      }
+
       const itemization = await getItemizationForClaim(candid, inventoryRecord.claimId);
       if (itemization) {
-        console.log(`Found itemization for claim: "${itemization.claimId}", updating task input amountCents`);
+        console.log(`Found itemization for claim`);
         invoiceTaskInput.amountCents = itemization.patientBalanceCents;
-        console.log('Amount cents: ', invoiceTaskInput.amountCents);
+        console.log('Updating amount cents: ', invoiceTaskInput.amountCents);
       }
       console.log('Updating task input...', JSON.stringify(createInvoiceTaskInput(invoiceTaskInput), null, 2));
 
