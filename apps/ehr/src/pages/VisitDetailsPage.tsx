@@ -48,6 +48,7 @@ import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehr
 import { useGetPatientAccount, useGetPatientCoverages } from 'src/hooks/useGetPatient';
 import { useGetPatientBalances } from 'src/hooks/useGetPatientBalances';
 import { useGetPatientDocs } from 'src/hooks/useGetPatientDocs';
+import { useGetPatientPaymentsList } from 'src/hooks/useGetPatientPaymentsList';
 import {
   BOOKING_CONFIG,
   DocumentInfo,
@@ -490,6 +491,22 @@ export default function VisitDetailsPage(): ReactElement {
 
   const encounter = visitDetailsData?.encounter;
   const qrId = visitDetailsData?.qrId;
+
+  const {
+    data: paymentData,
+    refetch: refetchPaymentList,
+    isRefetching: isPaymentListRefetching,
+    error: paymentListError,
+  } = useGetPatientPaymentsList({
+    patientId: patient?.id ?? '',
+    encounterId: encounter?.id ?? '',
+    disabled: !encounter?.id || !patient?.id,
+  });
+
+  const refetchAllPaymentData = useCallback(async () => {
+    await refetchPaymentList();
+    await refetchPatientBalances();
+  }, [refetchPaymentList, refetchPatientBalances]);
 
   const { insurance: insuranceData, isFetching } = usePatientData(patientId);
 
@@ -1289,7 +1306,7 @@ export default function VisitDetailsPage(): ReactElement {
                         <PatientBalances
                           patient={patient}
                           patientBalances={patientBalancesData}
-                          refetchPatientBalances={refetchPatientBalances}
+                          refetchPatientBalances={refetchAllPaymentData}
                         />
                       </Grid>
                     ) : null}
@@ -1304,6 +1321,10 @@ export default function VisitDetailsPage(): ReactElement {
                           email: visitDetailsData?.responsiblePartyEmail || '',
                         }}
                         insuranceCoverages={insuranceData}
+                        paymentData={paymentData}
+                        refetchPaymentList={refetchAllPaymentData}
+                        isRefetching={isPaymentListRefetching}
+                        paymentListError={paymentListError}
                       />
                     </Grid>
                     <Grid item>
