@@ -886,6 +886,16 @@ export default function VisitDetailsPage(): ReactElement {
     patientInfoAdditionalItem['Patient has been to clinic previously'] = 'true';
   }
 
+  const appointmentContext = useMemo(
+    () => ({
+      appointmentServiceCategory: serviceCategory,
+      appointmentServiceMode: isTelemedAppointment(appointment) ? ServiceMode.virtual : ServiceMode['in-person'],
+      reasonForVisit,
+      encounterId: encounter?.id,
+    }),
+    [serviceCategory, appointment, reasonForVisit, encounter?.id]
+  );
+
   return (
     <PageContainer>
       <>
@@ -1349,14 +1359,7 @@ export default function VisitDetailsPage(): ReactElement {
                 id={patientId}
                 loadingComponent={<Skeleton width={200} height={40} />}
                 renderBackButton={false}
-                appointmentContext={{
-                  appointmentServiceCategory: serviceCategory,
-                  appointmentServiceMode: isTelemedAppointment(appointment)
-                    ? ServiceMode.virtual
-                    : ServiceMode['in-person'],
-                  reasonForVisit,
-                  encounterId: encounter?.id,
-                }}
+                appointmentContext={appointmentContext}
               />
             </Grid>
           </Grid>
