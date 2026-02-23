@@ -87,7 +87,7 @@ async function performEffect(
 
   // Create a DiagnosticReport in Oystehr with the preliminary report
   console.group('Creating DiagnosticReport in Oystehr');
-  await createOurDiagnosticReport(serviceRequest, advaPacsDiagnosticReport, oystehr);
+  await createOurDiagnosticReport(serviceRequest, advaPacsDiagnosticReport, preliminaryReport, oystehr);
   console.groupEnd();
   console.debug('DiagnosticReport created successfully in Oystehr');
 
