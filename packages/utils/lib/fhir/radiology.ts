@@ -95,10 +95,13 @@ export const fetchServiceRequestFromAdvaPACS = async (
 export const createOurDiagnosticReport = async (
   serviceRequest: ServiceRequest,
   pacsDiagnosticReport: DiagnosticReport,
-  preliminaryReport: string,
+  preliminaryReport: string | undefined,
   oystehr: Oystehr
 ): Promise<void> => {
-  const reportAsBase64 = Buffer.from(preliminaryReport).toString('base64');
+  let preliminaryReportAsBase64: string | undefined = undefined;
+  if (preliminaryReport !== undefined) {
+    preliminaryReportAsBase64 = Buffer.from(preliminaryReport).toString('base64');
+  }
 
   const diagnosticReportToCreate: DiagnosticReport = {
     resourceType: 'DiagnosticReport',
@@ -125,10 +128,10 @@ export const createOurDiagnosticReport = async (
         },
       ],
     },
-    presentedForm: [
+    presentedForm: pacsDiagnosticReport.presentedForm ?? [
       {
         contentType: 'text/html',
-        data: reportAsBase64,
+        data: preliminaryReportAsBase64,
       },
     ],
   };
