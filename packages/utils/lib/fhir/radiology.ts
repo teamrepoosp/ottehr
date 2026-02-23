@@ -100,7 +100,7 @@ export const createOurDiagnosticReport = async (
 ): Promise<void> => {
   let preliminaryReportAsBase64: string | undefined = undefined;
   if (preliminaryReport !== undefined) {
-    preliminaryReportAsBase64 = Buffer.from(preliminaryReport).toString('base64');
+    preliminaryReportAsBase64 = Buffer.from(preliminaryReport.replace(/\n/g, '<br>')).toString('base64');
   }
 
   const diagnosticReportToCreate: DiagnosticReport = {

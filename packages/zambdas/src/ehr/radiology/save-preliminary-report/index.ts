@@ -110,7 +110,7 @@ const createDiagnosticReportInAdvaPACS = async (
   const advapacsClientSecret = getSecret(SecretsKeys.ADVAPACS_CLIENT_SECRET, secrets);
   const advapacsAuthString = `ID=${advapacsClientId},Secret=${advapacsClientSecret}`;
 
-  const reportAsBase64 = Buffer.from(preliminaryReport).toString('base64');
+  const reportAsBase64 = Buffer.from(preliminaryReport.replace(/\n/g, '<br>')).toString('base64');
   const reportAsBase64Size = Buffer.byteLength(reportAsBase64);
 
   const diagnosticReport: DiagnosticReport = {
