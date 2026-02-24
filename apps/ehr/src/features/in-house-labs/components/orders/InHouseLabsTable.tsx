@@ -81,6 +81,8 @@ export const InHouseLabsTable = <SearchBy extends LabOrdersSearchBy>({
 
   const availableTests = Object.values(createInHouseLabResources?.labs || {});
 
+  console.log('availableTests', availableTests);
+
   const submitFilterByDate = (date?: DateTime | null): void => {
     const dateToSet = date || tempDateFilter;
     setSearchParams({ pageNumber: 1, visitDateFilter: dateToSet });
