@@ -19,19 +19,25 @@ import PaymentDialog from './dialogs/PaymentDialog';
 export interface PaymentBalancesProps {
   patient: Patient | undefined;
   patientBalances: GetPatientBalancesZambdaOutput | undefined;
-  refetchPatientBalances: () => Promise<void>;
+  refetchAllPaymentData: () => Promise<void>;
 }
 
 export default function PatientBalances({
   patient,
   patientBalances,
-  refetchPatientBalances,
+  refetchAllPaymentData,
 }: PaymentBalancesProps): ReactElement {
   const { encounters } = patientBalances || { encounters: [] };
 
   // for payment dialog
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { oystehrZambda } = useApiClients();
+
+  const refetchAndCloseDialog = async (): Promise<void> => {
+    await refetchAllPaymentData();
+    setPaymentDialogOpen(false);
+  };
+
   const createNewPayment = useMutation({
     mutationFn: async (input: PostPatientPaymentInput) => {
       if (oystehrZambda && input) {
@@ -40,10 +46,7 @@ export default function PatientBalances({
             id: 'patient-payments-post',
             ...input,
           })
-          .then(async () => {
-            await refetchPatientBalances();
-            setPaymentDialogOpen(false);
-          });
+          .then(refetchAndCloseDialog);
       }
     },
     retry: 0,
@@ -155,7 +158,7 @@ export default function PatientBalances({
           open={paymentDialogOpen}
           patient={patient}
           appointmentId={selectedEncounter.appointmentId}
-          handleClose={() => setPaymentDialogOpen(false)}
+          handleClose={refetchAndCloseDialog}
           isSubmitting={createNewPayment.isPending}
           submitPayment={async (data: CashOrCardPayment) => {
             const postInput: PostPatientPaymentInput = {
@@ -164,6 +167,7 @@ export default function PatientBalances({
               paymentDetails: data,
             };
             await createNewPayment.mutateAsync(postInput);
+            await refetchAndCloseDialog();
           }}
         />
       )}
