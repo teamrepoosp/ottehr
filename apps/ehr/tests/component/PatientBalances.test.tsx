@@ -136,7 +136,7 @@ const mockPatientBalances: GetPatientBalancesZambdaOutput = {
   ],
 };
 
-const mockRefetchPatientBalances = vi.fn();
+const mockRefetchAllPaymentData = vi.fn();
 
 // ============================================================================
 // TESTS
@@ -146,7 +146,7 @@ describe('PatientBalances', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockExecute.mockResolvedValue({});
-    mockRefetchPatientBalances.mockResolvedValue({});
+    mockRefetchAllPaymentData.mockResolvedValue({});
   });
 
   describe('Render correctly', () => {
@@ -155,13 +155,13 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
 
       expect(screen.getByText('Outstanding Balance')).toBeInTheDocument();
-      expect(screen.getByText('$3.00 ($0.50 pending)')).toBeInTheDocument();
+      expect(screen.getByText('$2.50 ($0.50 pending)')).toBeInTheDocument();
     });
 
     it('should not show loading indicator', () => {
@@ -169,7 +169,7 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
@@ -182,7 +182,7 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
@@ -212,7 +212,7 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
@@ -228,7 +228,7 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
@@ -248,7 +248,7 @@ describe('PatientBalances', () => {
           <PatientBalances
             patient={mockPatient}
             patientBalances={mockPatientBalances}
-            refetchPatientBalances={mockRefetchPatientBalances}
+            refetchAllPaymentData={mockRefetchAllPaymentData}
           />,
           { wrapper: createWrapper() }
         );
@@ -272,7 +272,7 @@ describe('PatientBalances', () => {
           <PatientBalances
             patient={mockPatient}
             patientBalances={mockPatientBalances}
-            refetchPatientBalances={mockRefetchPatientBalances}
+            refetchAllPaymentData={mockRefetchAllPaymentData}
           />,
           { wrapper: createWrapper() }
         );
@@ -297,7 +297,7 @@ describe('PatientBalances', () => {
         <PatientBalances
           patient={mockPatient}
           patientBalances={mockPatientBalances}
-          refetchPatientBalances={mockRefetchPatientBalances}
+          refetchAllPaymentData={mockRefetchAllPaymentData}
         />,
         { wrapper: createWrapper() }
       );
@@ -324,7 +324,7 @@ describe('PatientBalances', () => {
           <PatientBalances
             patient={mockPatient}
             patientBalances={mockPatientBalances}
-            refetchPatientBalances={mockRefetchPatientBalances}
+            refetchAllPaymentData={mockRefetchAllPaymentData}
           />,
           { wrapper: createWrapper() }
         );
@@ -355,7 +355,7 @@ describe('PatientBalances', () => {
           <PatientBalances
             patient={mockPatient}
             patientBalances={mockPatientBalances}
-            refetchPatientBalances={mockRefetchPatientBalances}
+            refetchAllPaymentData={mockRefetchAllPaymentData}
           />,
           { wrapper: createWrapper() }
         );
@@ -388,7 +388,7 @@ describe('PatientBalances', () => {
             <PatientBalances
               patient={mockPatient}
               patientBalances={mockPatientBalances}
-              refetchPatientBalances={mockRefetchPatientBalances}
+              refetchAllPaymentData={mockRefetchAllPaymentData}
             />,
             { wrapper: createWrapper() }
           );
@@ -400,7 +400,7 @@ describe('PatientBalances', () => {
           await user.click(submitButton);
 
           await waitFor(() => {
-            expect(mockRefetchPatientBalances).toHaveBeenCalled();
+            expect(mockRefetchAllPaymentData).toHaveBeenCalled();
           });
         });
 
@@ -411,7 +411,7 @@ describe('PatientBalances', () => {
             <PatientBalances
               patient={mockPatient}
               patientBalances={mockPatientBalances}
-              refetchPatientBalances={mockRefetchPatientBalances}
+              refetchAllPaymentData={mockRefetchAllPaymentData}
             />,
             { wrapper: createWrapper() }
           );
