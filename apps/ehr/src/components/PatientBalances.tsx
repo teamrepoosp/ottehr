@@ -65,9 +65,12 @@ export default function PatientBalances({
     return null;
   })();
 
-  let balance = `$${((patientBalances?.totalBalanceCents ?? 0) / 100).toFixed(2)}`;
-  if (patientBalances?.pendingBalanceCents && patientBalances?.pendingBalanceCents > 0) {
-    balance += ` ($${((patientBalances?.pendingBalanceCents ?? 0) / 100).toFixed(2)} pending)`;
+  const outstandingBalance =
+    ((patientBalances?.totalBalanceCents ?? 0) - (patientBalances?.pendingBalanceCents ?? 0)) / 100;
+  const pendingBalance = (patientBalances?.pendingBalanceCents ?? 0) / 100;
+  let balance = `$${outstandingBalance.toFixed(2)}`;
+  if (pendingBalance > 0) {
+    balance += ` ($${pendingBalance.toFixed(2)} pending)`;
   }
 
   return (
