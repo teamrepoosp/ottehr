@@ -64,7 +64,7 @@ export async function performEffect(
   const noData = {
     encounters: [],
     totalBalanceCents: 0,
-    pendingBalanceCents: 0,
+    pendingPaymentCents: 0,
   };
 
   console.group('getFhirEncountersAndAppointmentsForPatient');
@@ -147,7 +147,7 @@ export async function performEffect(
   return {
     encounters: returnData,
     totalBalanceCents: returnData.reduce((acc, { patientBalanceCents }) => acc + patientBalanceCents, 0),
-    pendingBalanceCents: pendingPatientPayments || 0,
+    pendingPaymentCents: pendingPatientPayments || 0,
   };
 }
 

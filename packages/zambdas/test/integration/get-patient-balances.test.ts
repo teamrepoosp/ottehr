@@ -18,7 +18,7 @@ import { cleanupTestScheduleResources } from '../helpers/testScheduleUtils';
 function createMockCandidApiClient(
   encounterResponses: Map<string, { claimId: string }> = new Map(),
   claimResponses: Map<string, { patientBalanceCents: number }> = new Map(),
-  pendingBalanceCents: number = 0
+  pendingPaymentCents: number = 0
 ): CandidApiClient {
   return {
     encounters: {
@@ -81,17 +81,17 @@ function createMockCandidApiClient(
       v4: {
         getMulti: async () => {
           const paymentItems = [];
-          if (pendingBalanceCents > 0) {
+          if (pendingPaymentCents > 0) {
             paymentItems.push({
               patientPaymentId: 'payment-id-1',
               organizationId: 'organization-id',
               paymentSource: 'MANUAL_ENTRY',
-              amountCents: pendingBalanceCents,
+              amountCents: pendingPaymentCents,
               patientExternalId: 'patient-id',
               paymentTimestamp: '2026-02-25T16:16:16.039Z',
               allocations: [
                 {
-                  amountCents: pendingBalanceCents,
+                  amountCents: pendingPaymentCents,
                   target: {
                     type: 'appointment',
                     appointmentId: 'appointment-id-1',
@@ -399,7 +399,7 @@ describe('get-patient-balances integration tests', () => {
       expect(response).toBeDefined();
       expect(response.encounters).toEqual([]);
       expect(response.totalBalanceCents).toBe(0);
-      expect(response.pendingBalanceCents).toBe(0);
+      expect(response.pendingPaymentCents).toBe(0);
     });
 
     it('should return balance for patient with an encounter', async () => {
@@ -423,7 +423,7 @@ describe('get-patient-balances integration tests', () => {
       const response = await getPatientBalances(patient.id!, mockCandidClient);
       expect(response).toBeDefined();
       expect(response.totalBalanceCents).toBe(5000);
-      expect(response.pendingBalanceCents).toBe(0);
+      expect(response.pendingPaymentCents).toBe(0);
       expect(response.encounters).toBeDefined();
       expect(response.encounters.length).toBe(1);
 
@@ -471,7 +471,7 @@ describe('get-patient-balances integration tests', () => {
       const response = await getPatientBalances(patient.id!, mockCandidClient);
       expect(response).toBeDefined();
       expect(response.totalBalanceCents).toBe(8000);
-      expect(response.pendingBalanceCents).toBe(0);
+      expect(response.pendingPaymentCents).toBe(0);
       expect(response.encounters).toBeDefined();
       expect(response.encounters.length).toBe(2);
 
@@ -528,7 +528,7 @@ describe('get-patient-balances integration tests', () => {
       const response = await getPatientBalances(patient.id!, mockCandidClient);
       expect(response).toBeDefined();
       expect(response.totalBalanceCents).toBe(8000);
-      expect(response.pendingBalanceCents).toBe(1000);
+      expect(response.pendingPaymentCents).toBe(1000);
       expect(response.encounters).toBeDefined();
       expect(response.encounters.length).toBe(2);
 

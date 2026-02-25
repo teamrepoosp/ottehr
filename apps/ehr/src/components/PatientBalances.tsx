@@ -19,14 +19,10 @@ import PaymentDialog from './dialogs/PaymentDialog';
 export interface PaymentBalancesProps {
   patient: Patient | undefined;
   patientBalances: GetPatientBalancesZambdaOutput | undefined;
-  refetchAllPaymentData: () => Promise<void>;
+  handleClose: () => Promise<void>;
 }
 
-export default function PatientBalances({
-  patient,
-  patientBalances,
-  refetchAllPaymentData,
-}: PaymentBalancesProps): ReactElement {
+export default function PatientBalances({ patient, patientBalances, handleClose }: PaymentBalancesProps): ReactElement {
   const { encounters } = patientBalances || { encounters: [] };
 
   // for payment dialog
@@ -34,7 +30,7 @@ export default function PatientBalances({
   const { oystehrZambda } = useApiClients();
 
   const refetchAndCloseDialog = async (): Promise<void> => {
-    await refetchAllPaymentData();
+    await handleClose();
     setPaymentDialogOpen(false);
   };
 
@@ -69,11 +65,11 @@ export default function PatientBalances({
   })();
 
   const outstandingBalance =
-    ((patientBalances?.totalBalanceCents ?? 0) - (patientBalances?.pendingBalanceCents ?? 0)) / 100;
-  const pendingBalance = (patientBalances?.pendingBalanceCents ?? 0) / 100;
+    ((patientBalances?.totalBalanceCents ?? 0) - (patientBalances?.pendingPaymentCents ?? 0)) / 100;
+  const pendingPayments = (patientBalances?.pendingPaymentCents ?? 0) / 100;
   let balance = `$${outstandingBalance.toFixed(2)}`;
-  if (pendingBalance > 0) {
-    balance += ` ($${pendingBalance.toFixed(2)} pending)`;
+  if (pendingPayments > 0) {
+    balance += ` ($${pendingPayments.toFixed(2)} pending)`;
   }
 
   return (
