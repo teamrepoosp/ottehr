@@ -119,6 +119,7 @@ const mockPatient: Patient = {
 
 const mockPatientBalances: GetPatientBalancesZambdaOutput = {
   totalBalanceCents: 300,
+  pendingBalanceCents: 50,
   encounters: [
     {
       encounterId: 'encounter-1',
@@ -160,7 +161,7 @@ describe('PatientBalances', () => {
       );
 
       expect(screen.getByText('Outstanding Balance')).toBeInTheDocument();
-      expect(screen.getByText('$3.00')).toBeInTheDocument();
+      expect(screen.getByText('$3.00 ($0.50 pending)')).toBeInTheDocument();
     });
 
     it('should not show loading indicator', () => {

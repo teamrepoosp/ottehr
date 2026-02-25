@@ -65,6 +65,11 @@ export default function PatientBalances({
     return null;
   })();
 
+  let balance = `$${((patientBalances?.totalBalanceCents ?? 0) / 100).toFixed(2)}`;
+  if (patientBalances?.pendingBalanceCents && patientBalances?.pendingBalanceCents > 0) {
+    balance += ` ($${((patientBalances?.pendingBalanceCents ?? 0) / 100).toFixed(2)} pending)`;
+  }
+
   return (
     <Paper
       sx={{
@@ -77,7 +82,7 @@ export default function PatientBalances({
           Outstanding Balance
         </Typography>
         <Typography variant="h4" color="error.dark">
-          ${((patientBalances?.totalBalanceCents ?? 0) / 100).toFixed(2)}
+          {balance}
         </Typography>
       </Box>
       {patientBalances ? (
