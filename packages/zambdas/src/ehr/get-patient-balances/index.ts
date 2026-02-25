@@ -249,6 +249,12 @@ function saveBalancesInMap(
 
     const claimId = candidClaim.body.claimId;
     const encounterId = claimIdToEncounterIdMap.get(claimId);
+
+    if (candidClaim.body.patientBalanceCents <= 0) {
+      encounterDataMap.delete(encounterId!);
+      return;
+    }
+
     const mapValue = encounterDataMap.get(encounterId!);
     if (!mapValue) {
       throw new Error(`No map value found for encounterId ${encounterId}`);
