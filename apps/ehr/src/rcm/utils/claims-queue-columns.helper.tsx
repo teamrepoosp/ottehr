@@ -1,5 +1,5 @@
 import { Box, Link, Tooltip, Typography } from '@mui/material';
-import { GridColDef } from '@mui/x-data-grid-pro';
+import { GridColDef } from '@mui/x-data-grid';
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';

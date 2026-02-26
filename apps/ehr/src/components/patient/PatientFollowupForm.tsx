@@ -14,8 +14,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import Oystehr from '@oystehr/sdk';
 import { Patient } from 'fhir/r4b';
 import { DateTime } from 'luxon';

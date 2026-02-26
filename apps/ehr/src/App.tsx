@@ -1,7 +1,6 @@
 import { TabContext } from '@mui/lab';
 import { CssBaseline } from '@mui/material';
 // import Alert from '@mui/material/Alert';
-import { LicenseInfo } from '@mui/x-data-grid-pro';
 import { SnackbarProvider } from 'notistack';
 import { lazy, ReactElement, Suspense, useState } from 'react';
 import { useIdleTimer } from 'react-idle-timer';
@@ -65,11 +64,6 @@ const TelemedAppointmentPageLazy = lazy(async () => {
 
 export const INSURANCES_URL = '/telemed-admin/insurances';
 export const STATES_URL = '/telemed-admin/states';
-
-const MUI_X_LICENSE_KEY = import.meta.env.VITE_APP_MUI_X_LICENSE_KEY;
-if (MUI_X_LICENSE_KEY != null) {
-  LicenseInfo.setLicenseKey(MUI_X_LICENSE_KEY);
-}
 
 export const showEnvironmentBanner = import.meta.env.VITE_APP_ENV !== 'production';
 
