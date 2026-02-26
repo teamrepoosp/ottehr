@@ -1,4 +1,3 @@
-import { CalendarMonth } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Alert,
@@ -11,19 +10,14 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
-  InputAdornment,
   Radio,
   RadioGroup,
   Snackbar,
-  TextField,
   Typography,
 } from '@mui/material';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateRange } from '@mui/x-date-pickers-pro';
-import { MobileDateRangePicker } from '@mui/x-date-pickers-pro/MobileDateRangePicker';
-import { SingleInputDateRangeField } from '@mui/x-date-pickers-pro/SingleInputDateRangeField';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { genreateManualReport } from '../api/services/reports';
 import { RoundedButton } from './RoundedButton';
@@ -37,7 +31,7 @@ interface GenerateReportModalProps {
 
 export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({ open, onClose, patientId, loadReports }) => {
   const [reportType, setReportType] = useState<'vitals' | 'time' | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange<any>>([null, null]);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
   const [loading, setLoading] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -170,32 +164,32 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({ open, 
               Select Date Range
             </Typography>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <MobileDateRangePicker
-                value={dateRange}
-                onChange={(newValue) => setDateRange(newValue)}
-                slots={{
-                  field: SingleInputDateRangeField,
-                  textField: (params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Select Date Range"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <InputAdornment position="start">
-                            <CalendarMonth color="primary" />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        maxWidth: '400px',
-                        width: '100%',
-                        '& .MuiInputBase-input': { cursor: 'pointer' },
-                      }}
-                    />
-                  ),
-                }}
-              />
+              <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+                <DatePicker
+                  label="Start Date"
+                  value={dateRange[0]}
+                  maxDate={dateRange[1] ?? undefined}
+                  onChange={(newValue) => setDateRange([newValue, dateRange[1]])}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      sx: { width: '100%' },
+                    },
+                  }}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={dateRange[1]}
+                  minDate={dateRange[0] ?? undefined}
+                  onChange={(newValue) => setDateRange([dateRange[0], newValue])}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      sx: { width: '100%' },
+                    },
+                  }}
+                />
+              </Box>
             </LocalizationProvider>
           </Box>
         </DialogContent>

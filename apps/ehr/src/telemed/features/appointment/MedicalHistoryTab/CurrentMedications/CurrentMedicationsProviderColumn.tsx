@@ -12,8 +12,8 @@ import {
   Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import { ErxSearchMedicationsResponse } from '@oystehr/sdk';
 import { DateTime } from 'luxon';
 import { FC, useCallback, useMemo, useState } from 'react';

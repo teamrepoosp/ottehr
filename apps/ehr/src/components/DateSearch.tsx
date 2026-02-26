@@ -1,7 +1,7 @@
 import { TextFieldProps } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import { DateTime } from 'luxon';
 import { ReactElement, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
