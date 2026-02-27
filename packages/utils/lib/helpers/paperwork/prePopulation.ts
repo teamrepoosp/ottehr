@@ -166,15 +166,15 @@ export const makePrepopulatedItemsForPatient = (input: PrePopulationInput): Ques
     if (reasonOption && reasonOption !== normalizedReasonForVisit) {
       if (
         appointmentServiceCategory === 'occupational-medicine' &&
-        VALUE_SETS.reasonForVisitOptionsOccMed.map((opt) => opt.value).includes(reasonOption)
+        VALUE_SETS.reasonForVisitOptionsOccMed.some((opt) => opt.value === reasonOption)
       ) {
         normalizedReasonForVisit = reasonOption;
       } else if (
         appointmentServiceCategory === 'workers-comp' &&
-        VALUE_SETS.reasonForVisitOptionsWorkersComp.map((opt) => opt.value).includes(reasonOption)
+        VALUE_SETS.reasonForVisitOptionsWorkersComp.some((opt) => opt.value === reasonOption)
       ) {
         normalizedReasonForVisit = reasonOption;
-      } else if (VALUE_SETS.reasonForVisitOptions.map((opt) => opt.value).includes(reasonOption)) {
+      } else if (VALUE_SETS.reasonForVisitOptions.some((opt) => opt.value === reasonOption)) {
         normalizedReasonForVisit = reasonOption;
       }
     }
@@ -1508,10 +1508,10 @@ const mapPharmacyToQuestionnaireResponseItems = (input: MapPharmacyItemsInput): 
     const { linkId } = item;
     let answer: QuestionnaireResponseItemAnswer[] | undefined;
 
-    if (linkId === 'pharmacy-name' && pharmacyName && pharmacyName != '-') {
+    if (linkId === 'pharmacy-name' && pharmacyName && pharmacyName != '-' && pharmacyWasManuallyEntered) {
       answer = makeAnswer(pharmacyName);
     }
-    if (linkId === 'pharmacy-address' && pharmacyAddress) {
+    if (linkId === 'pharmacy-address' && pharmacyAddress && pharmacyWasManuallyEntered) {
       answer = makeAnswer(pharmacyAddress);
     }
 

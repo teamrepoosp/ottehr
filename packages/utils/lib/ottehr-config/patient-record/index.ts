@@ -776,8 +776,95 @@ const FormFields = {
     linkId: 'preferred-pharmacy-section',
     title: 'Preferred pharmacy',
     items: {
-      name: { key: 'pharmacy-name', type: 'string', label: 'Pharmacy name' },
-      address: { key: 'pharmacy-address', type: 'string', label: 'Pharmacy address' },
+      pharmacyCollection: {
+        key: 'pharmacy-collection',
+        text: 'Pharmacy',
+        type: 'group',
+        groupType: 'pharmacy-collection',
+        items: {
+          pharmacyPlacesId: {
+            key: 'pharmacy-places-id',
+            label: 'places id',
+            type: 'string',
+          },
+          pharmacyPlacesName: {
+            key: 'pharmacy-places-name',
+            label: 'places name',
+            type: 'string',
+          },
+          pharmacyPlacesAddress: {
+            key: 'pharmacy-places-address',
+            label: 'places address',
+            type: 'string',
+          },
+          pharmacyPlacesSaved: {
+            key: 'pharmacy-places-saved',
+            label: 'places saved',
+            type: 'boolean',
+          },
+          erxPharmacyId: {
+            key: 'erx-pharmacy-id',
+            label: 'erx pharmacy id',
+            type: 'string',
+          },
+        },
+        disabledDisplay: 'hidden',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+        ],
+      },
+      manualEntry: {
+        key: 'pharmacy-page-manual-entry',
+        label: "Can't find? Add manually",
+        type: 'boolean',
+        element: 'Link',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-places-saved',
+            effect: ['enable'],
+            operator: '!=',
+            answerBoolean: true,
+          },
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['sub-text'],
+            operator: '=',
+            answerBoolean: true,
+            substituteText: 'Use search',
+          },
+        ],
+      },
+      name: {
+        key: 'pharmacy-name',
+        label: 'Pharmacy name',
+        type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+        ],
+      },
+      address: {
+        key: 'pharmacy-address',
+        label: 'Pharmacy address',
+        type: 'string',
+        triggers: [
+          {
+            targetQuestionLinkId: 'pharmacy-page-manual-entry',
+            effect: ['enable'],
+            operator: '=',
+            answerBoolean: true,
+          },
+        ],
+      },
     },
     hiddenFields: [],
     requiredFields: [],
@@ -932,14 +1019,14 @@ const FormFieldsSchema = z.object({
 
 const hiddenFormSections: string[] = [];
 
-const questionnaireBaseDefaults: QuestionnaireBase = {
+const questionnaireBaseDefaults = {
   resourceType: 'Questionnaire',
   url: 'http://example.org/fhir/Questionnaire/patient-record',
   version: '1.0.0',
   name: 'PatientRecordQuestionnaire',
   title: 'Patient Record Questionnaire',
   status: 'active',
-};
+} as const satisfies QuestionnaireBase;
 
 const PATIENT_RECORD_DEFAULTS = {
   questionnaireBase: questionnaireBaseDefaults,
@@ -954,6 +1041,7 @@ const PatientRecordConfigSchema = QuestionnaireConfigSchema.extend({
 });
 
 export const PATIENT_RECORD_CONFIG = PatientRecordConfigSchema.parse(mergedPatientRecordConfig);
+
 const prepopulateLogicalFields = (
   questionnaire: Questionnaire,
   appointmentContext?: AppointmentContext

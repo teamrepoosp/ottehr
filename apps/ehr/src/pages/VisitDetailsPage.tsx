@@ -40,12 +40,15 @@ import {
 } from 'src/api/api';
 import ImageCarousel, { ImageCarouselObject } from 'src/components/ImageCarousel';
 import ImageUploader from 'src/components/ImageUploader';
+import PatientBalances from 'src/components/PatientBalances';
 import { RoundedButton } from 'src/components/RoundedButton';
 import { ScannerModal } from 'src/components/ScannerModal';
 import { TelemedAppointmentStatusChip } from 'src/components/TelemedAppointmentStatusChip';
 import { useOystehrAPIClient } from 'src/features/visits/shared/hooks/useOystehrAPIClient';
 import { useGetPatientAccount, useGetPatientCoverages } from 'src/hooks/useGetPatient';
+import { useGetPatientBalances } from 'src/hooks/useGetPatientBalances';
 import { useGetPatientDocs } from 'src/hooks/useGetPatientDocs';
+import { useGetPatientPaymentsList } from 'src/hooks/useGetPatientPaymentsList';
 import {
   BOOKING_CONFIG,
   DocumentInfo,
@@ -73,7 +76,9 @@ import {
   PATIENT_INFO_META_DATA_RETURNING_PATIENT_CODE,
   PATIENT_INFO_META_DATA_SYSTEM,
   PatientAccountResponse,
+  ReasonForVisit,
   SERVICE_CATEGORY_SYSTEM,
+  ServiceCategoryCode,
   ServiceMode,
   TelemedAppointmentStatus,
   UpdateVisitDetailsInput,
@@ -131,7 +136,7 @@ interface EditDOBParams {
 }
 
 interface EditReasonForVisitParams {
-  reasonForVisit?: string;
+  reasonForVisit?: ReasonForVisit;
   additionalDetails?: string;
 }
 
@@ -140,7 +145,7 @@ interface EditNLGParams {
 }
 
 interface ServiceCategoryParams {
-  serviceCategory?: string;
+  serviceCategory?: ServiceCategoryCode;
 }
 
 type EditDialogConfig =
@@ -458,6 +463,15 @@ export default function VisitDetailsPage(): ReactElement {
   const patientId = patient?.id;
   const serverConsentAttested = visitDetailsData?.consentIsAttested ?? false;
 
+  const {
+    data: patientBalancesData,
+    isLoading: patientBalancesLoading,
+    refetch: refetchPatientBalances,
+  } = useGetPatientBalances({
+    patientId,
+    disabled: !patientId,
+  });
+
   useEffect(() => {
     if (consentAttested === null) {
       setConsentAttested(serverConsentAttested);
@@ -477,6 +491,22 @@ export default function VisitDetailsPage(): ReactElement {
 
   const encounter = visitDetailsData?.encounter;
   const qrId = visitDetailsData?.qrId;
+
+  const {
+    data: paymentData,
+    refetch: refetchPaymentList,
+    isRefetching: isPaymentListRefetching,
+    error: paymentListError,
+  } = useGetPatientPaymentsList({
+    patientId: patient?.id ?? '',
+    encounterId: encounter?.id ?? '',
+    disabled: !encounter?.id || !patient?.id,
+  });
+
+  const refetchAllPaymentData = useCallback(async () => {
+    await refetchPaymentList();
+    await refetchPatientBalances();
+  }, [refetchPaymentList, refetchPatientBalances]);
 
   const { insurance: insuranceData, isFetching } = usePatientData(patientId);
 
@@ -783,7 +813,6 @@ export default function VisitDetailsPage(): ReactElement {
             'Full name': consentDetails.fullName,
             'Relationship to patient': consentDetails.relationshipToPatient,
             Date: consentDetails.date,
-            IP: consentDetails.ipAddress,
           };
         } else {
           return { [consentToTreatPatientDetailsKey]: 'Not signed' };
@@ -856,6 +885,16 @@ export default function VisitDetailsPage(): ReactElement {
   if (patientBeenToClinicPreviously) {
     patientInfoAdditionalItem['Patient has been to clinic previously'] = 'true';
   }
+
+  const appointmentContext = useMemo(
+    () => ({
+      appointmentServiceCategory: serviceCategory,
+      appointmentServiceMode: isTelemedAppointment(appointment) ? ServiceMode.virtual : ServiceMode['in-person'],
+      reasonForVisit,
+      encounterId: encounter?.id,
+    }),
+    [serviceCategory, appointment, reasonForVisit, encounter?.id]
+  );
 
   return (
     <PageContainer>
@@ -1270,6 +1309,17 @@ export default function VisitDetailsPage(): ReactElement {
                     </Grid>
                   </Grid>
                   <Grid container item xs={12} sm={6} direction="column">
+                    {!patientBalancesLoading &&
+                    patientBalancesData?.totalBalanceCents &&
+                    patientBalancesData?.totalBalanceCents > 0 ? (
+                      <Grid item>
+                        <PatientBalances
+                          patient={patient}
+                          patientBalances={patientBalancesData}
+                          handleClose={refetchAllPaymentData}
+                        />
+                      </Grid>
+                    ) : null}
                     <Grid item>
                       <PatientPaymentList
                         patient={patient}
@@ -1281,6 +1331,10 @@ export default function VisitDetailsPage(): ReactElement {
                           email: visitDetailsData?.responsiblePartyEmail || '',
                         }}
                         insuranceCoverages={insuranceData}
+                        paymentData={paymentData}
+                        refetchPaymentList={refetchAllPaymentData}
+                        isRefetching={isPaymentListRefetching}
+                        paymentListError={paymentListError}
                       />
                     </Grid>
                     <Grid item>
@@ -1305,14 +1359,7 @@ export default function VisitDetailsPage(): ReactElement {
                 id={patientId}
                 loadingComponent={<Skeleton width={200} height={40} />}
                 renderBackButton={false}
-                appointmentContext={{
-                  appointmentServiceCategory: serviceCategory,
-                  appointmentServiceMode: isTelemedAppointment(appointment)
-                    ? ServiceMode.virtual
-                    : ServiceMode['in-person'],
-                  reasonForVisit,
-                  encounterId: encounter?.id,
-                }}
+                appointmentContext={appointmentContext}
               />
             </Grid>
           </Grid>

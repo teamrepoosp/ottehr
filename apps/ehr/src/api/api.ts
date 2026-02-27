@@ -27,7 +27,6 @@ import {
   CreateDischargeSummaryResponse,
   CreateInHouseLabOrderParameters,
   CreateInHouseLabOrderResponse,
-  CreateInvoiceablePatientsReportZambdaInputType,
   CreateLabOrderParameters,
   CreateLabOrderZambdaOutput,
   CreateNursingOrderInput,
@@ -53,14 +52,16 @@ import {
   GetAppointmentsZambdaOutput,
   GetConversationInput,
   GetConversationZambdaOutput,
-  GetCreateInHouseLabOrderResourcesParameters,
-  GetCreateInHouseLabOrderResourcesResponse,
   GetEmployeesResponse,
   GetInHouseOrdersParameters,
   GetLabelPdfParameters,
   GetLabOrdersParameters,
   GetNursingOrdersInput,
   GetOrUploadPatientProfilePhotoZambdaResponse,
+  GetPatientBalancesZambdaInput,
+  GetPatientBalancesZambdaOutput,
+  GetPatientLoginPhoneNumbersInput,
+  GetPatientLoginPhoneNumbersOutput,
   GetPresignedFileURLInput,
   GetRadiologyOrderListZambdaInput,
   GetRadiologyOrderListZambdaOutput,
@@ -96,7 +97,11 @@ import {
   RecentPatientsReportZambdaOutput,
   SaveFollowupEncounterZambdaInput,
   SaveFollowupEncounterZambdaOutput,
+  SavePreliminaryReportZambdaInput,
+  SavePreliminaryReportZambdaOutput,
   ScheduleDTO,
+  SendForFinalReadZambdaInput,
+  SendForFinalReadZambdaOutput,
   SendReceiptByEmailZambdaInput,
   SendReceiptByEmailZambdaOutput,
   SubmitLabOrderInput,
@@ -106,6 +111,7 @@ import {
   UpdateInvoiceTaskZambdaInput,
   UpdateLabOrderResourcesInput,
   UpdateNursingOrderInput,
+  UpdatePatientLoginPhoneNumbersInput,
   UpdateScheduleParams,
   UpdateUserParams,
   UpdateUserZambdaOutput,
@@ -162,7 +168,6 @@ const CREATE_SCHEDULE_ZAMBDA_ID = 'create-schedule';
 const CREATE_SLOT_ZAMBDA_ID = 'create-slot';
 const CREATE_IN_HOUSE_LAB_ORDER_ZAMBDA_ID = 'create-in-house-lab-order';
 const GET_IN_HOUSE_ORDERS_ZAMBDA_ID = 'get-in-house-orders';
-const GET_CREATE_IN_HOUSE_LAB_ORDER_RESOURCES = 'get-create-in-house-lab-order-resources';
 const COLLECT_IN_HOUSE_LAB_SPECIMEN = 'collect-in-house-lab-specimen';
 const HANDLE_IN_HOUSE_LAB_RESULTS = 'handle-in-house-lab-results';
 const DELETE_IN_HOUSE_LAB_ORDER = 'delete-in-house-lab-order';
@@ -179,9 +184,9 @@ const PAPERWORK_TO_PDF_ZAMBDA_ID = 'paperwork-to-pdf';
 const VISIT_DETAILS_TO_PDF_ZAMBDA_ID = 'visit-details-to-pdf';
 const PENDING_SUPERVISOR_APPROVAL_ZAMBDA_ID = 'pending-supervisor-approval';
 const SEND_RECEIPT_BY_EMAIL_ZAMBDA_ID = 'send-receipt-by-email';
-const INVOICEABLE_PATIENTS_REPORT_ZAMBDA_ID = 'invoiceable-patients-report';
 const BULK_UPDATE_INSURANCE_STATUS_ZAMBDA_ID = 'bulk-update-insurance-status';
 const UPDATE_INVOICE_TASK_ZAMBDA_ID = 'update-invoice-task';
+const GET_PATIENT_BALANCES_ZAMBDA_ID = 'get-patient-balances';
 
 export const getUser = async (token: string): Promise<User> => {
   const oystehr = new Oystehr({
@@ -974,6 +979,38 @@ export const radiologyLaunchViewer = async (
   }
 };
 
+export const savePreliminaryReport = async (
+  oystehr: Oystehr,
+  parameters: SavePreliminaryReportZambdaInput
+): Promise<SavePreliminaryReportZambdaOutput> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'radiology-save-preliminary-report',
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw error;
+  }
+};
+
+export const sendForFinalRead = async (
+  oystehr: Oystehr,
+  parameters: SendForFinalReadZambdaInput
+): Promise<SendForFinalReadZambdaOutput> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'radiology-send-for-final-read',
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw error;
+  }
+};
+
 export const getRadiologyOrders = async (
   oystehr: Oystehr,
   parameters: GetRadiologyOrderListZambdaInput
@@ -1045,25 +1082,6 @@ export const getInHouseOrders = async <RequestParameters extends GetInHouseOrder
     }
     const response = await oystehr.zambda.execute({
       id: GET_IN_HOUSE_ORDERS_ZAMBDA_ID,
-      ...parameters,
-    });
-    return chooseJson(response);
-  } catch (error: unknown) {
-    console.log(error);
-    throw error;
-  }
-};
-
-export const getCreateInHouseLabOrderResources = async (
-  oystehr: Oystehr,
-  parameters: GetCreateInHouseLabOrderResourcesParameters
-): Promise<GetCreateInHouseLabOrderResourcesResponse> => {
-  try {
-    if (GET_CREATE_IN_HOUSE_LAB_ORDER_RESOURCES == null) {
-      throw new Error('get create in house lab order resources zambda environment variable could not be loaded');
-    }
-    const response = await oystehr.zambda.execute({
-      id: GET_CREATE_IN_HOUSE_LAB_ORDER_RESOURCES,
       ...parameters,
     });
     return chooseJson(response);
@@ -1379,22 +1397,6 @@ export const updateVisitFiles = async (oystehr: Oystehr, parameters: UpdateVisit
   }
 };
 
-export const invoiceablePatientsReport = async (
-  oystehr: Oystehr,
-  params: CreateInvoiceablePatientsReportZambdaInputType
-): Promise<void> => {
-  try {
-    const response = await oystehr.zambda.execute({
-      id: INVOICEABLE_PATIENTS_REPORT_ZAMBDA_ID,
-      ...params,
-    });
-    return chooseJson(response);
-  } catch (error: unknown) {
-    console.log(error);
-    throw error;
-  }
-};
-
 export const bulkUpdateInsuranceStatus = async (
   oystehr: Oystehr,
   parameters: BulkUpdateInsuranceStatusInput
@@ -1479,6 +1481,58 @@ export const updateInvoiceTask = async (oystehr: Oystehr, parameters: UpdateInvo
       id: UPDATE_INVOICE_TASK_ZAMBDA_ID,
       ...parameters,
     });
+  } catch (error: unknown) {
+    console.log(error);
+    throw apiErrorToThrow(error);
+  }
+};
+
+export const getPatientBalances = async (
+  oystehr: Oystehr,
+  parameters: GetPatientBalancesZambdaInput
+): Promise<GetPatientBalancesZambdaOutput> => {
+  try {
+    if (GET_PATIENT_BALANCES_ZAMBDA_ID == null) {
+      throw new Error('get patient balances environment variable could not be loaded');
+    }
+
+    const response = await oystehr.zambda.execute({
+      id: GET_PATIENT_BALANCES_ZAMBDA_ID,
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw apiErrorToThrow(error);
+  }
+};
+
+export const getPatientLoginPhoneNumbers = async (
+  oystehr: Oystehr,
+  parameters: GetPatientLoginPhoneNumbersInput
+): Promise<GetPatientLoginPhoneNumbersOutput> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'get-login-phone-numbers',
+      ...parameters,
+    });
+    return chooseJson(response);
+  } catch (error: unknown) {
+    console.log(error);
+    throw apiErrorToThrow(error);
+  }
+};
+
+export const updatePatientLoginPhoneNumbers = async (
+  oystehr: Oystehr,
+  parameters: UpdatePatientLoginPhoneNumbersInput
+): Promise<void> => {
+  try {
+    const response = await oystehr.zambda.execute({
+      id: 'update-login-phone-numbers',
+      ...parameters,
+    });
+    return chooseJson(response);
   } catch (error: unknown) {
     console.log(error);
     throw apiErrorToThrow(error);

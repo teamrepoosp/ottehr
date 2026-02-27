@@ -38,6 +38,9 @@ export const useOystehrAPIClient = (): ReturnType<typeof getOystehrTelemedAPI> |
           externalLabResourceSearchID: 'get-create-lab-order-resources',
           getUnsolicitedResultsResourcesID: 'get-unsolicited-results-resources',
           updateLabOrderResourcesID: 'update-lab-order-resources',
+          searchPlacesID: 'search-places',
+          inhouseLabResourceSearchID: 'get-create-in-house-lab-order-resources',
+          makeMedicationHistoryPdfID: 'make-medication-history-pdf',
         },
         oystehrZambda
       );

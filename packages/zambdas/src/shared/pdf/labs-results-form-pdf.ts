@@ -71,6 +71,7 @@ import {
 import { LABS_DATE_STRING_FORMAT } from '../../ehr/lab/external/submit-lab-order/helpers';
 import { fetchResultResourcesForRelatedServiceRequest } from '../../ehr/lab/shared/in-house-labs';
 import {
+  extractResultSpecimensFromDr,
   getExternalLabOrderResourcesViaDiagnosticReport,
   getExternalLabOrderResourcesViaServiceRequest,
   isLabDrTypeTagCode,
@@ -86,6 +87,7 @@ import {
   LAB_PDF_STYLES,
   LABS_PDF_LEFT_INDENTATION_XPOS,
   LabsPDFTextStyleConfig,
+  makeLabResultDocRefMeta,
 } from './lab-pdf-utils';
 import { ICON_STYLE, STANDARD_FONT_SIZE, STANDARD_NEW_LINE } from './pdf-consts';
 import { calculateAge, PdfInfo, SEPARATED_LINE_STYLE } from './pdf-utils';
@@ -194,7 +196,7 @@ const getResultDataConfigForDrResources = (
     resultStatus: diagnosticReport.status.toUpperCase(),
     isPscOrder: false,
     accountNumber: getAccountNumberFromDr(diagnosticReport) || '',
-    resultSpecimenInfo: getResultSpecimenFromDr(diagnosticReport),
+    resultSpecimenInfo: getResultSpecimenInfoFromDr(diagnosticReport),
     patientVisitNote: diagnosticReport.extension?.find((ext) => ext.url === OYSTEHR_LABS_PATIENT_VISIT_NOTE_EXT_URL)
       ?.valueString,
     clinicalInfo: diagnosticReport.extension?.find((ext) => ext.url === OYSTEHR_LABS_CLINICAL_INFO_EXT_URL)
@@ -281,7 +283,7 @@ const getResultDataConfig = (
     resultStatus: diagnosticReport.status.toUpperCase(),
     isPscOrder: isPSCOrder(serviceRequest),
     accountNumber: getAccountNumberFromDr(diagnosticReport) || '',
-    resultSpecimenInfo: getResultSpecimenFromDr(diagnosticReport),
+    resultSpecimenInfo: getResultSpecimenInfoFromDr(diagnosticReport),
     patientVisitNote: diagnosticReport.extension?.find((ext) => ext.url === OYSTEHR_LABS_PATIENT_VISIT_NOTE_EXT_URL)
       ?.valueString,
     clinicalInfo: diagnosticReport.extension?.find((ext) => ext.url === OYSTEHR_LABS_CLINICAL_INFO_EXT_URL)
@@ -409,10 +411,8 @@ export async function createExternalLabResultPDFBasedOnDr(
   secrets: Secrets | null,
   token: string
 ): Promise<void> {
-  const { patient, diagnosticReport, observations, schedule } = await getExternalLabOrderResourcesViaDiagnosticReport(
-    oystehr,
-    diagnosticReportID
-  );
+  const { patient, labOrganization, diagnosticReport, observations, schedule } =
+    await getExternalLabOrderResourcesViaDiagnosticReport(oystehr, diagnosticReportID);
 
   if (!patient.id) throw new Error('patient.id is undefined');
 
@@ -430,7 +430,7 @@ export async function createExternalLabResultPDFBasedOnDr(
     timezone = getTimezone(schedule);
   }
 
-  const collectionTimeFromDr = getResultSpecimenFromDr(diagnosticReport)?.collectedDateTime;
+  const collectionTimeFromDr = getResultSpecimenInfoFromDr(diagnosticReport)?.collectedDateTime;
   const collectionDate = collectionTimeFromDr
     ? DateTime.fromISO(collectionTimeFromDr).setZone(timezone).toFormat(LABS_DATE_STRING_FORMAT)
     : '';
@@ -463,6 +463,7 @@ export async function createExternalLabResultPDFBasedOnDr(
     patientID: patient.id,
     encounterID: undefined,
     related: makeRelatedForLabsPDFDocRef({ diagnosticReportId: diagnosticReportID }),
+    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: labOrganization?.name ?? '' },
     diagnosticReportID,
     reviewed,
   });
@@ -489,6 +490,10 @@ export async function createExternalLabResultPDF(
   } = await getExternalLabOrderResourcesViaServiceRequest(oystehr, serviceRequestID);
 
   const locationID = serviceRequest.locationReference?.[0].reference?.replace('Location/', '');
+  const activityDef = serviceRequest.contained?.find(
+    (resource) => resource.resourceType === 'ActivityDefinition'
+  ) as ActivityDefinition;
+  const fillerLab = activityDef?.publisher;
 
   let location: Location | undefined;
   if (locationID) {
@@ -570,6 +575,7 @@ export async function createExternalLabResultPDF(
     patientID: patient.id,
     encounterID: encounter.id,
     related: makeRelatedForLabsPDFDocRef({ diagnosticReportId: diagnosticReport.id }),
+    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab },
     diagnosticReportID: diagnosticReport.id,
     reviewed,
   });
@@ -654,6 +660,7 @@ export async function createInHouseLabResultPDF(
     patientID: patient.id,
     encounterID: encounter.id,
     related: makeRelatedForLabsPDFDocRef({ diagnosticReportId: diagnosticReport.id || '' }),
+    labDetails: { type: dataConfig.type, testName: dataConfig.data.testName, fillerLab: undefined }, // no placerLab because inhouse
     diagnosticReportID: diagnosticReport.id,
     reviewed: false,
   });
@@ -1449,6 +1456,7 @@ export async function makeLabPdfDocumentReference({
   patientID,
   encounterID,
   related,
+  labDetails,
   diagnosticReportID,
   reviewed,
 }: {
@@ -1461,6 +1469,7 @@ export async function makeLabPdfDocumentReference({
   related: Reference[];
   diagnosticReportID?: string;
   reviewed?: boolean;
+  labDetails?: { type: LabType; testName: string; fillerLab: string | undefined }; // will only be passed in for results (not orders)
 }): Promise<DocumentReference> {
   const typeIsLabDrTypeTagCode = isLabDrTypeTagCode(type);
   if (!typeIsLabDrTypeTagCode && !encounterID) {
@@ -1511,6 +1520,7 @@ export async function makeLabPdfDocumentReference({
     dateCreated: DateTime.now().setZone('UTC').toISO() ?? '',
     oystehr,
     generateUUID: randomUUID,
+    meta: labDetails ? makeLabResultDocRefMeta(labDetails) : undefined,
     searchParams,
     listResources: labListResource ? [labListResource] : [], // when passed as empty, the doc will not be added to the patient labs folder
   });
@@ -2049,29 +2059,13 @@ const getAccountNumberFromDr = (diagnosticReport: DiagnosticReport): string | un
   return accountNumber;
 };
 
-const getResultSpecimenFromDr = (diagnosticReport: DiagnosticReport): ResultSpecimenInfo | undefined => {
-  console.log('Extracting results specimen from DR');
-  if (!diagnosticReport.specimen || !diagnosticReport.specimen.length) {
-    console.log('No specimen found on DiagnosticReport');
-    return undefined;
-  }
+const getResultSpecimenInfoFromDr = (diagnosticReport: DiagnosticReport): ResultSpecimenInfo | undefined => {
+  const specimens = extractResultSpecimensFromDr(diagnosticReport);
+  if (!specimens.length) return undefined;
 
-  // We'll assume for now that all of these specimens will be contained because that is what Oystehr is doing
-  const specimenRef = diagnosticReport.specimen.find((sp) => sp.reference !== undefined)?.reference;
-
-  // this could happen if no specimen info is sent in the hl7
-  if (!specimenRef) return undefined;
-
-  const specimen = diagnosticReport.contained?.find(
-    (res): res is Specimen => res.id === specimenRef.replace('#', '') && res.resourceType === 'Specimen'
-  );
-
-  if (!specimen) {
-    console.warn(
-      `DiagnosticReport/${diagnosticReport.id} has a specimen reference ${specimenRef} but not matching contained resource`
-    );
-    return undefined;
-  }
+  // Assumption: if there are multiple specimens on the DR, we are assuming they will have the same site and collection info
+  // this may change in the future. But Ottehr does not currently handle multi-specimen setups
+  const specimen = specimens[0];
 
   if (!specimen.collection) {
     console.warn('No specimen collection info found');

@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import { FieldError, RegisterOptions } from 'react-hook-form';
 import {
   FormFieldsDisplayItem,
+  FormFieldsGroupItem,
   FormFieldsInputItem,
   FormFieldTrigger,
   PATIENT_RECORD_CONFIG,
@@ -15,22 +16,32 @@ interface Trigger extends Omit<FormFieldTrigger, 'effect'> {
 interface TriggeredEffects {
   required: boolean;
   enabled: boolean | null;
+  substituteText: string | undefined;
 }
 
 type ValidationResolver = (values: any) => Promise<{ values: any; errors: Record<string, FieldError> }>;
+
+const ADDRESS_LINE_2_FIELD_DEPENDENCIES: Record<string, string> = {
+  'patient-street-address-2': 'patient-street-address',
+  'policy-holder-address-additional-line': 'policy-holder-address',
+  'policy-holder-address-additional-line-2': 'policy-holder-address-2',
+  'responsible-party-address-2': 'responsible-party-address',
+  'emergency-contact-address-2': 'emergency-contact-address',
+  'employer-address-2': 'employer-address',
+};
 
 /**
  * Evaluates triggers for a field based on current form values
  */
 export const evaluateFieldTriggers = (
-  item: FormFieldsInputItem | FormFieldsDisplayItem,
+  item: FormFieldsInputItem | FormFieldsDisplayItem | FormFieldsGroupItem,
   formValues: Record<string, any>,
   enableBehavior: 'any' | 'all' = 'any'
 ): TriggeredEffects => {
   const { triggers } = item;
 
   if (!triggers || triggers.length === 0) {
-    return { required: false, enabled: true };
+    return { required: false, enabled: true, substituteText: undefined };
   }
 
   const flattenedTriggers: Trigger[] = triggers.flatMap((trigger) =>
@@ -49,7 +60,7 @@ export const evaluateFieldTriggers = (
         currentValue = formValues[fieldKey];
       }
     }
-    const { operator, answerBoolean, answerString, answerDateTime } = trigger;
+    const { operator, answerBoolean, answerString, answerDateTime, substituteText } = trigger;
     let conditionMet = false;
 
     switch (operator) {
@@ -137,7 +148,7 @@ export const evaluateFieldTriggers = (
       default:
         console.warn(`Operator ${operator} not implemented in trigger processing`);
     }
-    return { ...trigger, conditionMet };
+    return { ...trigger, conditionMet, substituteText };
   });
 
   return triggerConditionsWithOutcomes.reduce(
@@ -165,9 +176,13 @@ export const evaluateFieldTriggers = (
         acc.required = acc.required || false;
       }
 
+      if (trigger.effect === 'sub-text' && trigger.conditionMet) {
+        acc.substituteText = trigger.substituteText;
+      }
+
       return acc;
     },
-    { required: false as boolean, enabled: null as boolean | null }
+    { required: false as boolean, enabled: null as boolean | null, substituteText: undefined as undefined | string }
   );
 };
 
@@ -253,6 +268,16 @@ export const generateFieldValidationRules = (
       }
       if (otherGroupValue === value) {
         return `Account may not have two ${value.toLowerCase()} insurance plans`;
+      }
+      return true;
+    };
+  }
+
+  const requiredAddressLine1Field = ADDRESS_LINE_2_FIELD_DEPENDENCIES[item.key];
+  if (requiredAddressLine1Field) {
+    rules.validate = (value: string, context: any) => {
+      if (value && !context[requiredAddressLine1Field]) {
+        return 'Address line 2 cannot be filled without address line 1';
       }
       return true;
     };
